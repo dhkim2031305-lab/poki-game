@@ -1,0 +1,10 @@
+{
+  "name": "poki-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Poki HTML5 game starter",
+  "scripts": {
+    "dev": "node tools/server.js",
+    "build": "node tools/build.js"
+  }
+}
