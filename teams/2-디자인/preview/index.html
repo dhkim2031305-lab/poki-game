@@ -41,7 +41,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 <div class="wrap">
 <header>
   <h1>화면 시안 v1 · 폰 가로 844×390</h1>
-  <p><span class="tag">디자인팀 초안</span>확정된 GDD(2026-11-24)를 기준으로 그린 시안이에요. 실제 게임처럼 캔버스에 도형으로만 그렸고, 이미지 파일은 없어요. 예시 나라는 대한민국이에요. 나라 순서와 시작 돈은 기획팀 <code>balance.md</code>의 값(OECD 2024)이에요. 능력치는 balance.md에 [제안]으로 올라온 공식으로 계산했어요. <b>v2</b>: 30개국 목록 반영, 아이템 5종 추가, 이어하기는 쓰러진 자리에서 바로 해요.</p>
+  <p><span class="tag">디자인팀 초안</span>확정된 GDD(2026-11-24)를 기준으로 그린 시안이에요. 실제 게임처럼 캔버스에 도형으로만 그렸고, 이미지 파일은 없어요. 예시 나라는 대한민국이에요. 나라 순서와 시작 돈은 기획팀 <code>balance.md</code>의 값(OECD 2024)이에요. 능력치는 balance.md에 [제안]으로 올라온 공식으로 계산했어요. <b>v3</b>: 30개국 목록을 반영했어요. 아이템은 4종(구급상자 뺌)이고, 돈은 그 나라 통화 기호로 보여 줘요(한국 ₩, 표시 방법은 [제안]). 이어하기는 쓰러진 자리에서 바로 해요.</p>
 </header>
 
 <section>
@@ -62,8 +62,8 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 </section>
 
 <section>
-  <h2>3-1. 아이템 5종 <small>GDD 4-2 · 글자 없이 아이콘과 색으로 구분해요</small></h2>
-  <p>윗줄은 아이템 5종이에요. 이름과 효과 글자는 시안 설명용이고, 게임에서는 아이콘만 보여요. 아랫줄은 아이템이 바닥에 떨어진 모습, 사라지기 3초 전 깜빡임, 화면 위 효과 표시(남은 시간), 효과 중인 장수 모습이에요. 효과 수치는 balance.md의 [제안] 값이고 아직 사용자 확인 전이에요.</p>
+  <h2>3-1. 아이템 4종 <small>GDD 4-2 · 글자 없이 아이콘과 색으로 구분해요</small></h2>
+  <p>윗줄은 아이템 4종이에요. HP 회복 아이템은 없어요(사용자 결정). 이름과 효과 글자는 시안 설명용이고, 게임에서는 아이콘만 보여요. 아랫줄은 아이템이 바닥에 떨어진 모습, 사라지기 3초 전 깜빡임, 화면 위 효과 표시(남은 시간), 효과 중인 장수 모습이에요. 효과 수치는 balance.md의 [제안] 값이고 아직 사용자 확인 전이에요.</p>
   <div class="phone"><canvas id="c-items" width="1688" height="560" style="aspect-ratio:844/280"></canvas></div>
 </section>
 
@@ -106,7 +106,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
     <li><b>1. 국기 그리는 방법</b> · 제안: 공개 라이선스 SVG 국기 30개를 써요. 약 100~150KB예요. 코드로 직접 그리면 용량은 0이지만 캐나다·미국·멕시코 국기처럼 복잡한 건 틀리기 쉬워요.</li>
     <li><b>2. 배경음</b> · 제안: 코드로 만든 짧은 반복음을 넣고, 음소거 버튼도 넣어요.</li>
     <li><b>3. 흔들림 끄기 버튼</b> · 제안: 일시정지 메뉴에 넣어요.</li>
-    <li><b>4. 구급상자 표시</b> · 빨간 십자는 국제법으로 보호되는 표장이라 게임에 쓰면 안 돼요. 초록 십자로 그렸어요.</li>
+    <li><b>4. 통화 표시</b> · 제안: 동전 안에 그 나라 통화 기호를 넣어요(₩·$·€·¥ 등). 숫자는 게임 점수(1위 100 기준) 그대로 써요. 실제 금액으로 바꿀지는 기획팀이 정해요.</li>
     <li><b>기획팀 확인 필요</b> · 게임 제목, 공격 방식(근접/원거리), 스킬 내용이 GDD에 없어요. 시안에는 임시로 넣었어요(원거리 공격, 주변 충격파).</li>
   </ul>
 </section>
@@ -117,6 +117,7 @@ const C={bg:'#0E1726',grid:'#18263F',edge:'#2B4166',side:'#070C16',fg:'#F4F7FB',
  gold:'#FFD166',shot:'#FFE08A',purple:'#B14DFF',green:'#7CFF4F',pink:'#FF4FD8',red:'#FF5A5F',amber:'#F4B860',
  btn2:'#24365A',ad:'#3DDC97',hp:'#3DDC97'};
 const KR=['#FFFFFF','#CD2E3A','#0047A0'];
+const CUR='₩'; /* 고른 나라 통화 기호 [제안] */
 const FONT='system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif';
 const W=844,H=390,AX=(W-693)/2,AW=693;
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -146,7 +147,7 @@ function stars(x,t){for(let i=0;i<70;i++){const sx=(i*137.5+t*(6+i%5*3))%W,sy=(i
 const I={
  play(x,cx,cy,s,c){x.beginPath();x.moveTo(cx-s*.35,cy-s*.45);x.lineTo(cx+s*.5,cy);x.lineTo(cx-s*.35,cy+s*.45);x.closePath();x.fillStyle=c;x.fill();},
  heart(x,cx,cy,s,c){x.save();x.translate(cx,cy);x.scale(s/20,s/20);x.beginPath();x.moveTo(0,7);x.bezierCurveTo(-12,-1,-8,-11,0,-5);x.bezierCurveTo(8,-11,12,-1,0,7);x.fillStyle=c;x.fill();x.restore();},
- coin(x,cx,cy,s){circ(x,cx,cy,s/2,C.gold);circ(x,cx,cy,s/2-3,null,'#C99A2E',1.5);txt(x,'$',cx,cy+.5,s*.55,'#8A6411');},
+ coin(x,cx,cy,s,sym=CUR){circ(x,cx,cy,s/2,C.gold);circ(x,cx,cy,s/2-3,null,'#C99A2E',1.5);txt(x,sym,cx,cy+.5,s*.5,'#8A6411');},
  sword(x,cx,cy,s,c){x.save();x.translate(cx,cy);x.rotate(-Math.PI/4);x.fillStyle=c;x.fillRect(-1.6,-s*.5,3.2,s*.7);x.fillRect(-s*.22,s*.18,s*.44,3);x.fillRect(-1.6,s*.2,3.2,s*.28);x.restore();},
  speed(x,cx,cy,s,c){x.strokeStyle=c;x.lineWidth=2.6;x.lineCap='round';for(const d of[-.22,.12]){x.beginPath();x.moveTo(cx+d*s-s*.12,cy-s*.3);x.lineTo(cx+d*s+s*.14,cy);x.lineTo(cx+d*s-s*.12,cy+s*.3);x.stroke();}},
  bolt(x,cx,cy,s,c){x.beginPath();x.moveTo(cx+s*.12,cy-s*.5);x.lineTo(cx-s*.28,cy+s*.06);x.lineTo(cx-s*.02,cy+s*.06);x.lineTo(cx-s*.14,cy+s*.5);x.lineTo(cx+s*.28,cy-s*.08);x.lineTo(cx+s*.02,cy-s*.08);x.closePath();x.fillStyle=c;x.fill();},
@@ -358,8 +359,8 @@ function auraRage(x,px,py,t){const p=reduce?0:Math.sin(t*8)*2;x.save();x.shadowC
 function auraShield(x,px,py,t){const p=reduce?0:Math.sin(t*4)*1.5;circ(x,px,py,28+p,'rgba(91,200,255,.16)','#5BC8FF',2.5);x.strokeStyle='rgba(232,247,255,.6)';x.lineWidth=2;x.beginPath();x.arc(px,py,22+p,-2.4,-1.6);x.stroke();}
 function drawItems(t){const c=document.getElementById('c-items');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);
   x.fillStyle=C.bg;x.fillRect(0,0,W,280);
-  const L=[['rage','분노','공격력 ×3 · 8초'],['shield','방패','무적 · 5초'],['med','구급상자','HP 50% 회복'],['bomb','폭탄','화면 안 외계인 피해 40'],['coin','금화','돈 +5']];
-  L.forEach(([k,n,e],i)=>{const px=W*(.1+i*.2);itemToken(x,px,58,56,k,t);txt(x,n,px,112,14,C.fg,'center',700);txt(x,e,px,130,11,C.muted,'center',500);});
+  const L=[['rage','분노','공격력 크게 오름 · 8초'],['shield','방패','무적 · 5초'],['bomb','폭탄','화면 안 외계인 피해 40'],['coin','금화','돈 +5 · 그 나라 돈 모양']];
+  L.forEach(([k,n,e],i)=>{const px=W*(.125+i*.25);itemToken(x,px,58,56,k,t);txt(x,n,px,112,14,C.fg,'center',700);txt(x,e,px,130,11,C.muted,'center',500);});
   x.strokeStyle='#22324F';x.lineWidth=1;x.beginPath();x.moveTo(30,150);x.lineTo(W-30,150);x.stroke();
   const y2=200;
   itemToken(x,W*.1,y2,40,'shield',t,.7);txt(x,'바닥 · 남은 10초 고리',W*.1,256,11,C.muted,'center',500);
@@ -377,7 +378,7 @@ function drawGlow(t){const c=document.getElementById('c-glow');const x=c.getCont
 }
 
 /* 색상 표 */
-const PAL=[['배경','#0E1726','전장 바닥'],['바닥 격자','#18263F','64px 간격'],['전장 경계','#2B4166','2px 벽'],['장수 몸','국기 색','흰 테두리 #F4F7FB'],['장수 반짝임(돈)','#FFD166','투명도 0.25~0.9'],['우리 공격','#FFE08A','금빛 원'],['외계인 A','#B14DFF','육각형'],['외계인 B','#7CFF4F','삼각형'],['외계인 공격','#FF4FD8','분홍 마름모'],['위험','#FF5A5F','맞을 때 · HP 25% 이하'],['돈 감소 숫자','#F4B860','빨강 대신 호박색'],['HP 막대','#3DDC97','보상형 버튼과 같은 초록'],['글자','#F4F7FB',''],['보조 글자','#8FA3BF','출처·연도'],['보조 버튼','#24365A',''],['아이템 · 분노','#FF7A3D','불꽃'],['아이템 · 방패','#5BC8FF','방패 · 장수 둘레 막'],['아이템 · 구급상자','#3DDC97','초록 십자 (빨간 십자 금지)'],['아이템 · 폭탄','#C9D3E3','검은 폭탄 + 불똥'],['아이템 · 금화','#FFD166','돈 아이콘과 같음']];
+const PAL=[['배경','#0E1726','전장 바닥'],['바닥 격자','#18263F','64px 간격'],['전장 경계','#2B4166','2px 벽'],['장수 몸','국기 색','흰 테두리 #F4F7FB'],['장수 반짝임(돈)','#FFD166','투명도 0.25~0.9'],['우리 공격','#FFE08A','금빛 원'],['외계인 A','#B14DFF','육각형'],['외계인 B','#7CFF4F','삼각형'],['외계인 공격','#FF4FD8','분홍 마름모'],['위험','#FF5A5F','맞을 때 · HP 25% 이하'],['돈 감소 숫자','#F4B860','빨강 대신 호박색'],['HP 막대','#3DDC97','보상형 버튼과 같은 초록'],['글자','#F4F7FB',''],['보조 글자','#8FA3BF','출처·연도'],['보조 버튼','#24365A',''],['아이템 · 분노','#FF7A3D','불꽃'],['아이템 · 방패','#5BC8FF','방패 · 장수 둘레 막'],['아이템 · 폭탄','#C9D3E3','검은 폭탄 + 불똥'],['아이템 · 금화','#FFD166','돈 아이콘과 같음']];
 document.getElementById('palette').innerHTML=PAL.map(([a,b,c])=>`<tr><td>${a}</td><td>${b.startsWith('#')?`<span class="sw" style="background:${b}"></span><code>${b}</code>`:b}</td><td>${c}</td></tr>`).join('');
 
 /* 소리 (sound.draft.md 그대로) */

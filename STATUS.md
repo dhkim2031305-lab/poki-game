@@ -17,7 +17,7 @@
 | 기획 · 밸런스 | `balance.md` 수치 · OECD 지표 확인 · 뺄 8개국 후보 | 🔨 진행 중 | Claude + Gemini |
 | 기획 · 수익화 | `monetization.md` 광고 규칙 | 🔨 진행 중 | Claude |
 | 기획 | 올릴 사이트 확정 (독점 조건 확인) | ⏳ 대기 | 사용자 |
-| 디자인 | `ui.md` · `style-guide.md` · `sound.md` | 👀 초안 v2(`*.draft.md`)·시안(`preview/index.html`, 30개국·아이템 반영) · 사용자 승인 대기 | Claude / GPT |
+| 디자인 | `ui.md` · `style-guide.md` · `sound.md` | 👀 초안 v3(`*.draft.md`)·시안(`preview/index.html`, 30개국·아이템 4종·통화 반영) · 사용자 승인 대기 | Claude / GPT |
 | 개발 | `game.js`를 실제 게임으로 교체 | 🔒 디자인 승인 후 | GPT / Claude |
 | 개발 | GameDistribution 쓰면 gameId 입력 | 🔒 사이트 확정 후 | 사용자 |
 | QA | 사이트별 체크리스트 통과 | 🔒 개발 후 | Claude |
