@@ -15,7 +15,7 @@
   | QA | `teams/4-QA/` (코드는 안 고침) |
   | 출시 | `teams/5-출시/` |
   | 모든 팀 | `STATUS.md` (내 팀 줄과 인수인계 칸) |
-- 공용 저장소는 GitHub예요. **시작할 때 `git pull`, 끝날 때 commit 후 `git push`** 해서 다른 팀 세션과 이어요. 브랜치는 `main` 하나만 써요.
+- 공용 저장소는 GitHub예요. **시작할 때 `git pull`, 끝날 때 commit 후 `git push`** 해서 다른 팀 세션과 이어요. 브랜치는 `main` 하나만 써요. 저장소: github.com/dhkim2031305-lab/poki-game (비공개)
 - push가 충돌하면 `git pull --rebase` 후 다시 push해요. 다른 팀 파일과 충돌하면 그 팀 내용을 살려요.
 
 ## 세션 시작할 때 (매번)
