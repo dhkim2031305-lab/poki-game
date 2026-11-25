@@ -212,6 +212,16 @@
     x.drawImage(im, f * cw, 0, cw, im.naturalHeight, -size / 2, -h / 2, size, h); x.restore();
     return true;
   }
+  // 나라별 검기 그림 (Nano Banana 생성 · 사용자 "검기날리는 캐릭터마다 검기도 각기 다르게"): fx/wave.webp 15칸, +x 방향, 검정 바탕 → 더하기 합성
+  const WAVE_IDX = { luxembourg: 0, netherlands: 1, austria: 2, germany: 3, sweden: 4, france: 5, italy: 6, spain: 7, japan: 8, portugal: 9, hungary: 10, turkiye: 11, chile: 12, mexico: 13, colombia: 14 };
+  const WAVE_SIZE = { germany: 1.3, italy: .85, netherlands: .95, japan: 1.05 };   // 칼 크기 느낌 (츠바이핸더 크게, 글라디우스 작게)
+  function waveSheet(key, px, py, dir, t) {
+    const im = UI.img['fx/wave'], i = WAVE_IDX[key]; if (!im || !im.naturalWidth || i == null) return false;
+    const x = UI.x, cw = im.naturalWidth / 15, ch = im.naturalHeight, k = (1 + Math.min(.3, t * 1.1)) * (WAVE_SIZE[key] || 1), w = 62 * k, h = w * ch / cw;
+    x.save(); x.globalCompositeOperation = 'lighter'; x.translate(px, py); x.rotate(dir); if (Math.cos(dir) < 0) x.scale(1, -1);
+    x.drawImage(im, i * cw, 0, cw, ch, -w * .62, -h / 2, w, h); x.restore();   // 초승달 앞쪽이 탄 자리에 오게 조금 뒤로
+    return true;
+  }
   window.FX = {
     sheet,
     cell,
@@ -241,6 +251,7 @@
         x.save(); x.translate(px, py); x.rotate(kind === 'polearm' ? dir : t * SPIN[kind]); x.drawImage(im, -w / 2, -h / 2, w, h); x.restore();
         return;
       }
+      if (kind === 'wave' && waveSheet(key, px, py, dir, t)) return;
       (SHOT[kind] || SHOT.arrow)(UI.x, px, py, dir, t);
     },
   };
