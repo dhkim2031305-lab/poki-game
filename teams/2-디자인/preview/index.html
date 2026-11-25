@@ -41,7 +41,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 <div class="wrap">
 <header>
   <h1>화면 시안 v5 · 폰 가로 844×390</h1>
-  <p><span class="tag">일러스트 기반</span>사용자가 확정한 GPT 장수 그림 30명을 넣었어요. UI 색은 그림에서 뽑은 금빛·양피지색·철색에 맞췄어요. 예시 나라는 대한민국이고, 숫자는 기획팀 <code>balance.md</code>의 값이에요(감소량 D=7.5 [제안], 아래 절반은 파산). <b>외계인과 전장 바닥은 3차 그림이 올 때까지 자리만 표시했어요.</b> 장수도 전투용 작은 그림(3차)이 오면 바꿔요.</p>
+  <p><span class="tag">일러스트 기반 v6</span>사용자가 확정한 장수 30명, 3차 그림(외계인 2종과 보스, 전장 방, 전투용 장수)과 화폐 아이템 20종을 넣었어요. 전투용 장수는 아직 한국·일본·독일 3명만 있어서, 플레이 화면은 한국으로 보여 줘요. 예시 나라는 대한민국이고, 숫자는 기획팀 <code>balance.md</code>(D=7.5, 승인)의 값이에요.</p>
 </header>
 
 <section>
@@ -57,14 +57,19 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 
 <section>
   <h2>3. 플레이 화면 <small>왼손 조이스틱 · 오른손 공격(크게)과 스킬</small></h2>
-  <p>전장은 16:9로 고정해서 가운데에 둬요. 화면이 더 넓은 폰에서는 양옆이 어두운 띠가 돼요. 조이스틱과 버튼은 화면 가장자리 기준으로 놓아요. 공격은 <b>원거리라고 임시로 정해서</b> 그렸어요.</p>
+  <p>전장은 16:9로 고정해서 가운데에 둬요. 화면이 더 넓은 폰에서는 양옆이 어두운 띠가 돼요. 조이스틱과 버튼은 화면 가장자리 기준으로 놓아요. 공격은 <b>원거리라고 임시로 정해서</b> 그렸어요. 바닥은 3차 그림의 성채 안뜰이고, 외계인은 상하좌우 네 문으로 들어와요.</p>
   <div class="phone"><canvas id="c-play" width="1688" height="780"></canvas></div>
 </section>
 
 <section>
-  <h2>3-1. 아이템 4종 <small>GDD 4-2 · 글자 없이 아이콘과 색으로 구분해요</small></h2>
-  <p>윗줄은 아이템 4종이에요. HP 회복 아이템은 없어요(사용자 결정). 이름과 효과 글자는 시안 설명용이고, 게임에서는 아이콘만 보여요. 아랫줄은 아이템이 바닥에 떨어진 모습, 사라지기 3초 전 깜빡임, 화면 위 효과 표시(남은 시간), 효과 중인 장수 모습이에요. 효과 수치는 balance.md의 [제안] 값이고 아직 사용자 확인 전이에요.</p>
-  <div class="phone"><canvas id="c-items" width="1688" height="560" style="aspect-ratio:844/280"></canvas></div>
+  <h2>3-1. 화폐 아이템 20종 <small>GDD 4-2 · 아이템은 화폐만 · 환율이 셀수록 공격력이 세져요</small></h2>
+  <p>윗줄 두 줄은 환율 순위 1~20위 화폐예요. 동전 색이 등급을 나타내요(금·은·동). 아랫줄은 화폐가 바닥에 놓인 모습(10초 고리), 사라지기 3초 전 깜빡임, 화면 위 효과 표시(8초), 효과 중인 장수예요. 아이템은 둥둥 뜨지 않고 바닥에 놓여 있어요.</p>
+  <div class="phone"><canvas id="c-items" width="1688" height="620" style="aspect-ratio:844/310"></canvas></div>
+</section>
+
+<section>
+  <h2>3-2. 외계인 <small>3차 그림 · 따뜻한 장수와 반대인 형광 보라·초록</small></h2>
+  <div class="phone"><canvas id="c-aliens" width="1688" height="520" style="aspect-ratio:844/260"></canvas></div>
 </section>
 
 <section>
@@ -121,7 +126,9 @@ const KR=['#FFFFFF','#CD2E3A','#0047A0'];
 const CUR='₩';
 const NAMES=['luxembourg','ireland','switzerland','usa','netherlands','denmark','austria','australia','germany','sweden','canada','finland','france','italy','korea','spain','czechia','israel','lithuania','newzealand','japan','portugal','poland','hungary','slovakia','greece','turkiye','chile','mexico','colombia'];
 const IMG={};let loaded=0;function img(n){return IMG[n];}
-[...NAMES,'korea-lg'].forEach(n=>{const im=new Image();im.onload=()=>{IMG[n]=im;if(++loaded===NAMES.length+1)drawSelect();};im.src='img/'+n+'.webp';});
+const CURS='GBP CHF EUR USD CAD AUD NZD ILS PLN CNY DKK SEK MXN CZK TRY JPY HUF KRW CLP COP'.split(' ');
+const EXTRA=['korea-lg','sprite-korea','alien-grunt','alien-shooter','alien-boss','room',...CURS.map(c=>'cur-'+c)];
+[...NAMES,...EXTRA].forEach(n=>{const im=new Image();im.onload=()=>{IMG[n]=im;if(++loaded===NAMES.length+EXTRA.length)drawSelect();};im.src='img/'+n+'.webp';});
 function sprite(x,n,cx,footY,h){const im=IMG[n];if(!im)return;const w=im.width*h/im.height;x.drawImage(im,cx-w/2,footY-h,w,h);} /* 고른 나라 통화 기호 [제안] */
 const FONT='system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif';
 const W=844,H=390,AX=(W-693)/2,AW=693;
@@ -136,6 +143,7 @@ function circ(x,px,py,r,fill,stroke,lw=2){x.beginPath();x.arc(px,py,r,0,Math.PI*
 function field(x,t=0,full=false){
   x.fillStyle=C.side;x.fillRect(0,0,W,H);
   const ax=full?0:AX,aw=full?W:AW;
+  if(IMG.room&&!full){x.drawImage(IMG.room,ax,0,aw,H);return;}
   x.fillStyle=C.bg;x.fillRect(ax,0,aw,H);
   x.strokeStyle=C.grid;x.lineWidth=1;x.beginPath();
   const off=(t*8)%64;
@@ -168,8 +176,8 @@ const I={
 };
 
 /* 외계인 */
-function alienA(x,px,py,r,t=0){x.save();x.translate(px,py);x.rotate(t*.6);x.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;x.lineTo(Math.cos(a)*r,Math.sin(a)*r);}x.closePath();x.fillStyle=C.purple;x.shadowColor=C.purple;x.shadowBlur=12;x.fill();x.restore();circ(x,px,py,r*.38,C.green);circ(x,px,py,r*.16,'#1B0A2E');}
-function alienB(x,px,py,r,ang=0){x.save();x.translate(px,py);x.rotate(ang);x.beginPath();x.moveTo(r,0);x.lineTo(-r*.8,-r*.85);x.lineTo(-r*.8,r*.85);x.closePath();x.fillStyle=C.green;x.shadowColor=C.green;x.shadowBlur=10;x.fill();x.shadowBlur=0;circ(x,-r*.15,-r*.28,r*.2,C.purple);circ(x,-r*.15,r*.28,r*.2,C.purple);x.restore();}
+function alienA(x,px,py,r,t=0){if(IMG['alien-grunt']){const h=r*3.4;x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(px,py+h*.42,h*.35,h*.1,0,0,Math.PI*2);x.fill();sprite(x,'alien-grunt',px,py+h*.45,h);return;}x.save();x.translate(px,py);x.rotate(t*.6);x.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;x.lineTo(Math.cos(a)*r,Math.sin(a)*r);}x.closePath();x.fillStyle=C.purple;x.shadowColor=C.purple;x.shadowBlur=12;x.fill();x.restore();circ(x,px,py,r*.38,C.green);circ(x,px,py,r*.16,'#1B0A2E');}
+function alienB(x,px,py,r,ang=0){if(IMG['alien-shooter']){const h=r*4.2;x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(px,py+h*.42,h*.25,h*.08,0,0,Math.PI*2);x.fill();sprite(x,'alien-shooter',px,py+h*.45,h);return;}x.save();x.translate(px,py);x.rotate(ang);x.beginPath();x.moveTo(r,0);x.lineTo(-r*.8,-r*.85);x.lineTo(-r*.8,r*.85);x.closePath();x.fillStyle=C.green;x.shadowColor=C.green;x.shadowBlur=10;x.fill();x.shadowBlur=0;circ(x,-r*.15,-r*.28,r*.2,C.purple);circ(x,-r*.15,r*.28,r*.2,C.purple);x.restore();}
 
 /* 장수: 원 + 국기 색 띠 + 금빛 반짝임(돈 비율) */
 function hero(x,px,py,ang,money,cols=KR,t=0,n='korea',h=64){
@@ -288,12 +296,12 @@ function drawPlay(t){const x=ctxOf('c-play');field(x,t);
     if(al.k)alienB(x,px,py,11,a+Math.PI/2);else alienA(x,px,py,14,t);if(!target)target=al;});
   for(let i=0;i<4;i++){const q=(t*2+i*.3)%1;if(!target)break;const tx=hx+(target.px-hx)*q,ty=hy+(target.py-hy)*q;x.save();x.shadowColor=C.gold;x.shadowBlur=8;circ(x,tx,ty,4,C.shot);x.restore();}
   [[0.3,.2],[0.65,.75]].forEach(([u,v],i)=>{const px=AX+AW*u+Math.sin(t+i)*20,py=H*v;x.save();x.translate(px,py);x.rotate(Math.PI/4);x.fillStyle=C.pink;x.fillRect(-4,-4,8,8);x.restore();});
-  itemToken(x,AX+AW*.25,H*.62,30,'shield',t,.7,false);itemToken(x,AX+AW*.78,H*.36,30,'coin',t,.22,true);
-  const ang=target?Math.atan2(target.py-hy,target.px-hx):0;hero(x,hx,hy,ang,.238,KR,t);
+  curItem(x,AX+AW*.25,H*.64,40,'USD',t,.7,false);curItem(x,AX+AW*.74,H*.36,40,'JPY',t,.22,true);
+  const ang=target?Math.atan2(target.py-hy,target.px-hx):0;hero(x,hx,hy,ang,.238,KR,t,'sprite-korea',60);auraBoost(x,hx,hy+27,t);
   const pp=reduce?0:((t*1.2)%1);for(let i=0;i<10;i++){const a=i*.63,rad=6+pp*30;x.globalAlpha=1-pp;circ(x,W*.62+Math.cos(a)*rad,H*.3+Math.sin(a)*rad,2.5,C.purple);}x.globalAlpha=1;
   /* HUD */
   I.heart(x,W*.08,H*.09,18,C.red);bar(x,W*.08+16,H*.09-7,150,14,.8,C.hp);txt(x,'43/54',W*.08+174,H*.09,12,C.fg,'left',600);
-  txt(x,'₩23.8',W*.08-8,H*.18,17,C.gold,'left',700);effectChip(x,W*.08+4,H*.28,'rage',.65,'5.2');
+  txt(x,'₩23.8',W*.08-8,H*.18,17,C.gold,'left',700);curChip(x,W*.08+4,H*.28,'KRW',.65,'5.2');
   for(let i=0;i<6;i++){const dx=W/2-45+i*18;if(i<2)circ(x,dx,H*.08,5,C.gold);else if(i==2)circ(x,dx,H*.08,5,null,C.fg,2);else circ(x,dx,H*.08,5,C.btn2);}
   txt(x,'3/6',W/2+68,H*.08,13,C.fg,'left',700);
   alienA(x,W/2-14,H*.165,7,0);txt(x,'× 9',W/2+4,H*.165,13,C.muted,'left',600);
@@ -305,12 +313,12 @@ function drawPlay(t){const x=ctxOf('c-play');field(x,t);
   const sxp=W*.73,syp=H*.58;circ(x,sxp,syp,34,'rgba(255,209,102,.18)',C.gold,2.5);I.bolt(x,sxp,syp,30,C.gold);
   const cd=.6;x.beginPath();x.moveTo(sxp,syp);x.arc(sxp,syp,34,-Math.PI/2+Math.PI*2*(1-cd),-Math.PI/2+Math.PI*2);x.closePath();x.fillStyle='rgba(7,12,22,.6)';x.fill();
   txt(x,'3.7',sxp,syp+1,14,C.fg,'center',700);
-  txt(x,'PC: WASD 이동 · J 공격 · K 스킬',W/2,H*.93,12,C.muted,'center',500);
-  rr(x,AX+8,H-30,250,20,10,'rgba(244,184,96,.15)');txt(x,'외계인·바닥 = 3차 그림 대기 · 공격 임시',AX+133,H-20,11,C.amber,'center',600);
+  rr(x,W/2-110,H*.84-11,220,22,11,'rgba(15,17,22,.75)');txt(x,'PC: WASD 이동 · J 공격 · K 스킬',W/2,H*.84,12,C.muted,'center',500);
+  rr(x,AX+46,H-62,110,20,10,'rgba(15,17,22,.75)');txt(x,'공격 원거리 = 임시',AX+101,H-52,11,C.amber,'center',600);
 }
 
 /* ===== 4. 라운드 사이 ===== */
-function drawRound(t){const x=ctxOf('c-round');field(x,0);hero(x,W/2-250,H/2+40,0,.313,KR,t,'korea',90);
+function drawRound(t){const x=ctxOf('c-round');field(x,0);hero(x,W/2-250,H/2+40,0,.313,KR,t,'sprite-korea',90);
   x.fillStyle='rgba(7,12,22,.45)';x.fillRect(0,0,W,H);
   const pw=360,ph=230,px=W/2-pw/2,py=H/2-ph/2;rr(x,px,py,pw,ph,16,C.panel,C.frame,1);
   I.check(x,px+70,py+34,24,C.hp);txt(x,'라운드 2 클리어',W/2+12,py+34,22,C.fg);
@@ -361,17 +369,29 @@ function itemToken(x,cx,cy,s,kind,t,life=1,blink=false){
 function effectChip(x,cx,cy,kind,frac,label){circ(x,cx,cy,15,C.btn2);II[kind](x,cx,cy,20);x.strokeStyle=IC[kind];x.lineWidth=3;x.beginPath();x.arc(cx,cy,15,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);x.stroke();txt(x,label,cx+22,cy,13,IC[kind],'left',700);}
 function auraRage(x,px,py,t){const p=reduce?0:Math.sin(t*8)*2;x.save();x.shadowColor=IC.rage;x.shadowBlur=12;circ(x,px,py,25+p,null,IC.rage,3);x.restore();if(!reduce)for(let i=0;i<5;i++){const q=(t*1.5+i*.2)%1,an=i*1.26+t;x.globalAlpha=1-q;circ(x,px+Math.cos(an)*22,py+Math.sin(an)*22-q*18,2.5,IC.rage);}x.globalAlpha=1;}
 function auraShield(x,px,py,t){const p=reduce?0:Math.sin(t*4)*1.5;circ(x,px,py,28+p,'rgba(91,200,255,.16)','#5BC8FF',2.5);x.strokeStyle='rgba(232,247,255,.6)';x.lineWidth=2;x.beginPath();x.arc(px,py,22+p,-2.4,-1.6);x.stroke();}
+function curItem(x,cx,cy,s,code,t,life=1,blink=false){
+  if(blink&&!reduce&&Math.floor(t*6)%2)x.globalAlpha=.35;
+  x.fillStyle='rgba(0,0,0,.45)';x.beginPath();x.ellipse(cx,cy+s*.36,s*.5,s*.12,0,0,Math.PI*2);x.fill();
+  const im=IMG['cur-'+code];if(im){const w=s*1.3,h=im.height*w/im.width;x.drawImage(im,cx-w/2,cy+s*.4-h,w,h);}
+  if(life<1){x.strokeStyle=C.glow;x.globalAlpha*=.85;x.lineWidth=3;x.beginPath();x.ellipse(cx,cy+s*.36,s*.72,s*.22,0,-Math.PI/2,-Math.PI/2+Math.PI*2*life);x.stroke();}
+  x.globalAlpha=1;
+}
+function curChip(x,cx,cy,code,frac,label){circ(x,cx,cy,16,C.btn2);const im=IMG['cur-'+code];if(im)x.drawImage(im,cx-13,cy-13,26,26*im.height/im.width);x.strokeStyle=C.glow;x.lineWidth=3;x.beginPath();x.arc(cx,cy,16,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);x.stroke();txt(x,label,cx+23,cy,13,C.glow,'left',700);}
+function auraBoost(x,px,foot,t){const p=reduce?0:Math.sin(t*8)*2;x.save();x.shadowColor='#FF7A3D';x.shadowBlur=14;x.strokeStyle='#FF9A4D';x.lineWidth=3;x.beginPath();x.ellipse(px,foot,26+p,9+p*.3,0,0,Math.PI*2);x.stroke();x.restore();if(!reduce)for(let i=0;i<6;i++){const q=(t*1.4+i*.17)%1,an=i*1.05;x.globalAlpha=1-q;circ(x,px+Math.cos(an)*22,foot-q*46,2.2,'#FFB45C');}x.globalAlpha=1;}
 function drawItems(t){const c=document.getElementById('c-items');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);
-  x.fillStyle=C.bg;x.fillRect(0,0,W,280);
-  const L=[['rage','분노','공격력 크게 오름 · 8초'],['shield','방패','무적 · 5초'],['bomb','폭탄','화면 안 외계인 피해 40'],['coin','금화','돈 +5 · 그 나라 돈 모양']];
-  L.forEach(([k,n,e],i)=>{const px=W*(.125+i*.25);itemToken(x,px,58,56,k,t);txt(x,n,px,112,14,C.fg,'center',700);txt(x,e,px,130,11,C.muted,'center',500);});
-  x.strokeStyle=C.frame;x.lineWidth=1;x.beginPath();x.moveTo(30,150);x.lineTo(W-30,150);x.stroke();
-  const y2=200;
-  itemToken(x,W*.1,y2,40,'shield',t,.7);txt(x,'바닥 · 남은 10초 고리',W*.1,256,11,C.muted,'center',500);
-  itemToken(x,W*.3,y2,40,'coin',t,.2,true);txt(x,'3초 전부터 깜빡임',W*.3,256,11,C.muted,'center',500);
-  effectChip(x,W*.47,y2-14,'rage',.65,'5.2');effectChip(x,W*.47,y2+22,'shield',.3,'1.5');txt(x,'효과 중 표시 (돈 아래)',W*.5,256,11,C.muted,'center',500);
-  hero(x,W*.7,y2,-Math.PI/2,.388,KR,t);auraRage(x,W*.7,y2,t);txt(x,'분노 중',W*.7,256,11,C.muted,'center',500);
-  hero(x,W*.9,y2,-Math.PI/2,.388,KR,t);auraShield(x,W*.9,y2,t);txt(x,'방패 중',W*.9,256,11,C.muted,'center',500);
+  x.fillStyle=C.bg;x.fillRect(0,0,W,310);
+  CURS.forEach((code,i)=>{const col=i%10,row=Math.floor(i/10),px=W*(.06+col*.098),py=40+row*84;const im=IMG['cur-'+code];if(im){const w=66,h=im.height*w/im.width;x.drawImage(im,px-w/2,py-h/2,w,h);}txt(x,(i+1)+'. '+code,px,py+38,10,C.muted,'center',600);});
+  x.strokeStyle=C.frame;x.lineWidth=1;x.beginPath();x.moveTo(30,190);x.lineTo(W-30,190);x.stroke();
+  const y2=240;
+  curItem(x,W*.12,y2,44,'EUR',t,.7);txt(x,'바닥 · 남은 10초 고리',W*.12,292,11,C.muted,'center',500);
+  curItem(x,W*.32,y2,44,'KRW',t,.2,true);txt(x,'3초 전부터 깜빡임',W*.32,292,11,C.muted,'center',500);
+  curChip(x,W*.5,y2-4,'KRW',.65,'5.2');txt(x,'효과 중 표시 (돈 아래 · 8초)',W*.52,292,11,C.muted,'center',500);
+  hero(x,W*.75,y2-18,-Math.PI/2,.388,KR,t,'sprite-korea',70);auraBoost(x,W*.75,y2+13,t);txt(x,'공격력 세진 장수',W*.75,292,11,C.muted,'center',500);
+}
+function drawAliens(t){const c=document.getElementById('c-aliens');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);
+  x.fillStyle=C.bg;x.fillRect(0,0,W,260);
+  [['alien-grunt',W*.2,110,'기본 외계인','보라 · 다리 여섯 · 가까이 붙어 공격'],['alien-shooter',W*.45,130,'사격 외계인','초록 · 팔에 발사기 · 멀리서 쏨'],['alien-boss',W*.76,190,'보스','보라·초록 갑각 · 6라운드 등']].forEach(([n,px,h,a,b])=>{
+    x.fillStyle='rgba(0,0,0,.45)';x.beginPath();x.ellipse(px,205,h*.32,h*.07,0,0,Math.PI*2);x.fill();sprite(x,n,px,208,h);txt(x,a,px,228,14,C.fg,'center',700);txt(x,b,px,246,11,C.muted,'center',500);});
 }
 
 function drawBankrupt(t){const x=ctxOf('c-bankrupt');field(x,0);x.fillStyle='rgba(7,8,12,.6)';x.fillRect(0,0,W,H);
@@ -387,11 +407,11 @@ function drawBankrupt(t){const x=ctxOf('c-bankrupt');field(x,0);x.fillStyle='rgb
 function drawGlow(t){const c=document.getElementById('c-glow');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);
   x.fillStyle=C.bg;x.fillRect(0,0,W,230);
   [[1,'100 · 룩셈부르크 시작'],[.388,'38.8 · 한국 시작'],[.146,'14.6 · 콜롬비아 시작'],[.013,'1.3 · 한국 6라운드']].forEach(([m,l],i)=>{const px=W*(.14+i*.24);
-    hero(x,px,96,-Math.PI/2,m,KR,t,'korea',110);txt(x,l,px,180,13,C.muted,'center',600);txt(x,'반짝임 '+Math.round((.25+.65*m)*100)+'%',px,200,11,C.gold,'center',500);});
+    hero(x,px,96,-Math.PI/2,m,KR,t,'sprite-korea',110);txt(x,l,px,180,13,C.muted,'center',600);txt(x,'반짝임 '+Math.round((.25+.65*m)*100)+'%',px,200,11,C.gold,'center',500);});
 }
 
 /* 색상 표 */
-const PAL=[['배경(화면 밖)','#0F1116','그림 모음 배경과 같은 어두운 철색'],['전장 바닥(임시)','#151820','3차 그림 room.png가 오면 바뀜'],['패널','#18161A','투명도 0.94 · 테두리 #8C6B32'],['패널 테두리(낡은 금)','#8C6B32','그림의 금장식 그림자색'],['주 버튼(금)','#D9AE4F','그림의 금장식 밝은 색 · 아이콘 #1A1410'],['보조 버튼','#2C2A30','철색'],['글자(양피지)','#F2E3C6','그림의 밝은 천·양피지색'],['보조 글자','#B1A599','그림의 강철 밝은 색'],['장수 금빛(돈)','#FFD166','발밑 빛 · 투명도 0.25~0.9'],['HP 막대','#3DDC97',''],['위험','#FF5A5F','맞을 때 · HP 25% 이하'],['돈 감소 숫자','#F4B860','빨강 대신 호박색'],['외계인 A(임시)','#B14DFF','따뜻한 그림과 반대인 형광색'],['외계인 B(임시)','#7CFF4F',''],['외계인 공격','#FF4FD8','']];
+const PAL=[['배경(화면 밖)','#0F1116','그림 모음 배경과 같은 어두운 철색'],['패널','#18161A','투명도 0.94 · 테두리 #8C6B32'],['패널 테두리(낡은 금)','#8C6B32','그림의 금장식 그림자색'],['주 버튼(금)','#D9AE4F','그림의 금장식 밝은 색 · 아이콘 #1A1410'],['보조 버튼','#2C2A30','철색'],['글자(양피지)','#F2E3C6','그림의 밝은 천·양피지색'],['보조 글자','#B1A599','그림의 강철 밝은 색'],['장수 금빛(돈)','#FFD166','발밑 빛 · 투명도 0.25~0.9'],['HP 막대','#3DDC97',''],['위험','#FF5A5F','맞을 때 · HP 25% 이하'],['돈 감소 숫자','#F4B860','빨강 대신 호박색'],['기본 외계인','#CA57E5','3차 그림에서 뽑음 · 보라 #892BA5~#CA57E5'],['사격 외계인','#88BD10','3차 그림에서 뽑음 · 초록 #6A9212~#B8D727'],['전장 바닥','#35343D','3차 room.png 돌바닥 평균'],['외계인 공격','#FF4FD8','']];
 document.getElementById('palette').innerHTML=PAL.map(([a,b,c])=>`<tr><td>${a}</td><td>${b.startsWith('#')?`<span class="sw" style="background:${b}"></span><code>${b}</code>`:b}</td><td>${c}</td></tr>`).join('');
 
 /* 소리 (sound.draft.md 그대로) */
@@ -423,6 +443,6 @@ const sw=document.getElementById('sounds');SND.forEach(([l,f])=>{const b=documen
 
 /* 그리기 */
 drawSelect();
-function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawGlow(t);drawItems(t);if(!reduce)requestAnimationFrame(frame);}
+function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawGlow(t);drawItems(t);drawAliens(t);if(!reduce)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
