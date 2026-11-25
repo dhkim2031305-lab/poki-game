@@ -288,10 +288,33 @@ function btnSub(x,cx,cy,r,icon){circ(x,cx,cy,r,C.btn2);I[icon](x,cx,cy,r*1.05,C.
 function bar(x,px,py,w,h,v,col=C.gold,lost=0){rr(x,px,py,w,h,h/2,C.btn2);if(lost>0)rr(x,px,py,w*(v+lost),h,h/2,C.amber);rr(x,px,py,Math.max(h,w*v),h,h/2,col);}
 
 /* ===== 1. 시작 ===== */
-function drawTitle(t){const x=ctxOf('c-title');x.fillStyle=C.bg;x.fillRect(0,0,W,H);stars(x,t);
+/* 시작 화면 돈더미: 동전·지폐를 쌓은 언덕 + 떨어지는 동전 */
+function rnd(i){const v=Math.sin(i*127.1+311.7)*43758.5453;return v-Math.floor(v);}
+function coin(x,cx,cy,r,tilt=.45,shade=0){const g=x.createLinearGradient(cx-r,cy-r,cx+r,cy+r);g.addColorStop(0,shade?'#B8862E':'#FFE08A');g.addColorStop(.5,shade?'#9A6A1E':'#E0A93A');g.addColorStop(1,'#7A4E14');
+  x.fillStyle='#6B4410';x.beginPath();x.ellipse(cx,cy+r*tilt*.35,r,r*tilt,0,0,Math.PI*2);x.fill();x.fillStyle=g;x.beginPath();x.ellipse(cx,cy,r,r*tilt,0,0,Math.PI*2);x.fill();
+  x.strokeStyle='rgba(255,240,190,.55)';x.lineWidth=1;x.beginPath();x.ellipse(cx,cy,r*.72,r*tilt*.72,0,0,Math.PI*2);x.stroke();}
+function moneyPile(x,cx,base,wid,hgt,seed,t){
+  // 언덕 모양 안에 동전을 아래에서 위로 쌓기
+  const n=Math.floor(wid*hgt/30);const items=[];
+  for(let i=0;i<n;i++){const u=rnd(seed+i)*2-1,v=rnd(seed+i*7.3);const top=base-hgt*Math.pow(1-Math.abs(u),1.6);const y=top+v*(base-top);items.push([cx+u*wid/2,y,i]);}
+  items.sort((a,b)=>a[1]-b[1]);
+  const curs=CURS;
+  items.forEach(([px,py,i])=>{const k=rnd(seed+i*3.1);
+    if(k<.045&&IMG['cur-'+curs[i%curs.length]]){const im=IMG['cur-'+curs[i%curs.length]];x.save();x.translate(px,py);x.rotate((rnd(i)-.5)*1.2);const w=34;x.drawImage(im,-w/2,-w*im.height/im.width/2,w,w*im.height/im.width);x.restore();}
+    else coin(x,px,py,8+k*8,.42+rnd(i*5)*.2,py>base-hgt*.25?1:0);});
+  // 반짝임
+  if(!reduce)for(let i=0;i<6;i++){const ph=(t*.8+rnd(seed+i*11))%1,u=rnd(seed+i*13)*2-1;const px=cx+u*wid/2*.8,py=base-hgt*Math.pow(1-Math.abs(u),1.6)*(.6+rnd(i)*.4);x.globalAlpha=Math.sin(ph*Math.PI);star(x,px,py,4,7,1.5,'#FFF6D6');x.globalAlpha=1;}
+}
+function drawTitle(t){const x=ctxOf('c-title');x.fillStyle=C.bg;x.fillRect(0,0,W,H);
+  if(IMG.room){x.globalAlpha=.55;x.drawImage(IMG.room,0,0,W,H);x.globalAlpha=1;}x.fillStyle='rgba(10,8,6,.45)';x.fillRect(0,0,W,H);
+  const gl=x.createRadialGradient(W/2,H*1.05,40,W/2,H*1.05,520);gl.addColorStop(0,'rgba(255,190,80,.45)');gl.addColorStop(1,'rgba(255,190,80,0)');x.fillStyle=gl;x.fillRect(0,0,W,H);
+  // 떨어지는 동전
+  if(!reduce)for(let i=0;i<22;i++){const sp=40+rnd(i)*50,y=((t*sp+rnd(i*3)*H*1.4)%(H*1.4))-40,px=rnd(i*9)*W;coin(x,px,y,4+rnd(i*2)*4,.25+.2*Math.abs(Math.sin(t*4+i)));}
+  moneyPile(x,W*.17,H*1.02,380,230,1,t);moneyPile(x,W*.83,H*1.02,380,230,500,t);moneyPile(x,W/2,H*1.1,520,70,900,t);
+  const sh=x.createRadialGradient(W/2,H*.26,20,W/2,H*.26,300);sh.addColorStop(0,'rgba(10,8,6,.55)');sh.addColorStop(1,'rgba(10,8,6,0)');x.fillStyle=sh;x.fillRect(0,0,W,H*.6);
   alienA(x,(120+t*30)%(W+80)-40,96,16,t);alienB(x,W-((200+t*45)%(W+80))+40,300,12,Math.PI);alienA(x,(560+t*22)%(W+80)-40,330,12,-t);
-  [['germany',.1],['usa',.24],['japan',.76],['france',.9]].forEach(([n,u],i)=>sprite(x,n,W*u,H*.98,170,M.idle(t,i*1.7)));
-  x.save();x.shadowColor='rgba(255,209,102,.6)';x.shadowBlur=18;txt(x,'A World Where Only',W/2,H*.2,30,C.fg,'center',800);txt(x,'the Strong Survive',W/2,H*.2+36,30,C.fg,'center',800);x.restore();
+  [['germany',.1,.93],['usa',.24,.86],['japan',.76,.86],['france',.9,.93]].forEach(([n,u,f],i)=>sprite(x,n,W*u,H*f,150,M.idle(t,i*1.7)));
+  x.save();x.shadowColor='rgba(0,0,0,.9)';x.shadowBlur=14;txt(x,'A World Where Only',W/2,H*.2,30,C.fg,'center',800);txt(x,'the Strong Survive',W/2,H*.2+36,30,C.fg,'center',800);x.restore();
   txt(x,'나라를 고르면 그 나라 말로 바뀌어요 (GDD 0-3)',W/2,H*.2+64,11,C.muted,'center',500);
   btnMain(x,W/2,H*.7,44,'play');
   I.trophy(x,W/2-30,H*.9,18,C.muted);txt(x,'4 / 6',W/2+12,H*.9,14,C.muted,'center',600);
