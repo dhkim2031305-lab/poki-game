@@ -21,4 +21,6 @@
 | `quake3d.js` | 체코 충격파가 3D·2D에서 보이는지 프레임별 캡처 | `node quake3d.js OUT` |
 | `phone-first.js` | 폰 첫 터치 전 화면·치기+쏘기 같이 = 무적·3D PC 더블클릭 | `node phone-first.js OUT` |
 | `aim.js` | GDD 0-17 스킬 자리 지정: PC 커서·전장 밖·폰 끌기/취소/톡·유형별·특수 스킬, 조준 표시 캡처 | `node aim.js OUT` |
+| `rpad.js` | GDD 0-18 폰 오른쪽 큰 원 + 화살표 4개: 크기·화면 안·HUD·엄지 거리, 손잡이 쏘기, 스킬 톡/꾹/×3/취소, 치기 톡/누름/끌기, 무적, 예전 조작 없음 | `node rpad.js OUT` |
+| `multitouch.js` | 두 손가락: 손잡이 민 채 화살표 누르면 쏘기 멈춤·떼면 다시 (PointerEvent 직접) | `node multitouch.js` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
