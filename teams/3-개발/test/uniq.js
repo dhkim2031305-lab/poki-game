@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
     await p.keyboard.press(n === 2 ? 'Semicolon' : 'KeyL');
     await p.evaluate(fr => { for (let i = 0; i < fr; i++) { window.__t += 1000 / 60; window.__cb(window.__t); } }, fr);
     await p.screenshot({ path: `${S}/shots/u-${tag}-${ci}-${n}.png`, clip: { x: 90, y: 60, width: 520, height: 280 } });
-    await p.evaluate(() => { for (let i = 0; i < 200; i++) { window.__t += 1000 / 60; window.__cb(window.__t); } });
+    await p.evaluate(n => { for (let i = 0; i < n; i++) { window.__t += 1000 / 60; window.__cb(window.__t); } }, +process.env.AFTER || 200);   // AFTER=프레임 수 (기본 200)
     const r = await p.evaluate(() => ({ key: G.country.key, F: +G.run.st.F.toFixed(3), hp: G.aliens.map(a => 999 - Math.round(a.hp)), heroHp: G.hero.hp, left: G.run.skillsLeft.slice(1) }));
     out.push(`${r.key} ${n}번: 80F=${(80 * r.F).toFixed(1)} 피해=[${r.hp}] 남은=${r.left}${errs.length ? ' ERR ' + errs.join('|') : ''}`);
     await p.close();

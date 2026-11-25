@@ -47,7 +47,7 @@
   const G = window.G = {
     t: 0, scene: 'loading', paused: false, sel: 0, selScroll: 0, country: null, run: null, hero: null,
     aliens: [], shots: [], eshots: [], items: [], fx: [], zones: [], marks: [], timers: [], ents: [], parts: [], msgs: [], shake: 0, hurtFlash: 0,
-    touchUI: false, load: 0, titleHeroes: [], result: null, panel: null, ending: null,
+    touchUI: (() => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } })(), load: 0, titleHeroes: [], result: null, panel: null, ending: null,   // touchUI: 터치 기기면 첫 터치 전부터 터치 버튼, PC 안내 숨김 (QA F3)
   };
   const rnd = a => a[Math.floor(Math.random() * a.length)];
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -168,6 +168,7 @@
     melee: { x: VW * .87, y: VH * .72, r: 48 }, ranged: { x: VW * .73, y: VH * .84, r: 34 }, skill: { x: VW * .75, y: VH * .56, r: 28 },
     skill2: { x: VW * .89, y: VH * .43, r: 26 }, invuln: { x: VW * .61, y: VH * .7, r: 26 },   // 2번 스킬 · 무적 (사용자 결정 2026-11-25)
   });
+  G.btnPos = btnPos;   // 테스트용 (버튼 자리)
   const toV = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / U, y: (e.clientY - b.top) / U }; };
   let drag = null;
 
@@ -188,7 +189,7 @@
       const b = B[k];
       if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.25) ** 2) {
         if (k === 'skill') useSkill(1); else if (k === 'skill2') useSkill(2); else if (k === 'invuln') useInvuln();
-        else { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; }
+        else if (!touchPress(k, e.timeStamp / 1000)) { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; }
         return;
       }
     }
@@ -197,25 +198,35 @@
   // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
   // 마우스 조작 (사용자 결정 2026-11-25): 좌클릭 치기 · 우클릭 쏘기 · 우클릭 2번 = 1번 스킬 · 좌클릭 2번 = 2번 스킬 · 좌·우 동시 = 무적
   // [제안] 동시 = 두 버튼 0.08초 안, 두 번 = 같은 버튼 0.25초 안. 첫 클릭은 0.07초만 기다렸다가 나가요(동시 누름이면 치기·쏘기 없이 무적만)
-  const MC = { b: 0, mute: 0, pend: null, last: { 1: -9, 2: -9 } }, M_SIM = .08, M_DBL = .25, M_WAIT = .07;
+  // 동시 0.08 → 0.12초 (QA M8). 시각은 프레임이 아니라 입력 이벤트 시각(e.timeStamp)으로 재요 — 3D가 느려도 두 번 누르기가 먹게 (QA M9)
+  const MC = { b: 0, mute: 0, pend: null, last: { 1: -9, 2: -9 }, down: { 1: -9, 2: -9 } }, M_SIM = .12, M_DBL = .25, M_WAIT = .07;
   function pressBtn(bit, now) {
-    if (MC.pend && MC.pend.bit !== bit && now - MC.pend.t <= M_SIM) { MC.pend = null; MC.mute |= 3; MC.last[1] = MC.last[2] = -9; useInvuln(); return; }
+    const other = bit === 1 ? 2 : 1, prevDown = MC.down[other]; MC.down[bit] = now;
+    if (now - prevDown <= M_SIM) { MC.pend = null; MC.mute |= 3; MC.last[1] = MC.last[2] = MC.down[1] = MC.down[2] = -9; useInvuln(); return; }
     if (now - MC.last[bit] <= M_DBL) { MC.last[bit] = -9; MC.mute |= bit; if (MC.pend && MC.pend.bit === bit) MC.pend = null; useSkill(bit === 2 ? 1 : 2); return; }
     MC.last[bit] = now; MC.pend = { bit, t: now };
+  }
+  // 폰 (사용자 "근거리 공격 두번: 스킬 1 원거리 공격 두번: 스킬 2" + "둘 다"): 치기 두 번 = 1번 스킬 · 쏘기 두 번 = 2번 스킬 · 두 버튼 같이 = 무적 (PC와 짝이 반대, GDD)
+  const TC = { last: { melee: -9, ranged: -9 } };
+  function touchPress(k, now) {   // true면 치기·쏘기 대신 스킬·무적을 썼어요
+    const other = k === 'melee' ? 'ranged' : 'melee';
+    if (now - TC.last[other] <= M_SIM) { TC.last.melee = TC.last.ranged = -9; useInvuln(); return true; }
+    if (now - TC.last[k] <= M_DBL) { TC.last[k] = -9; useSkill(k === 'melee' ? 1 : 2); return true; }
+    TC.last[k] = now; return false;
   }
   function mouseHeld() {
     const ok = bit => !!(MC.b & bit) && !(MC.mute & bit) && !(MC.pend && MC.pend.bit === bit);
     input.mMelee = ok(1); input.mRanged = ok(2);
   }
   function mousePending() {   // 기다리던 첫 클릭을 내보내요 (update에서)
-    if (!MC.pend || performance.now() / 1000 - MC.pend.t < M_WAIT) return;
+    if (!MC.pend || performance.now() / 1000 - MC.pend.t < M_WAIT) return;   // e.timeStamp와 performance.now()는 같은 시계예요
     buf[MC.pend.bit === 1 ? 'melee' : 'ranged'] = 0.1; MC.pend = null; mouseHeld();
   }
   function mouseButtons(e) {
     // 브라우저가 커서를 안 움직였는데도 보내는 이동 신호(예: 페이지를 띄울 때 0,0)는 조준으로 치지 않아요
     if (e.type === 'pointermove' && !mouse.on && !e.movementX && !e.movementY && !e.buttons) return;
     const on = G.scene === 'play' && !G.paused;
-    const b = on ? e.buttons & 3 : 0, prev = MC.b, now = performance.now() / 1000; MC.b = b;
+    const b = on ? e.buttons & 3 : 0, prev = MC.b, now = (e.timeStamp || performance.now()) / 1000; MC.b = b;
     MC.mute &= b;                                     // 손을 떼면 막아 둔 버튼이 풀려요
     for (const bit of [1, 2]) if (b & bit & ~prev) pressBtn(bit, now);
     mouseHeld();
@@ -617,7 +628,7 @@
         sfx('crackLine', h.x, h.y, .8, { pts }); AUDIO.play('impSmash');
       }
       else if (m.k === 'orbit') {   // 튀르키예 1: 굽은 칼날 3개가 2초 동안 둘레를 돌아요
-        let t = 0, tick = 0; const dm = o.dmg / m.div;
+        let t = 0, tick = .25; const dm = o.dmg / m.div;   // 0.25·0.75·1.25·1.75초 = 2초에 4번 (QA M4)
         ent({ x: h.x, y: h.y, t: 0, update(dt) { t += dt; this.t = t; const H = G.hero; this.x = H.x; this.y = H.y; if ((tick -= dt) <= 0) { tick += .5; hitCircle(H.x, H.y, 85, dm, { heavy: false, main: false }); } return t < 2; },
           draw(at) { const e = this; at(e.x, e.y, () => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.globalAlpha = Math.min(1, (2 - e.t) / .3);
             for (let i = 0; i < 3; i++) { const q = e.t * 7 + i * Math.PI * 2 / 3, x = e.x + Math.cos(q) * 62, y = e.y - 18 + Math.sin(q) * 62 * GK();
@@ -651,7 +662,8 @@
     guard(o) { G.hero.guard = { t: 0, a: o.ang, base: o.dmg, hit: new Set(), mod: o.mod, k: o.mod.k, blocked: 0, tick: 0, shoved: new Map(), T: o.mod.time || SKB.GUARD_TIME, omni: o.mod.k === 'omni' || o.mod.k === 'walkGuard' }; },
     zone(o) {
       const h = G.hero, f = FIELD.floor, m = o.mod;
-      G.zones.push({ x: clamp(h.x + o.dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + o.dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK,
+      G.zones.push({ x: clamp(h.x + o.dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + o.dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK / 2,   // 0.25·0.75 … 2.75초 = 3초에 6번 (balance.md, QA M1)
+       
         base: o.dmg, dmg: o.dmg / (m.div || SKB.ZONE_DIV), mod: m, k: m.k, rings: [], nextRing: .15,
         arrows: o.n === 1 && G.country.ranged === 'arrow', slow: o.n === 2 && G.country.key === 'finland' });   // 한국 화살비 · 핀란드 눈 함정(느리게)
       { const z = G.zones[G.zones.length - 1]; if (m.life) z.life = m.life; if (m.k === 'ring6') { z.inside = new Map(); z.cnt = new Map(); } }
@@ -720,7 +732,7 @@
     }
     for (const mk of G.marks) {   // 바닥 자국: 밟는 외계인 0.5초마다
       mk.t += dt; mk.tick -= dt;
-      if (mk.tick <= 0) { mk.tick += .5; hitCircle(mk.x, mk.y, 16, mk.dmg, { heavy: false, main: false }); }
+      if (mk.tick <= 0) { mk.tick += .5; hitCircle(mk.x, mk.y, 16, mk.dmg, { heavy: false, main: false, test: al => G.t - (al.printT == null ? -9 : al.printT) >= .49, each: al => { al.printT = G.t; } }); }   // 같은 외계인은 자국 여러 개에 같이 밟혀도 0.5초에 한 번 (QA M2)
     }
     G.marks = G.marks.filter(mk => mk.t < mk.life);
     G.ents = G.ents.filter(e => e.update(dt) !== false);
@@ -748,7 +760,8 @@
         if (m.k === 'stepThrust') { const fl = FIELD.floor; h.x = clamp(h.x + dx * 12, fl.x0 + 12, fl.x1 - 12); h.y = clamp(h.y + dy * 10, fl.y0 + 22, fl.y1); kind = 'streak'; }   // 이탈리아 2: 찌를 때마다 한 걸음
         const angs = m.k === 'spread3' ? [a - .26, a, a + .26] : m.k === 'boomer' ? [-2, -1, 0, 1, 2].map(i => a + i * m.fan) : [a];   // 한국 2: 세 갈래 · 호주 1: 다섯 갈래
         if (m.k === 'boomer') extra.hits = null;   // 부메랑마다 따로 (아래에서 새로)
-        for (const q of angs) G.shots.push(Object.assign({ kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null));
+        const volley = angs.length > 1 ? new Set() : null;   // 한국 2: 한 번 쏜 세 갈래는 같은 외계인을 한 번만 (QA M4)
+        for (const q of angs) G.shots.push(Object.assign({ volley, kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null));
         G.fx.push({ kind: 'skill', type: 'barrage', x: h.x + dx * 26, y: h.y - 24 + dy * 10, h0: 24 - dy * 10, a, t: 0, life: .22 });
         h.rangedT = .2; h.aimShot = a; h.atkT = .12; h.shotT = G.t; b.n++;
         AUDIO.play('attack');
@@ -1314,7 +1327,7 @@
         continue;
       }
       if (s.life <= 0 && s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 });
-      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); s.life = 0; if (s.chain) s.chain.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
+      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); s.life = 0; if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
     }
     G.shots = G.shots.filter(s => s.life > 0);
     G.aliens = G.aliens.filter(a => !a.dead);

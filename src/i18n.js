@@ -39,7 +39,7 @@
       // ↓ texts.md에 없는 글자 [개발팀 임시 · 기획팀에 추가 요청]
       'x.clear': 'Clear!', 'x.fail': 'Mission over', 'x.roundClear': 'Round {n} clear',
       'x.nextRound': 'Next round', 'x.here': 'Right here', 'x.resume': 'Resume', 'x.exit': 'Quit', 'x.quit': 'Quit',
-      'x.sound': 'Sound', 'x.keys': 'WASD move · Click/J strike · Right-click/K throw · Right ×2/L skill 1 · Left ×2/; skill 2 · Both/Space guard · ESC pause',
+      'x.sound': 'Sound', 'x.keys': 'WASD move · Click/J strike · Right-click/K ranged · Right ×2/L skill 1 · Left ×2/; skill 2 · Both/Space invincible · ESC pause',
       'x.loading': 'Loading…', 'x.rotate': '',
     },
     ko: {

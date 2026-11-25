@@ -18,10 +18,10 @@
     name: 'gamedistribution',
     adsReady: () => ready && !!sdk(),
     init() {
-      // SDK_READY를 최대 3초 기다리고, 안 오면 광고 없이 진행
+      // SDK_READY를 최대 1.5초 기다리고 (QA M7: 막히면 첫 화면 3.4초 → 약 1.9초), 안 오면 광고 없이 진행
       return new Promise(resolve => {
         const t0 = Date.now();
-        (function wait() { if (ready || Date.now() - t0 > 3000) { if (!ready) console.warn('[Platform:gamedistribution] 준비 안 됨 → 광고 없이 진행'); else { try { const pr = sdk().preloadAd && sdk().preloadAd('rewarded'); pr && pr.catch && pr.catch(() => {}); } catch {} } resolve(); } else setTimeout(wait, 100); })();
+        (function wait() { if (ready || Date.now() - t0 > 1500) { if (!ready) console.warn('[Platform:gamedistribution] 준비 안 됨 → 광고 없이 진행'); else { try { const pr = sdk().preloadAd && sdk().preloadAd('rewarded'); pr && pr.catch && pr.catch(() => {}); } catch {} } resolve(); } else setTimeout(wait, 100); })();
       });
     },
     loadingFinished() {},

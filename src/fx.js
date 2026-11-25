@@ -81,12 +81,12 @@
       star(x, 10, 0, 4, 11, 3, '#FFFFFF'); x.restore(); },
     // 충격파 (체코 도리깨, 사용자 확정): 땅을 따라 나가는 은빛 물결 — 바닥 높이에 납작하게 (FX.flat = 바닥 원 납작 비율)
     quake(x, px, py, dir, t) {
-      const fl = FX.flat || .35, k = Math.min(1, t / .62);
+      const fl = Math.max(.55, FX.flat || .35), k = Math.min(1, t / .62);   // 둥근 물결이 ">"로 보이지 않게: 크게·넓게·덜 납작하게 (QA M6)
       x.save(); x.translate(px, py); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
       for (let i = 0; i < 3; i++) {
-        const r = 18 + i * 9 + k * 10, a = .95 - i * .22;
+        const r = 26 + i * 11 + k * 14, a = .95 - i * .22;
         x.globalAlpha = a * (1 - k * .45); x.strokeStyle = i === 1 ? PALE + '.9)' : i ? GLOW : '#FFFFFF'; x.lineWidth = 5 - i * 1.3;
-        x.beginPath(); x.ellipse(-i * 6 * Math.cos(dir), -i * 6 * Math.sin(dir) * fl, r, r * fl, 0, dir - 1.1, dir + 1.1); x.stroke();
+        x.beginPath(); x.ellipse(-i * 10 * Math.cos(dir) - 14 * Math.cos(dir), (-i * 10 - 14) * Math.sin(dir) * fl, r, r * fl, 0, dir - 1.45, dir + 1.45); x.stroke();
       }
       x.globalAlpha = .7 * (1 - k); x.fillStyle = '#B1A599';   // 튀는 흙
       for (let i = 0; i < 7; i++) { const a = dir + (i - 3) * .3, r = 24 + ((t * 70 + i * 5) % 12); x.fillRect(Math.cos(a) * r - 1, Math.sin(a) * r * fl - 3 - ((t * 40 + i * 3) % 5), 2.2, 2.2); }
