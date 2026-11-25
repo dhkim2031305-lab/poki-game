@@ -879,7 +879,7 @@
         const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + (s2 * u + c * v) * g]);
           ctx.globalAlpha = (aim.cancel ? .35 : 1) * a; ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40); for (const [i, j] of [[0, 1], [3, 2]]) { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); } ctx.setLineDash([]); return L; };
-        if (k === 'long') band(ex, ey, .35);   // 리투아니아 1: 목표 너머까지 옅게
+        if (k === 'long') band(ex, ey, .4);   // 리투아니아 1: 목표 너머까지 옅게 (40%, 디자인 463e6b5)
         const L = band(tx, ty, 1);
         ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const u = ((G.t * 120 + i * L / 3) % Math.max(1, L)), x = h.x + Math.cos(ang) * u, y = h.y + Math.sin(ang) * u * GK() / .35 * .35;
           ctx.beginPath(); ctx.moveTo(x - Math.cos(ang - .6) * 7, y - Math.sin(ang - .6) * 7 * .6); ctx.lineTo(x, y); ctx.lineTo(x - Math.cos(ang + .6) * 7, y - Math.sin(ang + .6) * 7 * .6); ctx.stroke(); }
