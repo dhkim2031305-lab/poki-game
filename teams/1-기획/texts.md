@@ -1,7 +1,7 @@
 # 번역 문구표 (기획팀)
 
 > 상태: **확정 (2026-11-25, 사용자 "전부 동의")** · 원문은 한국어예요(제목만 영어). 번역은 이 표를 기준으로 해요.
-> **영어 39줄 모두 들어 있어요 (2026-11-25).** 다른 19개 언어는 한국어와 영어를 함께 보고 번역해요. 제목 번역도 번역 단계에서 19개 언어로 만들어요.
+> **영어 69줄 모두 들어 있어요 (2026-11-25, 스킬 이름 30줄 추가).** 다른 19개 언어는 한국어와 영어를 함께 보고 번역해요. 제목 번역도 번역 단계에서 19개 언어로 만들어요.
 > **영어는 꼭 있어야 해요** (설정 Language에서 영어를 고를 수 있어야 하고, CrazyGames·GameDistribution 정책도 영어를 요구해요).
 > 언어 20개: 영어, 프랑스어, 독일어, 네덜란드어, 덴마크어, 스웨덴어, 핀란드어, 이탈리아어, 한국어, 스페인어, 체코어, 히브리어, 리투아니아어, 일본어, 포르투갈어, 폴란드어, 헝가리어, 슬로바키아어, 그리스어, 튀르키예어
 > 번역 검수: GPT 1차 번역 → Gemini 역번역 대조 → 가능하면 원어민 확인 (GDD 5-1)
@@ -12,7 +12,7 @@
 - 말투: 라운드 클리어는 아주 밝게, 엔딩·파산은 담담하고 비꼬듯이 써요. **나라를 탓하지 않고 구조(출발선·돈)를 말해요.** "가난한 나라·부자 나라" 대신 "돈이 적은/많은 나라"라고 써요. 나라 이름에는 부정적인 말을 붙이지 않아요.
 - 스킬 외침은 욕설 없이 순하게 써요. 목소리도 20개 언어로 필요해요.
 
-## 문구 (39줄)
+## 문구 (69줄)
 | ID | 원문 (한국어) | 영어 | 나오는 곳 | 상태 |
 |---|---|---|---|---|
 | `title` | A World Where Only the Strong Survive | A World Where Only the Strong Survive | 시작 화면 제목 (영어 원문, 나라마다 번역) | 확정 |
@@ -53,7 +53,37 @@
 | `bankrupt.again.02` | 광고 본다고 부자 되는 거 아니에요. | Watching ads won't make you rich. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `bankrupt.again.03` | 통장은 그대로예요. | Your bank balance hasn't changed. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `continue.ad` | 이런다고 없던 돈이 생길까? | Think this will make money appear out of nowhere? | 광고를 보고 이어 갈 때 | 확정 |
-| `skill.shout` | {나라}! 버텨! | {country}! Hold on! | 스킬 쓸 때 외침 · 글자 + 목소리 | 확정 (순하게) |
+| `skill.shout` | {나라}! {스킬}! | {country}! {skill}! | 스킬 쓸 때 외침 · 글자 + 목소리 · {스킬}에 아래 스킬 이름이 들어가요 | 확정 (2026-11-25 바뀜) |
+| `skill.name.01` | 사자 문장 돌격 | Lion Crest Charge | 룩셈부르크 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.02` | 회오리 도끼 | Whirlwind Axe | 아일랜드 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.03` | 창벽 | Pike Wall | 스위스 스킬 이름 (방어) | [제안·승인] |
+| `skill.name.04` | 에너지 난사 | Energy Barrage | 미국 스킬 이름 (연사) | [제안·승인] |
+| `skill.name.05` | 연속 찌르기 | Flurry Thrust | 네덜란드 스킬 이름 (연사) | [제안·승인] |
+| `skill.name.06` | 방패벽 | Shield Wall | 덴마크 스킬 이름 (방어) | [제안·승인] |
+| `skill.name.07` | 기병 돌격 | Cavalry Charge | 오스트리아 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.08` | 부메랑 투척 | Boomerang Throw | 호주 스킬 이름 (연사) | [제안·승인] |
+| `skill.name.09` | 대검 회전베기 | Greatsword Spin | 독일 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.10` | 돌격 대형 | Charge Formation | 스웨덴 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.11` | 도끼 던지기 | Axe Toss | 캐나다 스킬 이름 (연사) | [제안·승인] |
+| `skill.name.12` | 설원 질주 | Snowfield Dash | 핀란드 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.13` | 기병검 휩쓸기 | Saber Sweep | 프랑스 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.14` | 거북 대형 | Tortoise Formation | 이탈리아 스킬 이름 (방어) | [제안·승인] |
+| `skill.name.15` | 화살비 | Arrow Rain | 한국 스킬 이름 (설치) | [제안·승인] |
+| `skill.name.16` | 일섬 | Single Flash | 스페인 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.17` | 방패 진지 | Shield Fort | 체코 스킬 이름 (설치) | [제안·승인] |
+| `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | [제안·승인] |
+| `skill.name.19` | 기마 창돌격 | Mounted Lance Charge | 리투아니아 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.20` | 은빛 고사리 결계 | Silver Fern Ward | 뉴질랜드 스킬 이름 (설치) | [제안·승인] |
+| `skill.name.21` | 발도술 돌진 | Quickdraw Dash | 일본 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.22` | 항해의 바람 | Sailing Wind | 포르투갈 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.23` | 날개 기병 돌격 | Winged Cavalry Charge | 폴란드 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.24` | 사브르 연격 | Saber Combo | 헝가리 스킬 이름 (연사) | [제안·승인] |
+| `skill.name.25` | 산악 도끼 내려찍기 | Mountain Axe Slam | 슬로바키아 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.26` | 방패 밀치기 | Shield Bash | 그리스 스킬 이름 (방어) | [제안·승인] |
+| `skill.name.27` | 곡도 회전베기 | Scimitar Spin | 튀르키예 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.28` | 산바람 | Mountain Gale | 칠레 스킬 이름 (범위) | [제안·승인] |
+| `skill.name.29` | 독수리 일격 | Eagle Strike | 멕시코 스킬 이름 (돌진) | [제안·승인] |
+| `skill.name.30` | 함성 | Battle Cry | 콜롬비아 스킬 이름 (범위) | [제안·승인] |
 
 ## 나라 이름 (30개)
 - 각 나라 이름은 그 나라 언어로만 보여 줘요. 예: 한국 → 대한민국/한국, 일본 → 日本.
