@@ -86,6 +86,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 </section>
 
 <section>
+  <h2>3-5. 스킬 5유형 <small>기획 skills.md 확정 · 색은 흰·은·옅은 금 한 계열, 유형은 모양으로 구분</small></h2>
+  <p>위 줄은 스킬 버튼에 들어갈 아이콘이에요(지금은 코드 그림, 10차 GPT 그림이 오면 바꿔요). 아래는 유형별 이펙트예요: 돌진 = 흰 잔상 줄, 범위 = 바닥에 퍼지는 원, 연사 = 짧은 빛줄기 여러 개, 방어 = 은빛 반원 벽, 설치 = 바닥에 남는 옅은 금빛 원. 버튼 오른쪽 위 숫자는 남은 횟수(라운드마다 2회)예요.</p>
+  <div class="phone"><canvas id="c-skill" width="1688" height="760" style="aspect-ratio:844/380"></canvas></div>
+</section>
+
+<section>
   <h2>3-2. 외계인 <small>3차 그림 · 따뜻한 장수와 반대인 형광 보라·초록</small></h2>
   <div class="phone"><canvas id="c-aliens" width="1688" height="520" style="aspect-ratio:844/260"></canvas></div>
 </section>
@@ -548,6 +554,37 @@ function drawBA(t){const c=document.getElementById('c-ba');const x=c.getContext(
     x.restore();}});
 }
 
+/* ===== 스킬 5유형 ===== */
+const SKW='#FFFFFF',SKS='#C9CED6',SKG='#E8D9A8';
+const SKICON={
+ dash(x,c,y,s){x.strokeStyle=SKW;x.lineWidth=s*.09;x.lineCap='round';x.lineJoin='round';x.beginPath();x.moveTo(c-s*.05,y-s*.25);x.lineTo(c+s*.25,y);x.lineTo(c-s*.05,y+s*.25);x.stroke();x.strokeStyle=SKS;x.lineWidth=s*.05;for(const d of[-.15,0,.15]){x.beginPath();x.moveTo(c-s*.38,y+d*s);x.lineTo(c-s*.12,y+d*s);x.stroke();}},
+ area(x,c,y,s){circ(x,c,y,s*.07,SKW);circ(x,c,y,s*.2,null,SKS,s*.05);circ(x,c,y,s*.34,null,SKG,s*.04);},
+ barrage(x,c,y,s){x.lineCap='round';[[-.18,.2],[0,.35],[.18,.2],[.09,0]].forEach(([d,o],i)=>{x.strokeStyle=i%2?SKG:SKW;x.lineWidth=s*.06;x.beginPath();x.moveTo(c-s*.3+o*s*.3,y+d*s);x.lineTo(c+s*.05+o*s*.3,y+d*s);x.stroke();});},
+ guard(x,c,y,s){x.strokeStyle=SKS;x.lineWidth=s*.08;x.beginPath();x.arc(c-s*.15,y,s*.32,-1.2,1.2);x.stroke();x.strokeStyle=SKW;x.lineWidth=s*.03;x.beginPath();x.arc(c-s*.15,y,s*.24,-1.0,1.0);x.stroke();},
+ zone(x,c,y,s){x.strokeStyle=SKG;x.lineWidth=s*.05;x.beginPath();x.ellipse(c,y+s*.18,s*.34,s*.12,0,0,Math.PI*2);x.stroke();x.strokeStyle=SKW;x.lineWidth=s*.04;for(const d of[-.18,0,.18]){x.beginPath();x.moveTo(c+d*s,y-s*.32);x.lineTo(c+d*s,y+s*.05);x.stroke();}},
+};
+function skillBtn(x,cx,cy,r,type,left){circ(x,cx,cy,r,'rgba(255,209,102,.16)',C.gold,2.5);SKICON[type](x,cx,cy,r*1.3);circ(x,cx+r*.72,cy-r*.72,r*.32,C.gold);txt(x,String(left),cx+r*.72,cy-r*.72,r*.36,'#1A1410');}
+function drawSkill(t){const c=document.getElementById('c-skill');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);
+  x.fillStyle=C.bg;x.fillRect(0,0,W,380);
+  const T=[['dash','돌진','9개국 · 룩셈부르크·일본 등','luxembourg'],['area','범위','8개국 · 독일·아일랜드 등','germany'],['barrage','연사','6개국 · 미국·호주 등','usa'],['guard','방어','4개국 · 스위스·이탈리아 등','switzerland'],['zone','설치','3개국 · 한국·체코·뉴질랜드','korea']];
+  const w=W/5;T.forEach(([k,n,sub,who],i)=>{const cx=w*(i+.5);skillBtn(x,cx,46,28,k,2);txt(x,n,cx,92,14,C.fg,'center',700);txt(x,sub,cx,110,10,C.muted,'center',500);
+    rr(x,cx-w/2+6,128,w-12,240,12,'#1A181C',C.frame,1);if(IMG.room){x.save();x.beginPath();x.roundRect(cx-w/2+7,129,w-14,238,12);x.clip();x.globalAlpha=.35;x.drawImage(IMG.room,cx-300,60,700,400);x.restore();}
+    const P=2.2,p=(t%P)/P,fy=300;let hx=cx-34;
+    x.save();x.beginPath();x.rect(cx-w/2+7,129,w-14,238);x.clip();
+    if(k==='dash'){const q=Math.min(1,p/.35);hx=cx-50+q*80;for(let g=1;g<=4;g++){const gx=hx-g*14*q;x.globalAlpha=.22*(5-g)/4*(p<.6?1:1-(p-.6)/.4);frameSprite(x,who,1+g%4,gx,fy,70,{bright:2.2});}x.globalAlpha=1;
+      x.strokeStyle=SKS;x.lineWidth=2;for(const d of[-30,-14,2]){x.globalAlpha=.6*(1-q*.5);x.beginPath();x.moveTo(hx-60*q,fy+d);x.lineTo(hx-14,fy+d);x.stroke();}x.globalAlpha=1;}
+    if(k==='area'){const q=(p-.1)/.5;if(q>=0&&q<=1){for(const [k2,col] of [[1,SKW],[.7,SKG]]){x.globalAlpha=1-q;x.strokeStyle=col;x.lineWidth=4*(1-q)+1;x.beginPath();x.ellipse(cx,fy,(16+q*70)*k2,(6+q*24)*k2,0,0,Math.PI*2);x.stroke();}x.globalAlpha=1;fxArc(x,cx,fy-30,p*9,Math.min(1,q*1.3),40,2.6,7,SKS);}hx=cx;}
+    if(k==='barrage'){for(let i=0;i<6;i++){const q=((p*3)-i*.18)%1;if(q<0||p>.75)continue;const bx=hx+20+q*110,by=fy-34+((i%3)-1)*8;x.save();x.globalAlpha=1-q*.6;x.strokeStyle=i%2?SKG:SKW;x.lineWidth=3;x.lineCap='round';x.beginPath();x.moveTo(bx-18,by);x.lineTo(bx,by);x.stroke();x.restore();}}
+    if(k==='guard'){const q=p<.15?p/.15:p<.75?1:1-(p-.75)/.25;x.save();x.globalAlpha=q*.9;const gx=hx+40;const g=x.createLinearGradient(gx-10,0,gx+14,0);g.addColorStop(0,'rgba(201,206,214,0)');g.addColorStop(1,'rgba(232,238,245,.55)');x.fillStyle=g;x.beginPath();x.ellipse(gx,fy-30,18,46*q,0,-Math.PI/2,Math.PI/2);x.fill();x.strokeStyle=SKW;x.lineWidth=2.5;x.beginPath();x.ellipse(gx,fy-30,18,46*q,0,-Math.PI/2,Math.PI/2);x.stroke();
+      x.strokeStyle='rgba(255,255,255,.25)';x.lineWidth=1;for(let j=-3;j<=3;j++){x.beginPath();x.moveTo(gx+2,fy-30+j*12*q);x.lineTo(gx+14,fy-30+j*12*q);x.stroke();}x.restore();}
+    if(k==='zone'){const zx=cx+30,q=p<.1?p/.1:p<.85?1:1-(p-.85)/.15;x.save();x.globalAlpha=q*.7;const g=x.createRadialGradient(zx,fy,4,zx,fy,52);g.addColorStop(0,'rgba(232,217,168,.35)');g.addColorStop(1,'rgba(232,217,168,0)');x.fillStyle=g;x.beginPath();x.ellipse(zx,fy,52,18,0,0,Math.PI*2);x.fill();
+      x.strokeStyle=SKG;x.lineWidth=2;x.beginPath();x.ellipse(zx,fy,48,16,0,0,Math.PI*2);x.stroke();x.beginPath();x.ellipse(zx,fy,32,11,0,0,Math.PI*2);x.stroke();x.restore();
+      if(q>.5)for(let i=0;i<5;i++){const qq=((p*4)+i*.2)%1,ax=zx-36+rnd(i)*72,ay=fy-90+qq*90;x.globalAlpha=Math.sin(qq*Math.PI);SHOT.arrow(x,ax,ay,Math.PI/2);x.globalAlpha=1;}hx=cx-40;}
+    if(k!=='dash'){x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(hx,fy,18,6,0,0,Math.PI*2);x.fill();frameSprite(x,who,k==='barrage'?(p<.75&&Math.floor(p*12)%2?6:5):k==='area'?6:0,hx,fy,70,{});}
+    else{x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(hx,fy,18,6,0,0,Math.PI*2);x.fill();frameSprite(x,who,walkF(t*2),hx,fy,70,{});}
+    x.restore();});
+}
+
 /* ===== 공격 효과 ===== */
 const ease=p=>1-Math.pow(1-p,3);
 const FXS='#D9DDE3',FXG='#E8D9A8'; /* 우리 공격 색: 흰 중심 + 은색/옅은 금 (사용자 "무지개도 아니고") */
@@ -660,6 +697,6 @@ const sw=document.getElementById('sounds');SND.forEach(([l,f])=>{const b=documen
 
 /* 그리기 */
 drawSelect();
-function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);drawAll30(t);drawBA(t);if(!reduce)requestAnimationFrame(frame);}
+function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);drawAll30(t);drawBA(t);drawSkill(t);if(!reduce)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
