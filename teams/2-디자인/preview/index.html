@@ -585,8 +585,8 @@ const MELEE=[['korea','베기','한손검·사브르·카타나',(x,c,y,p)=>fxAr
  ['switzerland','찌르기','창·할버드·기병창',(x,c,y,p)=>fxThrust(x,c,y,0,p,78,C.glow)],
  ['netherlands','빠른 찌르기','레이피어 (3연속)',(x,c,y,p)=>fxThrust(x,c,y,0,p,56,'#F2E3C6',3)],
  ['australia','회전 베기','부메랑 블레이드',(x,c,y,p)=>fxSpin(x,c,y,p,40,C.glow)]];
-const RANGED=[['korea','화살','활 (한국·일본·튀르키예)','arrow'],['finland','총탄','소총·머스킷·권총','bullet'],['usa','에너지 빔','미국만','beam'],['luxembourg','석궁','석궁 (중세 기사)','bolt'],
- ['denmark','던지는 도끼','도끼 나라','axe'],['greece','던지는 창','창 나라','spear'],['australia','부메랑','돌아와요','boomer'],['israel','투석','돌이 포물선으로','stone']];
+const RANGED=[['korea','화살','활 (한국)','arrow'],['finland','물줄기','장난감 물총 (미국·핀란드)','water'],['japan','칼 던지기','칼 나라 · 회전','katana'],['luxembourg','장검 던지기','칼 나라 · 회전','katana'],
+ ['denmark','도끼 던지기','도끼 나라 · 회전','axe'],['greece','창 던지기','창 나라 · 곧게','spear'],['australia','부메랑','돌아와요','boomer'],['israel','투석','돌이 포물선으로','stone']];
 function fxCell(x,cx,cy,w,name,label,sub,t,draw){
   rr(x,cx-w/2+6,cy-82,w-12,168,12,'#1A181C',C.frame,1);
   const P=1.3,p=((t%P)/P),hx=cx-w/2+46,ax=cx+w/2-40,fy=cy+34;
@@ -608,7 +608,9 @@ function drawFx(t){const c=document.getElementById('c-fx');const x=c.getContext(
   const w1=W/6;MELEE.forEach(([n,l,sb,f],i)=>fxCell(x,w1*(i+.5),88,w1,n,l,sb,t,(x,hx,hy,ax,p)=>{f(x,hx+14,hy,Math.min(1,p*1.6));return .2;}));
   const w2=W/4;RANGED.forEach(([n,l,sb,k],i)=>{const cy=i<4?272:447;fxCell(x,w2*(i%4+.5),cy,w2,n,l,sb,t,(x,hx,hy,ax,p)=>{
     const sx=hx+18,sy=hy-4,ex=ax-10,ey=hy+4,dir=Math.atan2(ey-sy,ex-sx);
-    if(k==='beam'){fxBeam(x,sx,sy,ex,ey,(p-.1)/.35,'#5BC8FF');return .12;}
+    if(k==='water'){for(let d=0;d<8;d++){const q=(p-.05-d*.025)/.32;if(q<0||q>1)continue;const px=sx+(ex-sx)*q,py=sy+(ey-sy)*q+Math.sin(q*Math.PI)*-10+q*q*8;circ(x,px,py,4.5-d*.3,'rgba(127,211,255,.9)');circ(x,px-1,py-1.5,1.3,'#fff');}
+      const wq=(p-.37)/.3;if(wq>=0&&wq<=1){x.save();x.globalAlpha=1-wq;for(let i=0;i<8;i++){const a=-Math.PI*(.15+.7*i/7),d=wq*20;circ(x,ex+Math.cos(a)*d,ey-6+Math.sin(a)*d+wq*wq*14,2.5,'#7FD3FF');}x.restore();}return .37;}
+    if(k==='katana'){const q=(p-.05)/.4;if(q>=0&&q<=1){const ROT=qq=>qq*Math.PI*2*1.6,POS=qq=>sx+(ex-sx)*qq;for(let g=3;g>=1;g--){const qq=Math.max(0,q-g*.035);x.globalAlpha=.16*(4-g);katana(x,POS(qq),sy,ROT(qq),.9);}x.globalAlpha=1;katana(x,POS(q),sy,ROT(q),.9);}return .45;}
     if(k==='bullet')muzzle(x,sx+4,sy,dir,p);
     const fl=k==='bullet'?.12:k==='stone'||k==='boomer'?.55:.32,q=(p-.05)/fl;
     if(k==='boomer'){const qq=(p-.05)/.8;if(qq>=0&&qq<=1){const bx=sx+(ex-sx)*Math.sin(qq*Math.PI),by=sy-Math.sin(qq*Math.PI*2)*18;SHOT.boomer(x,bx,by,dir,t);}return .45;}
