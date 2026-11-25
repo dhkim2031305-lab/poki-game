@@ -476,12 +476,14 @@
     return bestA;
   }
   const atkMul = () => (G.hero.buff ? G.hero.buff.mul : 1);
+  const atkSpd = () => (G.hero.boostT > 0 ? BAL.INVULN_ATK_SPEED : 1);   // 무적 중 공격 속도 2.5배
   function melee() {
     const h = G.hero, st = G.run.st;
     const near = mouse.on || (mArrow.id != null && mArrow.dir) ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
     if (mArrow.id != null && mArrow.dir) h.dir = { x: mArrow.dir.x, y: mArrow.dir.y };   // 폰 ← 화살표를 끌면 끈 방향 (GDD 0-18)
     if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
-    h.meleeCd = BAL.MELEE_CD; h.atkT = 0;
+    h.meleeCd = BAL.MELEE_CD / atkSpd(); h.atkT = 0;
+    if (h.boostT > 0 && !reduceMotion) for (const [dl, al] of [[.04, .4], [.08, .2]]) after(dl, () => { if (G.hero && G.hero.swing) G.fx.push({ kind: 'skill', type: 'boostSlash', x: G.hero.x, y: G.hero.y, a: G.hero.swing.ang, al, t: 0, life: .12 }); });   // 빨라진 게 보이게: 흰 잔상 2개
     // 휘두르기 3단계: 예비동작 0.07 → 스윙 0.09 → 마무리 0.12 (피해는 스윙이 시작될 때)
     h.swing = { t: 0, ang: Math.atan2(h.dir.y, h.dir.x), hit: false };
     AUDIO.play('swing');
@@ -543,10 +545,10 @@
     let dx = h.dir.x, dy = h.dir.y;
     if (sOn) { const l = Math.hypot(rstick.x, rstick.y); dx = rstick.x / l; dy = rstick.y / l; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
-    h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
+    h.rangedCd = BAL.RANGED_CD / atkSpd(); h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
     const rk = G.country.ranged;
     const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
-    G.shots.push({ kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null });
+    G.shots.push({ boost: h.boostT > 0, kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null });
     if (quake) {   // 체코 (사용자 확정): 도리깨를 내리쳐 땅을 따라 은빛 충격파 — 칼은 손에, 내려찍기 궤적·바닥음
       G.fx.push({ kind: 'melee', m: 'smash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('smash') });
       AUDIO.play('impSmash'); if (settings.shake) G.shake = Math.max(G.shake, 1.5);
@@ -566,7 +568,7 @@
   function useInvuln() {
     const r = G.run, h = G.hero;
     if (!r || r.invuln <= 0 || h.dead || h.skillT > 0) return;
-    r.invuln--; h.skillT = BAL.SKILL_TIME;
+    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 3초 + 그동안 공격 속도 2.5배
     G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
     if (settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('revive');
@@ -888,6 +890,7 @@
     const y = s.y - 22 - lift, a = Math.atan2(s.vy, s.vx);
     if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key); ctx.restore(); }
     else FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key);
+    if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; FX.drawShot(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age, G.country.key); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
   }
   // ---- 스킬 이펙트 (코드로 그림, 흰 + 은 #C9CED6 / 옅은 금 #E8D9A8) ----
   const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
@@ -1120,6 +1123,7 @@
     if (e.type === 'reflect') {   // 막은 힘을 둘레로 되돌림: 금빛 고리
       ctx.globalAlpha = 1 - k; ctx.strokeStyle = SKG; ctx.lineWidth = 5 * (1 - k) + 1; gEll(e.x, e.y, 30 + 100 * k); ctx.stroke(); return done();
     }
+    if (e.type === 'boostSlash') { ctx.globalAlpha = e.al * (1 - k); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(e.x, e.y - 24, 44, 44 * .7, 0, e.a - 1.1, e.a + 1.1); ctx.stroke(); return done(); }   // 무적 중 치기 잔상
     if (e.type === 'aimFlash') {   // PC: 커서 자리에 목표 원이 1.25배 → 1배로 줄며 0.35초 동안 사라져요 (움직임 줄이기면 깜빡임만)
       const sc = reduceMotion ? 1 : 1.25 - .25 * Math.min(1, k * 2); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = reduceMotion ? (Math.floor(k * 4) % 2 ? 0 : .9) : 1 - k;
       ctx.strokeStyle = SKW; ctx.lineWidth = 2; gEll(e.x, e.y, e.r * sc); ctx.stroke(); ctx.strokeStyle = SKS; ctx.setLineDash([10, 6]); gEll(e.x, e.y, (e.r + 8) * sc); ctx.stroke(); ctx.setLineDash([]); return done();
@@ -1275,7 +1279,7 @@
     if (h.rangedT > 0) h.rangedT -= dt;
     // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
     if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
-    h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
+    h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.boostT = Math.max(0, (h.boostT || 0) - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
     h.meleeCd -= dt; h.rangedCd -= dt;
     if (h.swing) {
       h.swing.t += dt;
@@ -1890,7 +1894,8 @@
     const h = G.hero, r = G.run;
     const money = r ? Math.max(0, r.money) : 50;
     // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
-    if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }   // 넓은 그림자 + 발밑 진한 그림자
+    if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }
+    if (h.boostT > 0 && !reduceMotion) { const sp = G.t * 2.5 * 2; ctx.save(); ctx.strokeStyle = '#C9CED6'; ctx.lineWidth = 2; ctx.globalAlpha = h.boostT > .6 || Math.floor(h.boostT / .1) % 2 === 0 ? .85 : .2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, sp + i * 2.09, sp + i * 2.09 + 1.3); ctx.stroke(); } ctx.restore(); }   // 무적 중: 발밑 은 고리(지름 44)가 평소의 2.5배 속도로 돌아요   // 넓은 그림자 + 발밑 진한 그림자
     { const ga = .25 + .65 * Math.min(1, money / 100);   // 돈 비율만큼 발밑 금빛 (납작한 판 대신 퍼지는 빛)
       ctx.save(); ctx.translate(h.x, h.y); ctx.scale(1, .32); ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); g.addColorStop(0, `rgba(255,209,102,${ga * .75})`); g.addColorStop(.55, `rgba(255,209,102,${ga * .35})`); g.addColorStop(1, 'rgba(255,209,102,0)');
@@ -1901,9 +1906,10 @@
   }
   function heroBody() {
     const h = G.hero, c = G.country, t = G.t;
-    if (h.skillT > 0) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);
+    if (h.skillT > 0 && !(h.boostT > 0)) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);   // 돌진 무적 등 (무적 스킬은 아래 은빛 테두리)
     // 몸
     let mo = { flip: h.dir.x < -0.05 };
+    if (h.boostT > 0 && (h.boostT > .6 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 3초: 몸 은빛 테두리, 끝나기 0.6초 전 3번 깜빡
     let frame = 0;
     if (h.dead && G.scene !== 'ending') { const k = Math.min(1, h.deadT / .6); mo.alpha = 1 - k * .5; mo.sy = 1 - k * .35; }
     else if (h.swing) {
@@ -2146,7 +2152,7 @@
       const me = drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (drag && !me ? dim : 1);
       arrow(b, me, false, false); UI.txt(String(n), b.x, b.y + 1, 26, COL.fg, 'center', 900); badge(b, sLeft(n)); ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 1.5초 동안 은빛
+    ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 3초 동안 은빛
     if (aim && aim.drag) {   // 취소 원: 버튼 둘레 (반지름 + 14) · 들어오면 밝아져요
       const b = aim.b, cr = b.r + 14, on = aim.cancel;
       ctx.save(); ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : 'rgba(15,17,22,.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, cr, 0, Math.PI * 2); ctx.fill();
