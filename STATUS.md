@@ -44,6 +44,12 @@
 
 ## 인수인계
 
+- (디자인 → 개발) **미국·핀란드 총 모션 수정 (2026-11-25, 사용자 승인 "고친거로")** · `style-guide.md` "총 모션" 절
+  - 치기: `data.js` usa·finland 근접 `'slash'` → `'thrust'`(총검 찌르기, 수평 유지)
+  - 쏘기: 각도 고정, 반동은 총 축 뒤로 3px만(0.06초) · 쉬기: 총만 아래 10°(30° REST는 총 제외) · 각도 전환 0.15초 부드럽게, 연사 중엔 쉬기로 안 돌아감
+  - 시안: `teams/2-디자인/preview/gun-motion.html` (https://claude.ai/artifact/9FfiLs8rGPq6hd8M1KoANY)
+- (디자인 → 개발) **검기 `src/assets/fx/wave.webp` 보정 반영됨 (c1a35bd·cf55536)**: 15칸 가장자리 알파 0, 오스트리아·프랑스 채도 0.1. 칸 크기·순서 그대로라 코드 수정은 필요 없어요. 다시 빌드만 해 주세요
+
 - (개발 → QA) **QA로 넘겨요 (2026-11-25, 사용자 "바로 QA로", 최신 커밋 3e4ea6d)**
   - 빌드: `npm run build` → `dist/<사이트>.zip`(약 7.75MB) · 한 파일 `npm run build:single` → `dist/single.html`(10.78MB, 아이폰·갤럭시용 https://claude.ai/artifact/Vui7cvNYFfNhZrdAP5Ruh1)
   - 개발팀이 돌린 회귀 테스트: `teams/3-개발/test/`의 sites·ads2·ending·controls·lazy·portrait·phone·mouse 8종 통과 · 스킬 60개 피해 실측 `uniq.js`(표와 같음) · 외침 말풍선 `shout.js`
