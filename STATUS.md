@@ -17,7 +17,7 @@
 | 기획 · 밸런스 | `balance.md` (OECD 2024 순위·30개국·통화 20개·수치) | ✅ 1차 확정 2026-11-25 · 시제품 뒤 조정 | Claude |
 | 기획 · 수익화 | `monetization.md` 광고 규칙 | ✅ 확정 2026-11-25 (사이트 정책은 출시팀 확인) | Claude |
 | 기획 | 올릴 사이트 확정 (독점 조건 확인) | ⏳ 대기 | 사용자 |
-| 디자인 | `ui.md` · `style-guide.md` · `sound.md` | 👀 v6 시안(장수 30·외계인·전장·화폐 반영) · 사용자 승인 대기 · 전투용 장수 27명 필요(팀장 GPT) | Claude / GPT |
+| 디자인 | `ui.md` · `style-guide.md` · `sound.md` | 🔨 v7 시안(모션 포함) · 5차 동작 시트 30장 팀장 GPT 실행 대기 (gpt-art/round5) · 사용자 승인 대기 | Claude / GPT |
 | 개발 | `game.js`를 실제 게임으로 교체 | 🔒 디자인 승인 후 | GPT / Claude |
 | 개발 | GameDistribution 쓰면 gameId 입력 | 🔒 사이트 확정 후 | 사용자 |
 | QA | 사이트별 체크리스트 통과 | 🔒 개발 후 | Claude |
