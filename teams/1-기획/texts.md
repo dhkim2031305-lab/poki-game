@@ -1,7 +1,7 @@
 # 번역 문구표 (기획팀)
 
 > 상태: **확정 (2026-11-25, 사용자 "전부 동의")** · 원문은 한국어예요(제목만 영어). 번역은 이 표를 기준으로 해요.
-> **영어 69줄 모두 들어 있어요 (2026-11-25, 스킬 이름 30줄 추가).** 다른 19개 언어는 한국어와 영어를 함께 보고 번역해요. 제목 번역도 번역 단계에서 19개 언어로 만들어요.
+> **영어 99줄 모두 들어 있어요 (2026-11-25, 1번·2번 스킬 이름 포함).** 다른 19개 언어는 한국어와 영어를 함께 보고 번역해요. 제목 번역도 번역 단계에서 19개 언어로 만들어요.
 > **영어는 꼭 있어야 해요** (설정 Language에서 영어를 고를 수 있어야 하고, CrazyGames·GameDistribution 정책도 영어를 요구해요).
 > 언어 20개: 영어, 프랑스어, 독일어, 네덜란드어, 덴마크어, 스웨덴어, 핀란드어, 이탈리아어, 한국어, 스페인어, 체코어, 히브리어, 리투아니아어, 일본어, 포르투갈어, 폴란드어, 헝가리어, 슬로바키아어, 그리스어, 튀르키예어
 > 번역 검수: GPT 1차 번역 → Gemini 역번역 대조 → 가능하면 원어민 확인 (GDD 5-1)
@@ -12,7 +12,7 @@
 - 말투: 라운드 클리어는 아주 밝게, 엔딩·파산은 담담하고 비꼬듯이 써요. **나라를 탓하지 않고 구조(출발선·돈)를 말해요.** "가난한 나라·부자 나라" 대신 "돈이 적은/많은 나라"라고 써요. 나라 이름에는 부정적인 말을 붙이지 않아요.
 - 스킬 외침은 욕설 없이 순하게 써요. 목소리도 20개 언어로 필요해요.
 
-## 문구 (69줄)
+## 문구 (99줄)
 | ID | 원문 (한국어) | 영어 | 나오는 곳 | 상태 |
 |---|---|---|---|---|
 | `title` | A World Where Only the Strong Survive | A World Where Only the Strong Survive | 시작 화면 제목 (영어 원문, 나라마다 번역) | 확정 |
@@ -84,6 +84,36 @@
 | `skill.name.28` | 산바람 | Mountain Gale | 칠레 스킬 이름 (범위) | 확정 |
 | `skill.name.29` | 독수리 일격 | Eagle Strike | 멕시코 스킬 이름 (돌진) | 확정 |
 | `skill.name.30` | 함성 | Battle Cry | 콜롬비아 스킬 이름 (범위) | 확정 |
+| `skill2.name.01` | 사자 방패 | Lion Shield | 룩셈부르크 2번 스킬 이름 (방어) | 확정 |
+| `skill2.name.02` | 도끼 돌격 | Axe Rush | 아일랜드 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.03` | 미늘창 연속 찌르기 | Halberd Flurry | 스위스 2번 스킬 이름 (연사) | 확정 |
+| `skill2.name.04` | 에너지 장판 | Energy Field | 미국 2번 스킬 이름 (설치) | 확정 |
+| `skill2.name.05` | 레이피어 돌파 | Rapier Breakthrough | 네덜란드 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.06` | 도끼 회전 | Axe Spin | 덴마크 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.07` | 기병검 원베기 | Cavalry Circle Slash | 오스트리아 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.08` | 부메랑 회오리 | Boomerang Whirl | 호주 2번 스킬 이름 (설치) | 확정 |
+| `skill2.name.09` | 대검 돌파 | Greatsword Breakthrough | 독일 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.10` | 칼막기 자세 | Parry Stance | 스웨덴 2번 스킬 이름 (방어) | 확정 |
+| `skill2.name.11` | 단풍 방패 | Maple Shield | 캐나다 2번 스킬 이름 (방어) | 확정 |
+| `skill2.name.12` | 눈 함정 | Snow Trap | 핀란드 2번 스킬 이름 (설치) | 확정 |
+| `skill2.name.13` | 흉갑기병 돌격 | Cuirassier Charge | 프랑스 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.14` | 글라디우스 연속 찌르기 | Gladius Flurry | 이탈리아 2번 스킬 이름 (연사) | 확정 |
+| `skill2.name.15` | 연발 화살 | Rapid Arrows | 한국 2번 스킬 이름 (연사) | 확정 |
+| `skill2.name.16` | 톨레도 회전베기 | Toledo Spin Slash | 스페인 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.17` | 도리깨 휘두르기 | Flail Swing | 체코 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.18` | 검 돌격 | Sword Rush | 이스라엘 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.19` | 창 방진 | Spear Phalanx | 리투아니아 2번 스킬 이름 (방어) | 확정 |
+| `skill2.name.20` | 산악 질주 | Mountain Dash | 뉴질랜드 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.21` | 회전 베기 | Spin Slash | 일본 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.22` | 물보라 찌르기 | Spray Thrust | 포르투갈 2번 스킬 이름 (연사) | 확정 |
+| `skill2.name.23` | 기병창 휩쓸기 | Lance Sweep | 폴란드 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.24` | 경기병 돌진 | Hussar Dash | 헝가리 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.25` | 발라슈카 연속 던지기 | Valaška Volley | 슬로바키아 2번 스킬 이름 (연사) | 확정 |
+| `skill2.name.26` | 창 돌격 | Spear Rush | 그리스 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.27` | 곡도 돌파 | Scimitar Breakthrough | 튀르키예 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.28` | 산바람 소용돌이 | Mountain Wind Vortex | 칠레 2번 스킬 이름 (설치) | 확정 |
+| `skill2.name.29` | 사브르 받아치기 | Saber Counter | 멕시코 2번 스킬 이름 (방어) | 확정 |
+| `skill2.name.30` | 사브르 돌격 | Saber Rush | 콜롬비아 2번 스킬 이름 (돌진) | 확정 |
 
 ## 나라 이름 (30개)
 - 각 나라 이름은 그 나라 언어로만 보여 줘요. 예: 한국 → 대한민국/한국, 일본 → 日本.
