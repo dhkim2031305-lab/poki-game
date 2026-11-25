@@ -68,7 +68,9 @@
     try { s[1](); } catch {}
   };
   // 돈 감소: 동전 짤랑 n번, 담담하게
-  A.coins = n => { for (let i = 0; i < n; i++) setTimeout(() => A.play('coin'), i * 110); };
+  let pend = [];
+  A.coins = n => { for (let i = 0; i < n; i++) pend.push(setTimeout(() => A.play('coin'), i * 110)); };
+  A.cancelPending = () => { pend.forEach(clearTimeout); pend = []; };
 
   window.AUDIO = A;
 })();

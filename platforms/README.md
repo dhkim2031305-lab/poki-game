@@ -9,6 +9,7 @@
 | `gameplayStart()` / `gameplayStop()` | 플레이 시작/멈춤 알림 |
 | `commercialBreak(onStart)` | 판 사이 광고. onStart에서 소리 끄기. 끝나면 resolve |
 | `rewardedBreak(onStart)` | 보상형 광고. 끝까지 보면 true |
+| `adsReady()` | 광고 SDK가 준비됐는지 (false면 보상형 버튼 숨김) |
 | `name` | 플랫폼 이름 문자열 |
 
 SDK가 막히거나 실패해도 게임은 계속 돼야 해요 → 모든 함수는 실패 시 조용히 넘어가요.

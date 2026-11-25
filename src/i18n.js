@@ -36,7 +36,7 @@
       'skill.shout': '{country}! Hold on!',
       // ↓ texts.md에 없는 글자 [개발팀 임시 · 기획팀에 추가 요청]
       'x.clear': 'Clear!', 'x.fail': 'Mission over', 'x.roundClear': 'Round {n} clear',
-      'x.nextRound': 'Next round', 'x.here': 'Right here', 'x.resume': 'Resume', 'x.exit': 'Quit',
+      'x.nextRound': 'Next round', 'x.here': 'Right here', 'x.resume': 'Resume', 'x.exit': 'Quit', 'x.quit': 'Quit',
       'x.sound': 'Sound', 'x.keys': 'WASD move · J strike · K shoot · L skill · ESC pause',
       'x.loading': 'Loading…', 'x.rotate': '',
     },
@@ -73,7 +73,7 @@
       'continue.ad': '이런다고 없던 돈이 생길까?',
       'skill.shout': '{country}! 버텨!',
       'x.clear': '클리어!', 'x.fail': '작전 종료', 'x.roundClear': '라운드 {n} 클리어',
-      'x.nextRound': '다음 라운드', 'x.here': '그 자리에서', 'x.resume': '계속', 'x.exit': '나가기',
+      'x.nextRound': '다음 라운드', 'x.here': '그 자리에서', 'x.resume': '계속', 'x.exit': '나가기', 'x.quit': '종료',
       'x.sound': '소리', 'x.keys': 'WASD 이동 · J 치기 · K 쏘기 · L 스킬 · ESC 일시정지',
       'x.loading': '불러오는 중…', 'x.rotate': '',
     },

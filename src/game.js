@@ -34,7 +34,8 @@
     fieldBox.x = (VW - FIELD.W * fieldBox.s) / 2; fieldBox.y = (VH - FIELD.H * fieldBox.s) / 2;
   }
   window.addEventListener('resize', resize); resize();
-  const portrait = () => G.touchUI && H > W;
+  const coarse = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } })();
+  const portrait = () => (G.touchUI || coarse) && H > W;   // 세로 폰이면 회전 안내 + 모든 진행 멈춤
 
   // ---------- 상태 ----------
   // scene: loading · title · select · play · roundPanel · ending · result · ad
@@ -72,6 +73,11 @@
       });
     });
   }
+
+  // 예약한 소리 (화면을 떠나면 취소)
+  let laters = [];
+  const later = (fn, ms) => laters.push(setTimeout(fn, ms));
+  const cancelLater = () => { laters.forEach(clearTimeout); laters = []; AUDIO.cancelPending(); };
 
   // ---------- 판 · 라운드 ----------
   function newRun(ci) {
@@ -130,7 +136,7 @@
   const keys = new Set();
   const input = { mx: 0, my: 0, melee: false, ranged: false };
   const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
-  const held = {};   // 'melee'/'ranged' → pointerId
+  const held = { melee: new Set(), ranged: new Set() };   // 버튼을 누르고 있는 손가락들
   const btnPos = () => ({
     melee: { x: VW * .87, y: VH * .72, r: 48 }, ranged: { x: VW * .73, y: VH * .84, r: 34 }, skill: { x: VW * .75, y: VH * .56, r: 28 },
   });
@@ -141,17 +147,17 @@
     e.preventDefault(); AUDIO.unlock();
     if (e.pointerType !== 'mouse') G.touchUI = true;
     const p = toV(e);
-    if (G.scene === 'ad') return;
+    if (G.scene === 'ad' || portrait()) return;
     try { cv.setPointerCapture(e.pointerId); } catch {}
     const id = UI.hitAt(p.x, p.y);
     if (id) { if (id.startsWith('card:')) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false, card: id }; return; } AUDIO.play('button'); return action(id); }
     if (G.scene === 'select' && p.x < VW * .6 && p.y > VH * .18) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false }; return; }
     if (G.scene !== 'play' || G.paused) return;
-    if (e.pointerType === 'mouse') { input.melee = true; held.melee = e.pointerId; return; }
+    if (e.pointerType === 'mouse') { held.melee.add(e.pointerId); input.melee = true; return; }
     const B = btnPos();
     for (const k of ['melee', 'ranged', 'skill']) {
       const b = B[k];
-      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.3) ** 2) { if (k === 'skill') useSkill(); else { input[k] = true; held[k] = e.pointerId; } return; }
+      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.3) ** 2) { if (k === 'skill') useSkill(); else { held[k].add(e.pointerId); input[k] = true; } return; }
     }
     if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
   });
@@ -168,20 +174,28 @@
       joy.x = dx / R; joy.y = dy / R;
     }
   });
-  const release = e => {
-    if (drag && drag.id === e.pointerId) { if (!drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
+  const release = (e, tap) => {
+    if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
-    for (const k of ['melee', 'ranged']) if (held[k] === e.pointerId) { held[k] = null; input[k] = false; }
+    for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
   };
-  cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
+  cv.addEventListener('pointerup', e => release(e, true));
+  cv.addEventListener('pointercancel', e => release(e, false));      // 취소는 탭으로 치지 않아요
+  cv.addEventListener('lostpointercapture', e => release(e, false));
+  // 모든 입력 풀기 (광고 앞뒤, 창을 벗어날 때, 화면을 돌릴 때)
+  function clearInput() {
+    keys.clear(); drag = null; joy.id = null; joy.x = joy.y = 0;
+    held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = false; input.mx = input.my = 0;
+  }
+  window.addEventListener('orientationchange', clearInput);
   cv.addEventListener('wheel', e => { if (G.scene === 'select') { G.selScroll = clamp(G.selScroll + e.deltaY * .5, 0, selMaxScroll()); e.preventDefault(); } }, { passive: false });
   cv.addEventListener('contextmenu', e => e.preventDefault());
 
   const GAME_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'Escape', 'Enter'];
   window.addEventListener('keydown', e => {
     if (GAME_KEYS.includes(e.code)) e.preventDefault();   // 페이지 스크롤 막기
+    if (G.scene === 'ad' || portrait()) return;
     AUDIO.unlock();
-    if (G.scene === 'ad') return;
     keys.add(e.code);
     if (e.repeat) return;
     if (e.code === 'Escape' || e.code === 'KeyP') {
@@ -196,10 +210,10 @@
       const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -5, ArrowDown: 5, KeyA: -1, KeyD: 1, KeyW: -5, KeyS: 5 }[e.code];
       if (mv) { G.sel = clamp(G.sel + mv, 0, COUNTRIES.length - 1); scrollToSel(); }
       if (ok) action('confirm');
-    } else if (G.scene === 'result') { if (ok && G.result.t > 0.6) action('restart'); }
+    } else if (G.scene === 'result' && G.result.t > 0.6) { if (ok) action('restart'); if (e.code === 'Escape') action('quit'); }
   });
   window.addEventListener('keyup', e => keys.delete(e.code));
-  window.addEventListener('blur', () => { keys.clear(); if (G.scene === 'play' && !G.paused) setPause(true); });
+  window.addEventListener('blur', () => { clearInput(); if (G.scene === 'play' && !G.paused) setPause(true); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.scene === 'play' && !G.paused) setPause(true); });
 
   function readMove() {
@@ -215,7 +229,7 @@
   function setPause(p) {
     if (G.scene !== 'play') return;
     G.paused = p; G.langOpen = false;
-    if (p) { Platform.gameplayStop(); joy.id = null; input.melee = input.ranged = false; held.melee = held.ranged = null; }
+    if (p) { Platform.gameplayStop(); clearInput(); }
     else Platform.gameplayStart();
   }
 
@@ -243,11 +257,11 @@
       case 'play':
         if (id === 'pause') setPause(!G.paused);
         if (id === 'resume') setPause(false);
-        if (id === 'exit') { setPause(false); Platform.gameplayStop(); G.scene = 'select'; }
+        if (id === 'exit') { setPause(false); Platform.gameplayStop(); cancelLater(); G.scene = 'select'; }
         break;
       case 'result':
-        if (id === 'restart') restartWithAd();
-        if (id === 'country') { G.scene = 'select'; G.sel = lastCountry ?? 0; scrollToSel(); }   // 나라 바꾸기: 광고 없음
+        if (id === 'restart') restart();
+        if (id === 'quit') { cancelLater(); G.scene = 'title'; G.titleHeroes = []; }   // 종료: 광고 없이 시작 화면으로
         if (id === 'revive') rewardedRevive();
         if (id === 'bankruptGo') rewardedBankrupt();
         break;
@@ -255,22 +269,38 @@
   }
 
   // ---------- 광고 (monetization.md) ----------
-  async function restartWithAd() {
-    const skip = G.run.rewardedSeen;     // 보상형을 본 판이면 판 사이 광고를 한 번 건너뛰어요
-    G.scene = 'ad';
-    if (!skip) await Platform.commercialBreak(() => AUDIO.setAdMute(true));
-    AUDIO.setAdMute(false);
-    newRun(G.country.rank - 1);
+  // 광고 공통: 들어가기 전 입력 풀고 소리 끄기 → 실패·예외·응답 없음도 처리 → 끝나면 꼭 소리·입력 복구
+  let adToken = 0;
+  const AD_TIMEOUT = 90000;   // 광고가 끝 신호를 안 보내면 90초 뒤 포기하고 게임으로 돌아와요
+  async function runAd(call) {
+    const my = ++adToken;
+    G.scene = 'ad'; clearInput(); AUDIO.setAdMute(true);
+    let res = false;
+    try {
+      res = await Promise.race([
+        Promise.resolve().then(() => call(() => AUDIO.setAdMute(true))),
+        new Promise(r => setTimeout(() => r('timeout'), AD_TIMEOUT)),
+      ]);
+    } catch (err) { console.warn('[ad] 실패 → 광고 없이 진행', err); res = false; }
+    finally { if (my === adToken) { AUDIO.setAdMute(false); clearInput(); } }
+    return my === adToken && res === true;   // 늦게 온 응답은 무시해요
+  }
+  // 다시하기: 실패·파산 화면은 광고 없이 바로 새 판 (광고는 "광고보기" 버튼으로만)
+  //          클리어 화면은 판 사이 광고 (보상형을 본 판이면 한 번 건너뜀)
+  async function restart() {
+    cancelLater();
+    const ci = G.country.rank - 1;
+    if (G.result.kind === 'clear' && !G.run.rewardedSeen) await runAd(cb => Platform.commercialBreak(cb));
+    newRun(ci);
   }
   async function rewarded() {
-    G.scene = 'ad';
-    const ok = await Platform.rewardedBreak(() => AUDIO.setAdMute(true));
-    AUDIO.setAdMute(false);
+    cancelLater();
+    const ok = await runAd(cb => Platform.rewardedBreak(cb));
+    if (!ok) { G.result.adFailed = true; G.scene = 'result'; }   // 못 봤으면 보상 없음 + 그 버튼은 숨겨요
     return ok;
   }
   async function rewardedRevive() {
-    const ok = await rewarded();
-    if (!ok) { G.scene = 'result'; return; }   // 끝까지 안 봤거나 못 불러오면 보상 없음
+    if (!await rewarded()) return;   // 끝까지 안 봤거나 못 불러오면 보상 없음
     const r = G.run, h = G.hero;
     r.reviveUsed = true; r.rewardedSeen = true;
     h.dead = false; h.deadT = 0; h.hp = h.maxHp; h.inv = BAL.REVIVE_INVULN;
@@ -279,8 +309,7 @@
     Platform.gameplayStart();
   }
   async function rewardedBankrupt() {
-    const ok = await rewarded();
-    if (!ok) { G.scene = 'result'; return; }
+    if (!await rewarded()) return;
     const r = G.run;
     r.rewardedSeen = true; r.money = BAL.BANKRUPT_GIFT; r.round++;
     G.msgs.push({ text: t_('continue.ad'), t: 3, keep: true });
@@ -394,6 +423,7 @@
 
     // 외계인
     for (const a of G.aliens) {
+      if (a.dead) continue;
       a.flash = Math.max(0, a.flash - dt); a.recoil = Math.max(0, a.recoil - dt);
       const dx = h.x - a.x, dy = h.y - a.y, d = Math.hypot(dx, dy) || 1;
       let mx = 0, my = 0;
@@ -417,8 +447,10 @@
       a.x += mx * a.speed * dt; a.y += my * a.speed * dt; a.vx = mx;
       if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
       if (d < a.r + h.r) hurt(a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG, a.x, a.y);
+      if (h.dead) break;
     }
     G.aliens = G.aliens.filter(a => !a.dead);
+    if (h.dead) return;   // 쓰러짐이 클리어보다 먼저예요
 
     // 우리 탄
     for (const s of G.shots) {
@@ -431,8 +463,9 @@
     // 외계인 탄
     for (const s of G.eshots) {
       s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
-      if ((s.x - h.x) ** 2 + (s.y - h.y) ** 2 < (h.r + 5) ** 2) { hurt(s.dmg, s.x, s.y); s.life = 0; }
+      if (!h.dead && (s.x - h.x) ** 2 + (s.y - h.y) ** 2 < (h.r + 5) ** 2) { hurt(s.dmg, s.x, s.y); s.life = 0; }
     }
+    if (h.dead) return;
     G.eshots = G.eshots.filter(s => s.life > 0 && s.x > -20 && s.x < FIELD.W + 20 && s.y > -20 && s.y < FIELD.H + 20);
     // 화폐
     for (const it of G.items) {
@@ -462,7 +495,7 @@
     if (r.money <= 0) return bankrupt(false);
     G.scene = 'roundPanel';
     G.panel = { t: 0, old, now: r.money, line: t_(rnd(['round.clear.1', 'round.clear.2'])), round: r.round };
-    AUDIO.play('roundClear'); setTimeout(() => AUDIO.coins(4), 450);
+    AUDIO.play('roundClear'); later(() => AUDIO.coins(4), 450);
   }
   function bankrupt(final) {
     const r = G.run;
@@ -488,18 +521,22 @@
     Platform.gameplayStop();
     const rounds = kind === 'clear' ? 6 : kind === 'bankrupt' ? r.round : r.round - 1;
     const prev = best[c.key], isNew = !prev || rounds > prev.rounds || (rounds === prev.rounds && r.kills > prev.kills);
-    if (isNew) { best[c.key] = { rounds, kills: r.kills }; store.set('best', best); setTimeout(() => AUDIO.play('best'), 700); }
+    if (isNew) { best[c.key] = { rounds, kills: r.kills }; store.set('best', best); later(() => AUDIO.play('best'), 700); }
     G.result = { kind, rounds, kills: r.kills, isNew, line: o.line || '', final: !!o.final, t: 0 };
     G.scene = 'result';
   }
 
+  let wasPortrait = false;
   function update(dt) {
     G.t += dt;
+    const pt = portrait();
+    if (pt !== wasPortrait) { wasPortrait = pt; clearInput(); if (pt && G.scene === 'play' && !G.paused) setPause(true); }
     G.shake = Math.max(0, G.shake - dt * 20); G.hurtFlash = Math.max(0, G.hurtFlash - dt);
     for (const m of G.msgs) m.t -= dt; G.msgs = G.msgs.filter(m => m.t > 0);
     for (const p of G.parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } G.parts = G.parts.filter(p => p.t < p.life);
     for (const e of G.fx) e.t += dt; G.fx = G.fx.filter(e => e.t < e.life);
-    if (G.scene === 'play' && !G.paused && !portrait()) updatePlay(dt);
+    if (portrait()) return;                     // 세로: 라운드 패널·엔딩도 멈춰요
+    if (G.scene === 'play' && !G.paused) updatePlay(dt);
     else if (G.scene === 'roundPanel') { G.panel.t += dt; if (G.panel.t > 2.8) { G.run.round++; startRound(); } }
     else if (G.scene === 'ending') updateEnding(dt);
     else if (G.scene === 'result') G.result.t += dt;
@@ -530,7 +567,7 @@
   }
   function drawRotate() {
     ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, VW, VH);
-    UI.I.phone(VW / 2, VH / 2, Math.min(VW, VH) * .5, COL.fg, G.t);
+    UI.I.phone(VW / 2, VH / 2, Math.min(VW, VH) * .5, COL.fg, reduceMotion ? 0.95 : G.t);
   }
 
   // 시작 화면 돈더미 (ui.md · 시안 코드). 동전이 수천 개라 한 번만 그려 두고 다시 써요
@@ -734,7 +771,7 @@
       else if (a.type === 'shooter') { const p = Math.abs(Math.sin(t * 9 + a.seed)); mo.oy = -p * 3; mo.ox = a.recoil > 0 ? (a.vx < 0 ? 3 : -3) : 0; }
       else { mo.sy = 1 + Math.sin(t * 2) * .025; }
     }
-    if (a.flash > 0) mo.white = true;
+    if (a.flash > 0 && settings.flash) mo.white = true;
     if (a.entering) mo.alpha = .85;
     UI.sprite(name, a.x, a.y + 2, hgt, mo);
     if (a.type === 'boss') { // 보스 체력
@@ -776,8 +813,9 @@
     const B = btnPos();
     // 조이스틱: 왼쪽 절반 아무 데나 누르면 그 자리에 생겨요
     const jx = joy.id != null ? joy.ox : VW * .15, jy = joy.id != null ? joy.oy : VH * .72;
-    UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(255,255,255,.15)', 2);
-    UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)');
+    UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(0,0,0,.45)', 4);
+    UI.circ(jx, jy, 62, null, 'rgba(255,255,255,.35)', 1.5);
+    UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
     const btn = (b, ic, on) => { UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3); UI.I[ic](b.x, b.y, b.r * 1.05, COL.fg); };
     btn(B.melee, 'sword', input.melee); btn(B.ranged, 'arrow', input.ranged);
     ctx.globalAlpha = G.run.skills > 0 ? 1 : .4; btn(B.skill, 'shield', G.hero.skillT > 0); ctx.globalAlpha = 1;
@@ -895,35 +933,38 @@
     const b = best[c.key];
     if (b) { UI.I.trophy(cx - 30, VH * .67, 14, COL.gold); UI.txt(`${b.rounds}/6 · ${b.kills}`, cx + 6, VH * .67, 13, COL.muted, 'center', 700); }
     if (R.isNew) { UI.I.star(cx + 56, VH * .67, 16 + (reduceMotion ? 0 : Math.sin(G.t * 8) * 2), COL.glow); UI.txt('NEW', cx + 80, VH * .67, 11, COL.glow, 'left', 900); }
-    // 버튼: 나라 바꾸기 · 다시하기 · (보상형) — 다시하기와 이어하기는 같은 크기
-    const by = VH * .82, bw = 150, bh = 52;
-    const canAd = Platform.name !== 'web';
-    const showRevive = R.kind === 'fail' && !r.reviveUsed && canAd;
-    const showBank = R.kind === 'bankrupt' && !R.final && canAd;
-    if (showRevive || showBank) {
-      UI.btnSub('country', cx - bw - 30, by, 52, 'flags2');
-      UI.btnWide('restart', cx - bw / 2 + 20, by, bw, bh, 'retry', t_('ui.05'), 'main');
-      UI.btnWide(showRevive ? 'revive' : 'bankruptGo', cx + bw / 2 + 30, by, bw, bh, 'video', showRevive ? t_('x.here') : t_('x.nextRound'), 'ad');
-    } else {
-      UI.btnSub('country', cx - bw / 2 - 40, by, 52, 'flags2');
-      UI.btnWide('restart', cx + 20, by, bw, bh, 'retry', t_('ui.05'), 'main');
-    }
+    // 버튼 3개 (사용자 결정): 종료 · 다시하기 · 광고보기 — 모두 같은 크기
+    // 광고보기는 실패(한 판 1회)·파산(무제한)에서만, 광고 SDK가 준비됐을 때만 보여요
+    const by = VH * .82, bw = 146, bh = 50, gap = 14;
+    const canAd = !R.adFailed && (Platform.adsReady ? Platform.adsReady() : Platform.name !== 'web');
+    const adId = R.kind === 'fail' && !r.reviveUsed && canAd ? 'revive' : R.kind === 'bankrupt' && !R.final && canAd ? 'bankruptGo' : null;
+    const btns = [['quit', 'back', t_('x.quit'), 'sub'], ['restart', 'retry', t_('ui.05'), 'main']];
+    if (adId) btns.push([adId, 'video', t_('ui.06'), 'ad']);
+    const x0 = cx - (btns.length * bw + (btns.length - 1) * gap) / 2 + bw / 2 + (btns.length === 3 ? 30 : 0);
+    btns.forEach(([id, ic, label, kind], i) => UI.btnWide(id, x0 + i * (bw + gap), by, bw, bh, ic, label, kind));
     UI.txt(t_('ui.08'), cx, VH * .96, 10.5, COL.muted, 'center', 600);
   }
 
   // ---------- 루프 ----------
   let lastT = 0;
   function loop(t) {
-    const dt = Math.min((t - lastT) / 1000 || 0, 1 / 30);
+    let left = Math.min((t - lastT) / 1000 || 0, 0.25);
     lastT = t;
-    try { update(dt); draw(); } catch (err) { console.error(err); }
+    try {
+      while (left > 0) { const step = Math.min(left, 1 / 30); update(step); left -= step; }
+      draw();
+    } catch (err) { console.error(err); }
     requestAnimationFrame(loop);
   }
 
   // 시작 순서: SDK 초기화 → 에셋 로딩 → 로딩 끝 알림 → 시작 화면
   requestAnimationFrame(loop);
-  Platform.init().then(loadAssets).then(() => {
-    Platform.loadingFinished();
+  const sdkInit = Promise.race([
+    Promise.resolve().then(() => Platform.init()).catch(err => console.warn('[Platform] init 실패 → 광고 없이 진행', err)),
+    new Promise(r => setTimeout(r, 5000)),
+  ]);
+  sdkInit.then(loadAssets).then(() => {
+    try { Platform.loadingFinished(); } catch (err) { console.warn('[Platform] loadingFinished 실패', err); }
     G.scene = 'title';
   });
 })();

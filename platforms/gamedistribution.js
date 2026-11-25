@@ -16,11 +16,12 @@
   }
   window.Platform = {
     name: 'gamedistribution',
+    adsReady: () => ready && !!sdk(),
     init() {
       // SDK_READY를 최대 3초 기다리고, 안 오면 광고 없이 진행
       return new Promise(resolve => {
         const t0 = Date.now();
-        (function wait() { if (ready || Date.now() - t0 > 3000) { if (!ready) console.warn('[Platform:gamedistribution] 준비 안 됨 → 광고 없이 진행'); else sdk().preloadAd && sdk().preloadAd('rewarded').catch(() => {}); resolve(); } else setTimeout(wait, 100); })();
+        (function wait() { if (ready || Date.now() - t0 > 3000) { if (!ready) console.warn('[Platform:gamedistribution] 준비 안 됨 → 광고 없이 진행'); else { try { const pr = sdk().preloadAd && sdk().preloadAd('rewarded'); pr && pr.catch && pr.catch(() => {}); } catch {} } resolve(); } else setTimeout(wait, 100); })();
       });
     },
     loadingFinished() {},

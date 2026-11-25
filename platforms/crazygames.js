@@ -16,6 +16,7 @@
   }
   window.Platform = {
     name: 'crazygames',
+    adsReady: () => ready,
     async init() {
       if (!sdk()) return console.warn('[Platform:crazygames] SDK 없음 → 광고 없이 진행');
       try { await sdk().init(); ready = true; sdk().game.loadingStart(); }

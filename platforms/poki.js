@@ -5,6 +5,7 @@
   let ready = false, playing = false;
   window.Platform = {
     name: 'poki',
+    adsReady: () => ready,   // SDK가 막혔으면 false → 광고 버튼 숨김
     async init() {
       if (!sdk()) return console.warn('[Platform:poki] SDK 없음 → 광고 없이 진행');
       try { await sdk().init(); ready = true; if (local) sdk().setDebug(true); }

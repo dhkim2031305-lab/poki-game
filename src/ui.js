@@ -79,7 +79,11 @@
     UI.rr(cx - w / 2, cy - h / 2, w, h, 14, ad ? COL.adBg : kind === 'main' ? COL.gold : COL.btn2, ad ? COL.gold : kind === 'main' ? null : '#4A4450', ad ? 2.5 : 1.5);
     const ic = kind === 'main' ? COL.icon : ad ? COL.gold : COL.fg;
     I[icon](cx - w / 2 + 26, cy, 28, ic);
-    UI.txt(label, cx + 14, cy, 14, kind === 'main' ? COL.icon : COL.fg, 'center', 700, w - 64);
+    // 글자가 길면 두 줄로 (아이콘과 겹치지 않게)
+    const col = kind === 'main' ? COL.icon : COL.fg, avail = w - 64;
+    UI.x.font = `700 14px ${FONT}`;
+    if (UI.x.measureText(label).width <= avail) UI.txt(label, cx + 14, cy, 14, col, 'center', 700);
+    else UI.para(label, cx + 14, cy, 12, col, avail, 14, 700);
     if (ad) { UI.rr(cx + w / 2 - 30, cy - h / 2 - 8, 30, 16, 5, COL.gold); UI.txt('AD', cx + w / 2 - 15, cy - h / 2, 10, COL.icon, 'center', 800); }
     UI.hit(id, cx - w / 2, cy - h / 2, w, h);
   };

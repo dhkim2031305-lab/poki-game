@@ -6,7 +6,9 @@
 |---|---|---|
 | `sites.js` | 4개 사이트가 에러 없이 열리고 플레이까지 가는지 | `node sites.js` |
 | `shots.js` | 폰 가로(844×390) 시작·나라 고르기·플레이 화면 캡처 | `node shots.js out web` |
-| `ads.js` | 광고 흐름: 파산 이어하기·쓰러짐 이어하기 1회·판 사이 광고 건너뛰기·ESC | `node ads.js out poki` |
+| `ads.js` | (1차 첫 버전 기준, 지금은 `ads2.js` 사용) 광고 흐름: 파산 이어하기·쓰러짐 이어하기 1회·판 사이 광고 건너뛰기·ESC | `node ads.js out poki` |
+| `ads2.js` | (리뷰 반영 후) 결과 버튼 3개·다시하기 광고 규칙·보상형 거부·SDK 막힘 | `node ads2.js out poki` |
+| `portrait.js` | 세로 폰 회전 안내(첫 터치 전) → 가로로 돌리면 복귀 | `node portrait.js out` |
 | `ending.js` | 라운드를 강제로 넘겨 6라운드 클리어 엔딩 확인 | `node ending.js out 14 korea` |
 | `fxtest.js` | 12개국 치기·쏘기 효과 캡처 + 설정 언어 20개 | `node fxtest.js out` |
 | `bot.js` | 자동 플레이 봇 (거리 두고 쏘기). 밸런스 감 잡기용, 사람보다 서툴러요 | `node bot.js out web 0 lux` (0 = 1위 룩셈부르크) |
