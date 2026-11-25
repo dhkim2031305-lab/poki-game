@@ -83,6 +83,7 @@
     if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
     if (c.ranged === 'sling') l.push('weapon/israel-ranged');
     for (const t of new Set([c.skill.type, c.skill2.type, 'area'])) l.push('skill/fx-' + t);   // 그 나라 스킬 두 개의 이펙트만
+    l.push('alien/grunt-jump', 'alien/boss-jump', 'alien/fx-land');   // 점프 그림 (12차) — 점프하는 졸개·보스만
     return l;
   }
   function loadAssets() {
@@ -583,7 +584,7 @@
   // 점프 예고 원(바닥) · 착지 충격 — 외계인 쪽이라 외계인 보라색 (2D·3D 같이)
   function drawJumps(at) {
     for (const a of G.aliens) {
-      if (!a.jump) continue;
+      if (!a.jump || a.jump.ph === 'land') continue;
       const J = a.jump, C = a.jumpCfg, k = J.ph === 'crouch' ? J.t / C.crouch : 1, fill = J.ph === 'air' ? Math.min(1, J.t / C.air) : 0;
       at(J.tx, J.ty, () => {
         ctx.save(); ctx.globalAlpha = .25 + .45 * k;
@@ -594,7 +595,11 @@
       });
     }
   }
+  let landGreen = null;   // 사격 외계인용 초록 (hue-rotate −150°, 한 번만 만들어요)
   function drawJumpLand(e, k) {
+    let name = 'alien/fx-land';
+    if (e.green) { const im = UI.img[name]; if (im && im.naturalWidth && !landGreen) { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d'); x.filter = 'hue-rotate(-150deg)'; x.drawImage(im, 0, 0); landGreen = c; c.naturalWidth = c.width; c.naturalHeight = c.height; UI.img['alien/fx-land-green'] = c; } name = 'alien/fx-land-green'; }
+    if (FX.cell(name, 6, k * 6, e.x, e.y, 0, e.r * 2.4, .9)) return;
     ctx.save(); ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = '#E2B6F0'; ctx.lineWidth = 5 * (1 - k) + 1;
     const R = e.r * (.6 + .6 * k); ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * GK(), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
@@ -704,15 +709,16 @@
       if (a.jump) {
         const J = a.jump, C = a.jumpCfg; J.t += dt;
         if (J.ph === 'crouch') { if (J.t >= C.crouch) { J.ph = 'air'; J.t = 0; J.sx = a.x; J.sy = a.y; } }
+        else if (J.ph === 'land') { if (J.t >= .15) a.jump = null; }
         else {
           const q = Math.min(1, J.t / C.air), e = q * q * (3 - 2 * q);
           a.x = J.sx + (J.tx - J.sx) * e; a.y = J.sy + (J.ty - J.sy) * e; a.lift = Math.sin(Math.PI * q) * C.lift;
           if (q >= 1) {
-            a.lift = 0; a.jump = null; a.jumpT = a.type === 'boss' ? C.gap : C.gap[G.run.round - 1];
+            a.lift = 0; a.jump = { ph: 'land', t: 0, tx: J.tx, ty: J.ty }; a.jumpT = a.type === 'boss' ? C.gap : C.gap[G.run.round - 1];   // 착지 칸 0.15초 뒤 서기
             if (Math.hypot(h.x - J.tx, h.y - J.ty) < C.r + h.r * .5) hurt(C.dmg, J.tx, J.ty);
-            G.fx.push({ kind: 'jumpLand', x: J.tx, y: J.ty, r: C.r, t: 0, life: .35 });
+            G.fx.push({ kind: 'jumpLand', x: J.tx, y: J.ty, r: C.r, green: a.type === 'shooter', t: 0, life: .35 });
             for (let i = 0; i < 8 && G.parts.length < 150; i++) { const an = i / 8 * Math.PI * 2; G.parts.push({ x: J.tx, y: J.ty, h0: 2, vx: Math.cos(an) * 90, vy: Math.sin(an) * 40, life: .3, t: 0, color: '#8E8679', s: 2.5 }); }
-            if (settings.shake) G.shake = Math.max(G.shake, a.type === 'boss' ? 7 : 4);
+            if (settings.shake) G.shake = Math.max(G.shake, a.type === 'boss' ? 3 : 1);   // 흔들림 1px, 보스 3px (디자인팀 12차)
             AUDIO.play('impact');
           }
         }
@@ -1089,7 +1095,7 @@
   const GROUND_BOX = { w: 76, h: 30, k: 2, stretch: 2.1 };           // 발밑 빛·화폐 고리 (2D 납작 타원을 바닥에 맞게 세로로 늘려요)
   const FX_H0 = { melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0, ghost: 0, skill: 0, jumpLand: 0 };   // 효과가 뜨는 높이 (바닥에서)
   let heroCv = null, heroTex = null, groundCv = null, groundTex = null;
-  const itemCv = [], itemTex = [];
+  const itemCv = [], itemTex = [], jumpCv = [], jumpTex = [];
   const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   // 캔버스를 비우고 (cx, cy) 가 가운데 오게 해서 그려요
   function paintBox(cv2, k, ox, oy, cx, cy, fn) {
@@ -1137,10 +1143,23 @@
       const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || 'lit';
       delete mo.white; delete mo.edge;
       R3D.sprite(L.cell ? R3D.cellTex(L.name, v, 15, L.cell.i) : R3D.tex(L.name, v), a.x, a.y + 2, L.hgt * 1.04, mo, { upright: 40 });   // 카메라를 똑바로 보는 판(56° 기움)보다 16° 덜 눕혀 원근이 판에 걸리게 — 키는 1.04배로 보정
-      R3D.blob(a.x, a.y, a.r * 1.3 * (1 - L.hop * .03), .78);
+      const lk = 1 - Math.min(.55, (a.lift || 0) / 160); R3D.blob(a.x, a.y, a.r * 1.3 * (1 - L.hop * .03) * lk, .78 * lk);   // 뛰면 그림자가 작고 옅어져요
     }
     // 처치 직후 접히는 몸
     for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(e.cell != null ? R3D.cellTex(e.img, 'lit', 15, e.cell) : R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
+    // 점프 예고 원: 3D에선 진짜 바닥 무늬로 (공중의 외계인을 덮지 않게)
+    let ji = 0;
+    for (const a of G.aliens) {
+      if (!a.jump || a.jump.ph === 'land') continue;
+      const J = a.jump, C = a.jumpCfg, k = J.ph === 'crouch' ? J.t / C.crouch : 1, fill = J.ph === 'air' ? Math.min(1, J.t / C.air) : 0;
+      if (!jumpCv[ji]) { jumpCv[ji] = mkCv(128, 128); jumpTex[ji] = R3D.canvasTex(jumpCv[ji]); }
+      const x = jumpCv[ji].getContext('2d'); x.clearRect(0, 0, 128, 128);
+      x.globalAlpha = .3 + .5 * k; x.fillStyle = 'rgba(10,6,16,.5)'; x.beginPath(); x.arc(64, 64, 60, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'rgba(202,87,229,.45)'; x.beginPath(); x.arc(64, 64, 60 * fill, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = '#CA57E5'; x.lineWidth = 4; x.beginPath(); x.arc(64, 64, 60, 0, Math.PI * 2); x.stroke(); x.globalAlpha = 1;
+      jumpTex[ji].needsUpdate = true;
+      R3D.decal(jumpTex[ji], J.tx, J.ty, C.r * 2 * 64 / 60, C.r * 2 * 64 / 60, { order: 44 }); ji++;
+    }
     for (const s of G.shots) R3D.blob(s.x, s.y, 7, .3);
     for (const s of G.eshots) R3D.blob(s.x, s.y, 5, .28);
     R3D.render((fb.x + sx) * U, (fb.y + sy) * U, FIELD.W * fb.s * U, FIELD.H * fb.s * U);
@@ -1167,7 +1186,7 @@
         else if (e.kind === 'jumpLand') drawJumpLand(e, k);
       });
     }
-    drawSkills(at); drawJumps(at);
+    drawSkills(at);   // 점프 예고 원은 위에서 바닥 무늬로 그렸어요
     for (const s of G.shots) {
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;
       at(s.x, s.y, () => FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key));
@@ -1365,7 +1384,8 @@
   }
   function drawAlien(a) {
     const L = alienLook(a);
-    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - L.hop * .03), a.r * .5, .5); softShadow(a.x, a.y, a.r * .7, a.r * .25, .4);
+    const lk = 1 - Math.min(.55, (a.lift || 0) / 160);   // 뛰면 그림자가 작고 옅어져요
+    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - L.hop * .03) * lk, a.r * .5 * lk, .5 * lk); softShadow(a.x, a.y, a.r * .7 * lk, a.r * .25 * lk, .4 * lk);
     if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, L.mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, L.mo);
     if (a.type === 'boss') bossBar(a, 140);
   }
@@ -1403,7 +1423,14 @@
       mo.rot = (mo.rot || 0) + fx * .05;                                         // 가는 쪽으로 살짝 기울기
       const kb = a.kb ? a.kb.x : 0; if (Math.abs(kb) > 15) mo.rot += clamp(kb / 700, -.28, .28);   // 넉백 방향으로 젖힘
     }
-    if (a.jump) {   // 점프: 웅크리며 떨기 → 공중에서 늘어나며 떠오름
+    const jIm = a.jump && UI.img['alien/' + a.type + '-jump'];
+    if (a.jump && jIm && jIm.naturalWidth && cell) {   // 점프 그림 (12차): 웅크림·공중·착지 칸, 높이는 코드로 올려요
+      const ph = a.jump.ph, J = a.jump;
+      const o = ((Math.round(Math.atan2(J.ty - a.y, J.tx - a.x) / (Math.PI / 4)) % 8) + 8) % 8, [dir, flip] = Math.hypot(J.tx - a.x, J.ty - a.y) > 4 ? OCT[o] : [Math.floor(cell.i / 3), mo.flip];
+      return { name: 'alien/' + a.type + '-jump', hgt, hop, lift: a.lift || 0, cell: { i: dir * 3 + (ph === 'crouch' ? 0 : ph === 'air' ? 1 : 2), flip },
+        mo: { flip, oy: -(a.lift || 0), ox: ph === 'crouch' && !reduceMotion ? Math.sin(t * 70) * 1.2 : 0, white: mo.white, edge: mo.edge } };
+    }
+    if (a.jump) {   // 점프 그림이 없을 때: 웅크리며 떨기 → 공중에서 늘어나며 떠오름
       if (a.jump.ph === 'crouch') { const q = Math.min(1, a.jump.t / a.jumpCfg.crouch); mo.sy = 1 - .22 * q; mo.sx = 1 + .12 * q; mo.rot = 0; mo.ox = reduceMotion ? 0 : Math.sin(t * 70) * 1.6 * q; mo.oy = 0; }
       else { mo.sy = 1.1; mo.sx = .92; mo.oy = -(a.lift || 0); mo.rot = (a.vx < 0 ? -1 : 1) * .15; }
     }
