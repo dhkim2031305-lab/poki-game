@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스킬 조준 표시</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p.lead{color:var(--sub);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:12px}
+.card{background:var(--card);border-radius:12px;padding:10px}
+.card h2{font-size:14px;margin:0 0 6px}.card p{margin:6px 0 0;color:var(--sub);font-size:13px}
+canvas{width:100%;height:auto;display:block;border-radius:8px}
+</style></head><body>
+<h1>스킬 끌어서 쓰기: 조준 표시 시안</h1>
+<p class="lead">폰 화면 844×390 기준이에요. 색은 흰 #FFFFFF, 은 #C9CED6, 옅은 금 #E8D9A8만 써요. 모두 움직이는 시안이에요.</p>
+<div class="grid" id="g"></div>
+<script>
+const W=844,H=390,WH='#FFFFFF',SV='#C9CED6',GD='#E8D9A8';
+const BTN={melee:[.87,.72,48],ranged:[.73,.84,34],skill:[.75,.56,28],skill2:[.89,.43,26],invuln:[.61,.7,26]};
+const PANELS=[
+ ['설치 (예: 호주 2번 부메랑 회오리)','바깥은 은색 점선 원(설치 구역 크기)이에요. 안쪽에 옅은 금 원이 하나 더 있어서, 실제 설치 이펙트(금빛 원 2겹)와 모양이 같아요.','zone'],
+ ['범위 (예: 콜롬비아 1번 함성)','흰 실선 원 + 흰 채움 10%에, 바깥 은색 점선이 돌아요. 원 크기 = 실제로 터지는 범위예요.','area'],
+ ['돌진 (예: 리투아니아 1번)','장수 몸 폭(30px) 띠가 목표까지 이어지고, 안에서 ››› 화살 3개가 흘러요. 끝에는 도착 자리 원(지름 40)이 있어요.','dash'],
+ ['연사 (예: 미국 1번 에너지 난사)','장수에서 목표 쪽으로 부채꼴(±12°) 은색 점선이 나가요. 목표에는 십자 눈금 원이 있어요.','barrage'],
+ ['연사 · 하늘에서 떨어짐 (예: 리투아니아 2번 투창 3연)','장수에서 목표까지 일직선 위에 작은 원 3개가 차례로 깜빡여요. 마지막 원이 목표예요.','rain'],
+ ['방어 (예: 방패 벽)','방향만 정해요. 장수 앞에 은빛 반원 호가 손가락 쪽을 바라봐요. 이음선은 없어요.','guard'],
+ ['취소 (버튼 위로 되돌아옴)','끌기 시작하면 버튼 둘레에 취소 원(버튼 반지름 +14)과 X가 나와요. 안으로 들어오면 원이 밝아지고, 조준 표시는 35%로 옅어져요.','cancel'],
+ ['PC: 쓰는 순간만 표시','상시 표시는 없어요. 쓰는 순간 커서 자리에 목표 원이 1.25배에서 1배로 줄며 0.35초 동안 사라져요. 이음선은 없어요.','pc'],
+];
+function floor(x){x.fillStyle='#2b2a33';x.fillRect(0,0,W,H);x.strokeStyle='rgba(255,255,255,.04)';x.lineWidth=1;
+ for(let i=0;i<W;i+=48){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke()}for(let j=0;j<H;j+=48){x.beginPath();x.moveTo(0,j);x.lineTo(W,j);x.stroke()}}
+function hero(x,cx,cy){x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(cx,cy,16,6,0,0,7);x.fill();
+ x.fillStyle='#8a5a3c';x.fillRect(cx-9,cy-34,18,26);x.fillStyle='#d9b38c';x.beginPath();x.arc(cx,cy-42,9,0,7);x.fill();x.fillStyle='#9aa3b5';x.fillRect(cx-10,cy-54,20,7)}
+function alien(x,cx,cy){x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.ellipse(cx,cy,13,5,0,0,7);x.fill();x.fillStyle='#A944C8';x.beginPath();x.ellipse(cx,cy-16,12,15,0,0,7);x.fill();x.fillStyle='#fff';x.fillRect(cx-6,cy-21,4,4);x.fillRect(cx+2,cy-21,4,4)}
+function buttons(x,active,dim){for(const k in BTN){const [u,v,r]=BTN[k];x.globalAlpha=(dim&&k!==active)?.35:1;
+ x.fillStyle='rgba(20,22,34,.55)';x.beginPath();x.arc(u*W,v*H,r,0,7);x.fill();x.strokeStyle=k===active?GD:'rgba(255,255,255,.5)';x.lineWidth=k===active?3:2;x.stroke();}
+ x.globalAlpha=1}
+const E=.6; // 바닥 원 세로 비율 (2.5D 바닥 기울기)
+function ring(x,cx,cy,r,col,lw,dash,rot){x.save();x.translate(cx,cy);x.scale(1,E);x.rotate(rot||0);x.setLineDash(dash||[]);x.strokeStyle=col;x.lineWidth=lw/ (dash?1:1);x.beginPath();x.arc(0,0,r,0,7);x.stroke();x.restore()}
+function fill(x,cx,cy,r,a){x.save();x.translate(cx,cy);x.scale(1,E);x.fillStyle=`rgba(255,255,255,${a})`;x.beginPath();x.arc(0,0,r,0,7);x.fill();x.restore()}
+function link(x,ax,ay,bx,by,t){x.save();x.setLineDash([4,8]);x.lineDashOffset=-t*60;x.strokeStyle='rgba(201,206,214,.85)';x.lineWidth=2;x.beginPath();x.moveTo(ax,ay);x.lineTo(bx,by);x.stroke();x.restore()}
+function finger(x,fx,fy){x.fillStyle='rgba(255,255,255,.18)';x.beginPath();x.arc(fx+10,fy+14,16,0,7);x.fill()}
+function target(type,x,hx,hy,tx,ty,t,alpha){x.save();x.globalAlpha=alpha;const rot=t*Math.PI*.5;
+ if(type==='zone'){fill(x,tx,ty,70,.06);ring(x,tx,ty,70,SV,2,[10,6],rot);ring(x,tx,ty,48,GD,1.5);link(x,hx,hy,tx,ty,t)}
+ if(type==='area'){fill(x,tx,ty,85,.10);ring(x,tx,ty,85,WH,2);ring(x,tx,ty,93,SV,2,[10,6],rot);link(x,hx,hy,tx,ty,t)}
+ if(type==='dash'){const a=Math.atan2(ty-hy,tx-hx),L=Math.hypot(tx-hx,ty-hy);x.save();x.translate(hx,hy);x.rotate(a);
+  x.fillStyle='rgba(255,255,255,.08)';x.fillRect(0,-15,L,30);x.setLineDash([8,6]);x.strokeStyle=SV;x.lineWidth=2;
+  x.beginPath();x.moveTo(0,-15);x.lineTo(L,-15);x.moveTo(0,15);x.lineTo(L,15);x.stroke();x.setLineDash([]);
+  x.strokeStyle=WH;x.lineWidth=3;for(let i=0;i<3;i++){const p=((t*.8+i/3)%1)*L;x.globalAlpha=alpha*Math.sin(Math.PI*p/L);x.beginPath();x.moveTo(p-6,-8);x.lineTo(p,0);x.lineTo(p-6,8);x.stroke()}
+  x.restore();x.globalAlpha=alpha;ring(x,tx,ty,20,WH,2)}
+ if(type==='barrage'){const a=Math.atan2(ty-hy,tx-hx),L=Math.hypot(tx-hx,ty-hy)+30,s=12*Math.PI/180;x.save();x.translate(hx,hy);
+  x.fillStyle='rgba(255,255,255,.06)';x.beginPath();x.moveTo(0,0);x.arc(0,0,L,a-s,a+s);x.closePath();x.fill();x.setLineDash([8,6]);x.lineDashOffset=-t*40;x.strokeStyle=SV;x.lineWidth=2;x.stroke();x.restore();
+  ring(x,tx,ty,20,WH,2);x.strokeStyle=WH;x.lineWidth=2;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){x.beginPath();x.moveTo(tx+dx*14,ty+dy*14*E);x.lineTo(tx+dx*26,ty+dy*26*E);x.stroke()}}
+ if(type==='rain'){link(x,hx,hy,tx,ty,t);for(let i=1;i<=3;i++){const k=i/3,px=hx+(tx-hx)*k,py=hy+(ty-hy)*k,on=Math.floor(t*3)%3===i-1;
+  fill(x,px,py,26,on?.14:.05);ring(x,px,py,26,i===3?WH:SV,i===3?2:1.5,i===3?null:[6,5])}}
+ if(type==='guard'){const a=Math.atan2(ty-hy,tx-hx);x.save();x.translate(hx,hy);x.scale(1,E);x.strokeStyle=SV;x.lineWidth=5;x.beginPath();x.arc(0,0,46,a-1.1,a+1.1);x.stroke();
+  x.strokeStyle=WH;x.lineWidth=2;x.beginPath();x.arc(0,0,52,a-1.1,a+1.1);x.stroke();x.restore()}
+ x.restore()}
+function cancelZone(x,key,inside){const [u,v,r]=BTN[key],cx=u*W,cy=v*H,R=r+14;
+ x.fillStyle=inside?'rgba(255,255,255,.28)':'rgba(10,12,20,.5)';x.beginPath();x.arc(cx,cy,R,0,7);x.fill();
+ x.setLineDash(inside?[]:[6,5]);x.strokeStyle=WH;x.lineWidth=inside?3:2;x.stroke();x.setLineDash([]);
+ x.lineWidth=3;x.beginPath();x.moveTo(cx-8,cy-8);x.lineTo(cx+8,cy+8);x.moveTo(cx+8,cy-8);x.lineTo(cx-8,cy+8);x.stroke();
+ x.fillStyle=WH;x.font='bold 12px system-ui';x.textAlign='center';x.fillText('취소',cx,cy-R-6);x.textAlign='left'}
+const g=document.getElementById('g');
+PANELS.forEach(([title,desc,type])=>{const d=document.createElement('div');d.className='card';d.innerHTML=`<h2>${title}</h2><canvas width="${W}" height="${H}"></canvas><p>${desc}</p>`;g.appendChild(d);
+ const x=d.querySelector('canvas').getContext('2d');
+ (function f(ts){const t=ts/1000;floor(x);const hx=150,hy=270;
+  alien(x,420,135);alien(x,470,185);alien(x,80,90);
+  const btn=type==='rain'||type==='guard'?'skill2':'skill';
+  if(type==='pc'){hero(x,hx,hy);buttons(x,null,false);const ph=t%1.6,tx=430,ty=160;
+   if(ph<.35){const k=ph/.35;target('area',x,hx,hy,tx,ty,t,1-k);x.save();x.translate(tx,ty);x.scale(1.25-.25*k,1.25-.25*k);x.translate(-tx,-ty);x.restore();ring(x,tx,ty,85*(1.25-.25*k),WH,2)}
+   x.fillStyle=WH;x.beginPath();x.moveTo(tx+40,ty-30);x.lineTo(tx+40,ty-12);x.lineTo(tx+45,ty-17);x.lineTo(tx+50,ty-8);x.lineTo(tx+53,ty-10);x.lineTo(tx+48,ty-19);x.lineTo(tx+55,ty-19);x.closePath();x.fill();
+  }else if(type==='cancel'){const [u,v]=BTN.skill,bx=u*W,by=v*H,k=(Math.sin(t*1.5)+1)/2,fx=bx+(430-bx)*k,fy=by+(160-by)*k,inside=Math.hypot(fx-bx,fy-by)<42;
+   target('area',x,hx,hy,fx,fy,t,inside?.35:1);hero(x,hx,hy);buttons(x,'skill',true);cancelZone(x,'skill',inside);finger(x,fx,fy);
+  }else{const tx=type==='dash'?430+Math.sin(t)*30:type==='guard'?400:430+Math.sin(t*.8)*40,ty=type==='guard'?140:160+Math.cos(t*.8)*20;
+   target(type,x,hx,hy,tx,ty,t,1);hero(x,hx,hy);buttons(x,btn,true);cancelZone(x,btn,false);finger(x,tx,ty)}
+  requestAnimationFrame(f)})(0)});
+</script></body></html>
