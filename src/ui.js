@@ -118,18 +118,19 @@
   UI.dirBody = (key, cell, cx, footY, h, mo = {}) => {
     const im = UI.img['dir/' + key]; if (!im || !im.naturalWidth) return false;
     const x = UI.x, cw = im.naturalWidth / 5, ch = im.naturalHeight, k = h / (ch * 112 / 128);
-    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.rot) x.rotate(mo.rot);
-    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null) x.globalAlpha = mo.alpha;
-    if (mo.white) x.filter = 'brightness(2.2)';
+    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.filter = 'brightness(0)'; x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
+    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
+    if (mo.white && !mo.shadow) x.filter = 'brightness(2.2)';
     x.drawImage(im, cell * cw, 0, cw, ch, -cw * k / 2, -(ch - ch * 0.03125) * k, cw * k, ch * k); x.restore();   // 발 = 칸 아래 칸 높이×0.03125 (128칸 4px · 192칸 6px)
     return true;
   };
   UI.sprite = (name, cx, footY, h, mo = {}) => {
     const im = UI.img[name]; if (!im || !im.naturalWidth) return;
     const x = UI.x, w = im.naturalWidth * h / im.naturalHeight;
-    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.rot) x.rotate(mo.rot);
-    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null) x.globalAlpha = mo.alpha;
-    if (mo.white) x.filter = 'brightness(2.4)';
+    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.filter = 'brightness(0)'; x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
+    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
+    if (mo.shadow) {}
+    else if (mo.white) x.filter = 'brightness(2.4)';
     else if (mo.edge) x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`;   // 피격 뒤 몸 색 외곽선
     x.drawImage(im, -w / 2, -h, w, h); x.restore();
   };

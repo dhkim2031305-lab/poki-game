@@ -819,6 +819,7 @@
     }
     ctx.translate(fb.x + sx, fb.y + sy); ctx.scale(fb.s, fb.s);
     UI.draw('room', 0, 0, FIELD.W, FIELD.H);
+    drawRoomLight();
     const h = G.hero, r = G.run, t = G.t;
     // 바닥 화폐
     for (const it of G.items) {
@@ -830,10 +831,25 @@
       ctx.restore();
     }
     // 그림자·깊이 순서
-    const ents = [...G.aliens.map(a => ({ y: a.y, a })), { y: h.y, h }].sort((p, q) => p.y - q.y);
-    for (const e of ents) {
+    const ents = [...G.aliens.map(a => ({ y: a.y, x: a.x, a })), { y: h.y, x: h.x, h }].sort((p, q) => p.y - q.y);
+    const drawEnt = e => {
+      // 원근: 위(먼 쪽)는 0.92배, 아래(가까운 쪽)는 1.08배 — 발을 기준으로 키워요
+      const ps = perspective(e.y);
+      ctx.save(); ctx.translate(e.x, e.y); ctx.scale(ps, ps); ctx.translate(-e.x, -e.y);
       if (e.h) drawHero(); else drawAlien(e.a);
-    }
+      ctx.restore();
+    };
+    const fl = FIELD.floor;
+    // 캐릭터 모양 그림자: 모든 캐릭터 그림자를 먼저 바닥에 깔아요 (다른 캐릭터 위로 그림자가 올라가지 않게)
+    ents.filter(e => e.y >= fl.y0 - 4).forEach(e => {
+      const ps = perspective(e.y); ctx.save(); ctx.translate(e.x, e.y); ctx.scale(ps, ps); ctx.translate(-e.x, -e.y);
+      if (e.h) castHero(); else castAlien(e.a);
+      ctx.restore();
+    });
+    ents.filter(e => e.y < fl.y0 - 4).forEach(drawEnt);    // 위쪽 벽 너머(들어오는 중)
+    drawWallStrip('top');                                   // 위쪽 벽이 그 앞을 가려요
+    ents.filter(e => e.y >= fl.y0 - 4).forEach(drawEnt);
+    drawWallStrip('sides');                                 // 양옆·아래 벽은 문으로 들어오는 외계인 앞에
     // 효과
     for (const e of G.fx) {
       const k = e.t / e.life;
@@ -850,13 +866,67 @@
     }
     for (const s of G.shots) {
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
+      softShadow(s.x, s.y, 7, 2.5, .28);   // 날아가는 것 아래 바닥 그림자 (높이가 보여요)
       FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key);
     }
-    for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
+    for (const s of G.eshots) { softShadow(s.x, s.y, 5, 2, .25); ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
     for (const p of G.parts) { if (p.t < 0) continue; ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
     ctx.restore();
     // 맞음: 화면 테두리 빨강 (번쩍임 끄면 장수 테두리만)
     if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
+  }
+
+  // ---- 입체감 (사용자 "입체감이 전혀없어" → A안: 2D에 그림자·조명·원근·높이) ----
+  const perspective = y => { const f = FIELD.floor; return .86 + .26 * clamp((y - f.y0) / (f.y1 - f.y0), 0, 1); };   // 먼 쪽 0.86배 ~ 가까운 쪽 1.12배
+  function castAlien(a) {
+    const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
+    UI.sprite('alien/alien-' + a.type, a.x, a.y + 2, hgt, { flip: a.vx < 0, shadow: a.entering ? .15 : .3 });
+  }
+  function castHero() {
+    const h = G.hero, c = G.country; if (!h || (h.dead && G.scene !== 'ending')) return;
+    const im = UI.img['dir/' + c.key]; if (!im || !im.naturalWidth) return;
+    const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x), o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8;
+    UI.dirBody(c.key, OCT[o][0], h.x, h.y, 60, { flip: OCT[o][1], shadow: .3 });
+  }
+  // 부드러운 타원 그림자 (가운데 진하고 가장자리로 사라져요)
+  function softShadow(x, y, rx, ry, a) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(.6, `rgba(0,0,0,${a * .5})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  // 방 조명: 위 왼쪽 따뜻한 빛 + 가장자리·구석 어둠 (한 번 그려 두고 다시 써요)
+  let roomLight = null;
+  function drawRoomLight() {
+    if (!roomLight) {
+      const c = document.createElement('canvas'), k = 2; c.width = Math.ceil(FIELD.W * k); c.height = Math.ceil(FIELD.H * k);
+      const x = c.getContext('2d'); x.scale(k, k);
+      const v = x.createRadialGradient(FIELD.W * .45, FIELD.H * .42, 60, FIELD.W * .5, FIELD.H * .5, FIELD.W * .62);
+      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(.65, 'rgba(8,6,12,.22)'); v.addColorStop(1, 'rgba(8,6,12,.6)');
+      x.fillStyle = v; x.fillRect(0, 0, FIELD.W, FIELD.H);
+      const far = x.createLinearGradient(0, 0, 0, FIELD.H); far.addColorStop(0, 'rgba(10,8,16,.22)'); far.addColorStop(.55, 'rgba(10,8,16,0)');   // 먼 쪽(위)이 조금 어두워요
+      x.fillStyle = far; x.fillRect(0, 0, FIELD.W, FIELD.H);
+      const l = x.createRadialGradient(FIELD.W * .32, FIELD.H * .28, 10, FIELD.W * .32, FIELD.H * .28, FIELD.W * .45);
+      l.addColorStop(0, 'rgba(255,226,180,.10)'); l.addColorStop(1, 'rgba(255,226,180,0)');
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = l; x.fillRect(0, 0, FIELD.W, FIELD.H);
+      // 벽 바로 아래 바닥에 벽 그림자 (위쪽 벽이 빛을 가려요)
+      x.globalCompositeOperation = 'source-over';
+      const w = x.createLinearGradient(0, FIELD.floor.y0 - 8, 0, FIELD.floor.y0 + 22); w.addColorStop(0, 'rgba(0,0,0,.35)'); w.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = w; x.fillRect(0, FIELD.floor.y0 - 8, FIELD.W, 30);
+      const lw = x.createLinearGradient(FIELD.floor.x0 - 6, 0, FIELD.floor.x0 + 18, 0); lw.addColorStop(0, 'rgba(0,0,0,.28)'); lw.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = lw; x.fillRect(FIELD.floor.x0 - 6, 0, 24, FIELD.H);
+      roomLight = c;
+    }
+    ctx.drawImage(roomLight, 0, 0, FIELD.W, FIELD.H);
+  }
+  // 벽 띠를 캐릭터 위에 다시 그려 앞뒤 겹침을 만들어요 (room 그림의 같은 부분)
+  const WALL = { top: 44, side: 40, bottom: 358 };
+  function drawWallStrip(which) {
+    const im = UI.img.room; if (!im || !im.naturalWidth) return;
+    const kx = im.naturalWidth / FIELD.W, ky = im.naturalHeight / FIELD.H;
+    const lk = roomLight ? roomLight.width / FIELD.W : 1;
+    const part = (x, y, w, h) => { ctx.drawImage(im, x * kx, y * ky, w * kx, h * ky, x, y, w, h); if (roomLight) ctx.drawImage(roomLight, x * lk, y * lk, w * lk, h * lk, x, y, w, h); };   // 같은 조명도 입혀요
+    if (which === 'top') part(0, 0, FIELD.W, WALL.top);
+    else { part(0, WALL.top, WALL.side, FIELD.H - WALL.top); part(FIELD.W - WALL.side, WALL.top, WALL.side, FIELD.H - WALL.top); part(WALL.side, WALL.bottom, FIELD.W - WALL.side * 2, FIELD.H - WALL.bottom); }
   }
 
   function drawHero() {
@@ -864,8 +934,11 @@
     if (!h) return;
     const money = r ? Math.max(0, r.money) : 50;
     // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
-    ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(h.x, h.y, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = `rgba(255,209,102,${.25 + .65 * Math.min(1, money / 100)})`; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
+    softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45);   // 넓은 그림자 + 발밑 진한 그림자
+    { const ga = .25 + .65 * Math.min(1, money / 100);   // 돈 비율만큼 발밑 금빛 (납작한 판 대신 퍼지는 빛)
+      ctx.save(); ctx.translate(h.x, h.y); ctx.scale(1, .32); ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); g.addColorStop(0, `rgba(255,209,102,${ga * .75})`); g.addColorStop(.55, `rgba(255,209,102,${ga * .35})`); g.addColorStop(1, 'rgba(255,209,102,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
     if (h.buff) { ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < .15) G.parts.push({ x: h.x + (Math.random() - .5) * 30, y: h.y - Math.random() * 10, vx: 0, vy: -50, life: .35, t: 0, color: '#FFD166', s: 2 }); }
     const da = Math.atan2(h.dir.y, h.dir.x);
     ctx.strokeStyle = 'rgba(255,209,102,.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, da - .35, da + .35); ctx.stroke();   // 보는 방향 호: 옅게·짧게 (디자인팀)
@@ -977,7 +1050,8 @@
   }
   function drawAlien(a) {
     const t = G.t, name = 'alien/alien-' + a.type, hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(a.x, a.y, a.r * 1.1, a.r * .35, 0, 0, Math.PI * 2); ctx.fill();
+    const hop = a.hitT > 0 && !reduceMotion ? Math.sin(Math.PI * (1 - a.hitT / .1)) * 5 : 0;   // 맞으면 살짝 떠올랐다 떨어져요
+    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - hop * .03), a.r * .5, .5); softShadow(a.x, a.y, a.r * .7, a.r * .25, .4);
     let mo = { flip: a.vx < 0 };
     if (!reduceMotion) {
       if (a.type === 'grunt') { const p = Math.sin(t * 14 + a.seed); mo.sy = 1 + p * .08; mo.sx = 1 - p * .05; mo.rot = Math.sin(t * 7 + a.seed) * .08; }
@@ -991,6 +1065,7 @@
     if (a.flash > 0 && settings.flash) mo.white = true;
     else if (a.edgeT > 0) mo.edge = alienCol(a);   // 몸 색 외곽선 (번쩍임을 꺼도 보여요)
     if (a.entering) mo.alpha = .85;
+    if (hop) mo.oy = (mo.oy || 0) - hop;
     UI.sprite(name, a.x, a.y + 2, hgt, mo);
     if (a.type === 'boss') { // 보스 체력
       const w = 90; UI.rr(a.x - w / 2, a.y - hgt - 12, w, 6, 3, 'rgba(0,0,0,.6)'); UI.rr(a.x - w / 2, a.y - hgt - 12, w * Math.max(0, a.hp / a.max), 6, 3, COL.green);
