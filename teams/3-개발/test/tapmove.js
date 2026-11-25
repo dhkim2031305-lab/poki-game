@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
       ev('pointerdown', cx, cy); if (dx) ev('pointermove', cx + dx, cy); setTimeout(() => { ev('pointerup', cx + dx, cy); res(); }, hold); }), [x, y, hold, dx, id]);
     const pos = () => p.evaluate(() => [Math.round(G.hero.x), Math.round(G.hero.y), G.dbgMoveTo() ? 'on' : 'off']);
     const check = (name, ok, info) => { if (!ok) bad++; out.push(`${mode} ${ok ? 'OK  ' : 'FAIL'} ${name}: ${info}`); };
-    await touch(420, 260); await p.waitForTimeout(150); await p.screenshot({ path: `${S}/shots/tapmove-${mode}.png` }); await p.waitForTimeout(1500);
+    await touch(420, 260); await p.waitForTimeout(90); await p.screenshot({ path: `${S}/shots/tapmove-${mode}.png` }); await p.waitForTimeout(500); await p.screenshot({ path: `${S}/shots/tapmove-${mode}-walk.png` }); await p.waitForTimeout(1100);
     let q = await pos(); check('톡 → 그 자리까지', Math.hypot(q[0] - 420, q[1] - 260) < 10 && q[2] === 'off', `장수 ${q[0]},${q[1]} 이동 ${q[2]}`);
     await touch(250, 150); await p.waitForTimeout(80); await touch(560, 150); await p.waitForTimeout(1800);
     q = await pos(); check('다시 톡 → 새 자리', Math.hypot(q[0] - 560, q[1] - 150) < 10, `장수 ${q[0]},${q[1]}`);

@@ -310,7 +310,7 @@
     if (rstick.id === e.pointerId) { rstick.id = null; rstick.x = rstick.y = 0; }
     if (tapP && tapP.id === e.pointerId) {   // 톡이면 그 바닥 지점으로 (다시 톡하면 바뀌어요)
       const tp = tapP; tapP = null;
-      if (tap && !tp.moved && e.timeStamp / 1000 - tp.t < TAP_T && G.scene === 'play' && !G.paused && G.hero) { const f = FIELD.floor, q = toGround(toV(e)); moveTo = { x: clamp(q.x, f.x0 + 12, f.x1 - 12), y: clamp(q.y, f.y0 + 22, f.y1), t: 0, stuck: 0 }; }
+      if (tap && !tp.moved && e.timeStamp / 1000 - tp.t < TAP_T && G.scene === 'play' && !G.paused && G.hero) { const f = FIELD.floor, q = toGround(toV(e)); moveTo = { x: clamp(q.x, f.x0 + 12, f.x1 - 12), y: clamp(q.y, f.y0 + 22, f.y1), t0: G.t, stuck: 0 }; }   // 외계인 위를 톡해도 그냥 그 자리로 (GDD 0-19, 자동 공격 없음)
     }
     if (mArrow.id === e.pointerId) { mArrow.id = null; mArrow.dir = null; }
     if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel) useSkill(a.n, Math.hypot(a.dp.x, a.dp.y) > 10 ? a.t : undefined); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
@@ -944,7 +944,14 @@
     const h = G.hero;
     if (!h) return;
     drawAim(at);
-    if (moveTo) { const mt = moveTo; mt.t += 1 / 60; at(mt.x, mt.y, () => { ctx.save(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.globalAlpha = .85; ctx.setLineDash([4, 4]); ctx.lineDashOffset = -G.t * 20; gEll(mt.x, mt.y, 12 + Math.sin(G.t * 6) * 1.5); ctx.stroke(); ctx.restore(); }); }   // 톡한 자리 (임시 표시, 디자인 안 대기)
+    if (moveTo) {   // 톡 이동 목적지 (디자인 47d5870): 톡한 순간 은색 실선 고리 지름 32 → 12, 0.4초 · 가운데 흰 점 · 걷는 동안 흰 점(0.6)만 · 움직임 줄이기면 지름 20 고리 0.3초 깜빡
+      const mt = moveTo, age = G.t - mt.t0, T = reduceMotion ? .3 : .4;
+      at(mt.x, mt.y, () => {
+        ctx.save(); const k = Math.min(1, age / T);
+        if (age < T) { const rad = reduceMotion ? 10 : 16 - 10 * k; ctx.globalAlpha = reduceMotion ? (Math.floor(age * 13) % 2 ? .2 : .9) : .9 * (1 - k); ctx.strokeStyle = '#C9CED6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(mt.x, mt.y, rad, rad * .6, 0, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.globalAlpha = age < T ? 1 : .6; ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(mt.x, mt.y, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      });
+    }
     for (const mk of G.marks) at(mk.x, mk.y, () => {   // 말발굽 자국 (U자)
       ctx.save(); ctx.globalAlpha = .6 * (1 - mk.t / mk.life); ctx.strokeStyle = SKG; ctx.lineWidth = 2; ctx.translate(mk.x, mk.y); ctx.scale(1, GK() * 1.6); ctx.rotate(mk.a + Math.PI / 2);
       ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI); ctx.stroke(); ctx.restore();
