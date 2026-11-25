@@ -1973,7 +1973,7 @@
       else if (m.shout) {   // 외침: 장수 머리 위 1.2초, 양피지색 글자 + 어두운 반투명 띠 (style-guide)
         const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
         UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, UI.x.measureText(m.text).width + 36));
-        const x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22, 46, VH - 40);
+        const HUD_B = 78, x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22 - 18 * p < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + 18 * p, VH - 40);   // 위 HUD(체력·남은 외계인·일시정지)를 가리면 장수 발밑으로
         UI.rr(x - w / 2, y - 18 * p, w, (m.sub ? 50 : 36) * p, 10, 'rgba(10,11,15,.62)');
         if (m.rtl) ctx.direction = 'rtl';
         UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, w - 28);
