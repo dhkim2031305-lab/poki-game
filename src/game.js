@@ -462,7 +462,7 @@
     const tgt = mouse.on ? null : aimAt(Math.PI * 75 / 180);
     let dx = h.dir.x, dy = h.dir.y;
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
-    h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx);
+    h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
     const rk = G.country.ranged;
     const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
     G.shots.push({ kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null });
@@ -726,7 +726,7 @@
         if (m.k === 'boomer') extra.hits = null;   // 부메랑마다 따로 (아래에서 새로)
         for (const q of angs) G.shots.push(Object.assign({ kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null));
         G.fx.push({ kind: 'skill', type: 'barrage', x: h.x + dx * 26, y: h.y - 24 + dy * 10, h0: 24 - dy * 10, a, t: 0, life: .22 });
-        h.rangedT = .2; h.aimShot = a; h.atkT = .12; b.n++;
+        h.rangedT = .2; h.aimShot = a; h.atkT = .12; h.shotT = G.t; b.n++;
         AUDIO.play('attack');
       }
       if (b.t >= BT) h.barrage = null;
@@ -1761,10 +1761,16 @@
   // 손 위치 (칸 128×128 좌표, 발 = (64,124)) · 칸마다 무기를 몸 앞/뒤 어디에 그릴지 (디자인팀 c8ed6d9)
   const HAND = [[47, 86, false], [86, 85, false], [64, 86, false], [82, 86, true], [88, 84, true]];   // ①아래 ②오른쪽아래 ③오른쪽 ④오른쪽위(뒤) ⑤위(뒤)
   const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
+  const GUN_REST = 0.175; // 총은 쉴 때 아래로 10°만 (style-guide "총 모션", 사용자 "총검술 몰라?")
   const THROWN = k => FX.THROWN(k) || k === 'boomerang';
   function weaponAngle(h, a) {
     // 치기: 예비동작(뒤로) → 스윙(반대쪽까지) → 마무리(돌아옴). 찌르기는 각도 대신 앞뒤로 밀어요
     const s = h.swing;
+    if (FX.GUN[G.country.key]) {   // 미국·핀란드 총: 쏘기↔쉬기 각도를 0.15초 동안 부드럽게, 연사 중엔 쉬기로 안 돌아가요
+      const tgt = s || h.rangedT > 0 || h.barrage ? 0 : 1, dtd = Math.min(.1, Math.max(0, G.t - (h.gunLast == null ? G.t : h.gunLast))); h.gunLast = G.t;
+      h.gunK = h.gunK == null ? tgt : h.gunK + Math.sign(tgt - h.gunK) * Math.min(Math.abs(tgt - h.gunK), dtd / .15);
+      if (!s) { const e = G.t - (h.shotT == null ? -9 : h.shotT); return { a: a + (Math.cos(a) >= 0 ? GUN_REST : -GUN_REST) * h.gunK, push: e < .06 ? -3 * (1 - e / .06) : 0 }; }   // 반동: 총 축 뒤로 3px, 0.06초
+    }
     if (!s) return { a: h.rangedT > 0 ? a : a + (Math.cos(a) >= 0 ? REST : -REST), push: 0 };   // 쉴 때는 30° 아래로
     const mk = G.country.melee, side = Math.cos(s.ang) >= 0 ? 1 : -1, t1 = SWING.wind, t2 = t1 + SWING.strike;
     const ease = k => 1 - Math.pow(1 - k, 3);
