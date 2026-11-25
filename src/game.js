@@ -20,7 +20,7 @@
   const settings = Object.assign({ sound: true, shake: !reduceMotion, flash: !reduceMotion }, store.get('settings', {}));
   const saveSettings = () => store.set('settings', settings);
   // 렌더러: 2.5D(Three.js, B안)가 기본 · 되돌리기 = 주소 ?render=2d 또는 설정 render: '2d' (WebGL이 없어도 2D)
-  const use3d = (() => { try { if (new URLSearchParams(location.search).get('render') === '2d') return false; } catch {} return settings.render !== '2d' && !!window.R3D && window.R3D.init(cv); })();
+  let use3d = (() => { try { if (new URLSearchParams(location.search).get('render') === '2d') return false; } catch {} return settings.render !== '2d' && !!window.R3D && window.R3D.init(cv); })();
   AUDIO.enabled = settings.sound;
   const best = store.get('best', {});     // 나라 key → { rounds, kills }
   let lastCountry = store.get('lastCountry', null);
@@ -237,6 +237,7 @@
     }
   });
   const release = (e, tap) => {
+    AUDIO.unlock();   // iOS 사파리는 손을 뗄 때(터치 끝)에야 소리를 켜 주기도 해요
     if (e.pointerType === 'mouse') { MC.b = e.buttons & 3; MC.mute &= MC.b; mouseHeld(); }
     if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
@@ -598,7 +599,7 @@
   let landGreen = null;   // 사격 외계인용 초록 (hue-rotate −150°, 한 번만 만들어요)
   function drawJumpLand(e, k) {
     let name = 'alien/fx-land';
-    if (e.green) { const im = UI.img[name]; if (im && im.naturalWidth && !landGreen) { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d'); x.filter = 'hue-rotate(-150deg)'; x.drawImage(im, 0, 0); landGreen = c; c.naturalWidth = c.width; c.naturalHeight = c.height; UI.img['alien/fx-land-green'] = c; } name = 'alien/fx-land-green'; }
+    if (e.green) { const im = UI.img[name]; if (im && im.naturalWidth && !landGreen) { landGreen = UI.hueRotate(im, -150); UI.img['alien/fx-land-green'] = landGreen; } name = 'alien/fx-land-green'; }
     if (FX.cell(name, 6, k * 6, e.x, e.y, 0, e.r * 2.4, .9)) return;
     ctx.save(); ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = '#E2B6F0'; ctx.lineWidth = 5 * (1 - k) + 1;
     const R = e.r * (.6 + .6 * k); ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * GK(), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
@@ -861,6 +862,7 @@
   function draw() {
     ctx.setTransform(DPR * U, 0, 0, DPR * U, 0, 0);
     UI.hits = [];
+    if (use3d && R3D.lost) { use3d = false; R3D.show(false); }   // 3D가 죽으면(메모리 등) 그 자리에서 2D로
     const f3 = use3d && FIELD_SCENES.has(G.scene) && !portrait();
     // 나라 고르기·결과 화면: 3D 빈 방을 천천히 도는 배경 (2.5D 맞춤) · 시작 화면은 디자인 배경 그림 그대로
     const bg3 = use3d && !f3 && BACK3D.has(G.scene) && !portrait() && R3D.backdrop(G.t, W, H, reduceMotion);
@@ -1642,6 +1644,19 @@
 
   // ---------- 루프 ----------
   let lastT = 0, slowT = 0;
+  // 진단 표시 (?debug=1 또는 미리보기 window.__DEBUG): 렌더러·기기 정보 + 오류를 화면 왼쪽 아래에 — 아이폰에서 캡처해 보낼 수 있게
+  const diag = {
+    on: (() => { try { return /[?&]debug=1/.test(location.search) || !!window.__DEBUG; } catch { return false; } })(), errs: [], el: null,
+    err(m) { const s = String(m).split('\n').slice(0, 2).join(' | ').slice(0, 220); if (this.errs[this.errs.length - 1] !== s) this.errs.push(s); if (this.errs.length > 6) this.errs.shift(); },
+    draw() {
+      if (!this.el) { this.el = document.createElement('div'); this.el.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9;max-width:70vw;font:10px/1.35 monospace;color:#F2E3C6;background:rgba(0,0,0,.72);padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre-wrap;word-break:break-all'; document.body.appendChild(this.el); }
+      const i = use3d && R3D.built ? R3D.info() : null;
+      const t = `${use3d ? '3D' : '2D'}${R3D.lost ? '(lost)' : ''} · maxTex ${i ? i.maxTex : '-'} · filter ${UI.FILTER_OK ? 'O' : 'X'} · dpr ${(window.devicePixelRatio || 1).toFixed(1)} · ${innerWidth}×${innerHeight}${i && i.low ? ' · low' : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 110)}` + (this.errs.length ? '\n⚠ ' + this.errs.join('\n⚠ ') : '');
+      if (t !== this.last) { this.el.textContent = t; this.last = t; }
+    },
+  };
+  window.addEventListener('error', e => diag.err((e.message || 'error') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
+  window.addEventListener('unhandledrejection', e => diag.err('promise: ' + (e.reason && (e.reason.message || e.reason))));
   function loop(t) {
     let left = Math.min((t - lastT) / 1000 || 0, 0.25);
     lastT = t;
@@ -1650,7 +1665,8 @@
     try {
       while (left > 0) { const step = Math.min(left, 1 / 30); update(step); left -= step; }
       draw();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); diag.err(err && (err.stack || err.message) || String(err)); }
+    if (diag.on) diag.draw();
     requestAnimationFrame(loop);
   }
 

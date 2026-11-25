@@ -9,6 +9,10 @@
 </head>
 <body>
   <canvas id="game"></canvas>
+  <script>
+    // ?debug=1: 스크립트가 아예 못 뜨는 오류도 화면에 보여요 (아이폰에서 캡처해 보내기용)
+    if (/[?&]debug=1/.test(location.search)) { window.__DEBUG = true; window.addEventListener('error', function (e) { var d = document.getElementById('early-err') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'early-err' })); d.style.cssText = 'position:fixed;left:4px;top:4px;z-index:10;font:11px monospace;color:#fff;background:#900;padding:4px;max-width:90vw'; d.textContent += (e.message || 'error') + ' @' + String(e.filename).split('/').pop() + ':' + e.lineno + '\n'; }); }
+  </script>
   <script src="platform.js"></script>
   <script src="data.js"></script>
   <script src="i18n.js"></script>

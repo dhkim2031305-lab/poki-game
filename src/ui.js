@@ -1,6 +1,10 @@
 // 화면 그리기 — teams/2-디자인/ui.md · style-guide.md (시안 preview/index.html 그리기 함수를 가져왔어요)
 // 좌표는 "기준 화면 844×390"에 맞춘 가상 픽셀이에요. 화면이 넓으면 VW가 844보다 커져요.
 (() => {
+  // iOS 15 이하 사파리엔 roundRect가 없어요 → 같은 모양으로 채워 넣어요
+  if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) { const q = Math.max(0, Math.min(typeof r === 'number' ? r : (r && r[0]) || 0, w / 2, h / 2)); this.moveTo(x + q, y); this.arcTo(x + w, y, x + w, y + h, q); this.arcTo(x + w, y + h, x, y + h, q); this.arcTo(x, y + h, x, y, q); this.arcTo(x, y, x + w, y, q); this.closePath(); };
+  }
   const COL = {
     bg: '#0F1116', side: '#0A0B0F', fg: '#F2E3C6', muted: '#B1A599', panel: 'rgba(24,22,26,.94)', frame: '#8C6B32',
     gold: '#D9AE4F', glow: '#FFD166', shot: '#FFE08A', pink: '#FF4FD8', red: '#FF5A5F', amber: '#F4B860',
@@ -29,7 +33,7 @@
     return lines.length;
   };
   UI.rr = (px, py, w, h, r, fill, stroke, lw = 2) => {
-    const x = UI.x; x.beginPath(); x.roundRect(px, py, w, h, r);
+    const x = UI.x; x.beginPath(); if (x.roundRect) x.roundRect(px, py, w, h, r); else { const q = Math.min(r, w / 2, h / 2); x.moveTo(px + q, py); x.arcTo(px + w, py, px + w, py + h, q); x.arcTo(px + w, py + h, px, py + h, q); x.arcTo(px, py + h, px, py, q); x.arcTo(px, py, px + w, py, q); x.closePath(); }   // iOS 15 이하엔 roundRect가 없어요
     if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.lineWidth = lw; x.stroke(); }
   };
   UI.circ = (px, py, r, fill, stroke, lw = 2) => {
@@ -104,47 +108,83 @@
     x.save(); x.translate(cx, footY); if (mo.rot) x.rotate(mo.rot); x.scale(mo.flip ? -1 : 1, mo.sy || 1);
     if (mo.alpha != null) x.globalAlpha = mo.alpha; x.drawImage(im, -w / 2, -h, w, h); x.restore();
   };
+  // ---- iOS·옛 사파리 대응: canvas filter가 없으면 같은 모양을 다른 방법으로 (팀장 "iOS라 안 돌아간다") ----
+  // 검사 결과는 UI.FILTER_OK. 주소에 ?nofilter 를 붙이면 일부러 없는 척해서 시험할 수 있어요
+  UI.FILTER_OK = (() => { try { if (/[?&]nofilter/.test(location.search)) return false; const c = document.createElement('canvas').getContext('2d'); c.filter = 'brightness(2)'; return c.filter === 'brightness(2)'; } catch { return false; } })();
+  const tintCache = new WeakMap();
+  // 그림 모양 그대로 한 색으로 칠한 사본 (그림자 = 검정, 외곽선 = 몸 색) — 그림·색마다 한 번만 만들어요
+  UI.tinted = (im, color) => {
+    let m = tintCache.get(im); if (!m) tintCache.set(im, m = {});
+    if (m[color]) return m[color];
+    const c = document.createElement('canvas'); c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
+    return (m[color] = c);
+  };
+  // 색상 돌리기(hue-rotate)를 픽셀로 (filter가 없을 때, 그림마다 한 번)
+  UI.hueRotate = (im, deg) => {
+    const c = document.createElement('canvas'); c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
+    const g = c.getContext('2d');
+    if (UI.FILTER_OK) { g.filter = `hue-rotate(${deg}deg)`; g.drawImage(im, 0, 0); }
+    else {
+      g.drawImage(im, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height), p = d.data, a = deg * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+      const M = [.213 + co * .787 - si * .213, .715 - co * .715 - si * .715, .072 - co * .072 + si * .928,
+        .213 - co * .213 + si * .143, .715 + co * .285 + si * .140, .072 - co * .072 - si * .283,
+        .213 - co * .213 - si * .787, .715 - co * .715 + si * .715, .072 + co * .928 + si * .072];
+      for (let i = 0; i < p.length; i += 4) { const r = p[i], gg = p[i + 1], b = p[i + 2]; p[i] = r * M[0] + gg * M[1] + b * M[2]; p[i + 1] = r * M[3] + gg * M[4] + b * M[5]; p[i + 2] = r * M[6] + gg * M[7] + b * M[8]; }
+      g.putImageData(d, 0, 0);
+    }
+    c.naturalWidth = c.width; c.naturalHeight = c.height; return c;
+  };
+  // 한 칸 그리기: 그림자(검정)·맞음 흰 번쩍·몸 색 외곽선을 filter 있든 없든 같은 모양으로
+  function blit(x, im, sx, sy, sw, sh, dx, dy, dw, dh, mo, bright = 2.4) {
+    if (mo.shadow) { if (UI.FILTER_OK) { x.filter = 'brightness(0)'; x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); } else x.drawImage(UI.tinted(im, '#000'), sx, sy, sw, sh, dx, dy, dw, dh); return; }
+    if (mo.white) {
+      if (UI.FILTER_OK) { x.filter = `brightness(${bright})`; x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); }
+      else { x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); x.globalCompositeOperation = 'lighter'; x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); x.globalAlpha *= .7; x.drawImage(UI.tinted(im, '#fff'), sx, sy, sw, sh, dx, dy, dw, dh); }
+      return;
+    }
+    if (mo.edge) {
+      if (UI.FILTER_OK) { x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`; x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); }
+      else { const t = UI.tinted(im, mo.edge), o = 1.4; for (const [ox, oy] of [[-o, 0], [o, 0], [0, -o], [0, o]]) x.drawImage(t, sx, sy, sw, sh, dx + ox, dy + oy, dw, dh); x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh); }
+      return;
+    }
+    x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh);
+  }
+  UI.blit = blit;
+  const begin = (x, cx, footY, mo) => {
+    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
+    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
+  };
   // 동작 시트: 7칸 가로 한 줄, 발은 칸 아래 2px, 서 있는 키 = 칸 높이 × 124/160 (style-guide.md)
   // 칸 크기는 그림에서 읽어요 (지금 116×93, 키 약 72px) · 0 서기 · 1~4 걷기 · 5 공격 준비 · 6 공격
   UI.frame = (key, f, cx, footY, h, mo = {}) => {
     const im = UI.img['sheet/' + key]; if (!im || !im.naturalWidth) return;
     const x = UI.x, cw = im.naturalWidth / 7, ch = im.naturalHeight, k = h / (ch * 124 / 160);   // 디자인팀 권장식
-    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.rot) x.rotate(mo.rot);
-    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null) x.globalAlpha = mo.alpha;
-    if (mo.white) x.filter = 'brightness(2.2)';
-    x.drawImage(im, f * cw, 0, cw, ch, -cw * k / 2, -(ch - 2) * k, cw * k, ch * k); x.restore();
+    begin(x, cx, footY, mo);
+    blit(x, im, f * cw, 0, cw, ch, -cw * k / 2, -(ch - 2) * k, cw * k, ch * k, { white: mo.white }, 2.2); x.restore();
   };
   // 8방향 몸 (7차): 5칸 = 아래·오른쪽아래·오른쪽·오른쪽위·위, 왼쪽은 좌우 뒤집기. 서 있는 키 = 칸 높이 × 0.875, 발 = 칸 아래 칸 높이 × 0.03125 (칸 크기는 그림에서 읽어요)
   // folder = 'dir'(5칸, 서기) 또는 'walk'(10칸, 방향마다 걷기 A·B)
   UI.dirBody = (key, cell, cx, footY, h, mo = {}, folder = 'dir') => {
     const im = UI.img[folder + '/' + key]; if (!im || !im.naturalWidth) return false;
     const x = UI.x, cw = im.naturalWidth / (folder === 'walk' ? 10 : 5), ch = im.naturalHeight, k = h / (ch * 112 / 128);
-    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.filter = 'brightness(0)'; x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
-    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
-    if (mo.white && !mo.shadow) x.filter = 'brightness(2.2)';
-    x.drawImage(im, cell * cw, 0, cw, ch, -cw * k / 2, -(ch - ch * 0.03125) * k, cw * k, ch * k); x.restore();   // 발 = 칸 아래 칸 높이×0.03125 (128칸 4px · 192칸 6px)
+    begin(x, cx, footY, mo);
+    blit(x, im, cell * cw, 0, cw, ch, -cw * k / 2, -(ch - ch * 0.03125) * k, cw * k, ch * k, { shadow: mo.shadow, white: mo.white }, 2.2); x.restore();   // 발 = 칸 아래 칸 높이×0.03125
     return true;
   };
   UI.sprite = (name, cx, footY, h, mo = {}) => {
     const im = UI.img[name]; if (!im || !im.naturalWidth) return;
     const x = UI.x, w = im.naturalWidth * h / im.naturalHeight;
-    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.filter = 'brightness(0)'; x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
-    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
-    if (mo.shadow) {}
-    else if (mo.white) x.filter = 'brightness(2.4)';
-    else if (mo.edge) x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`;   // 피격 뒤 몸 색 외곽선
-    x.drawImage(im, -w / 2, -h, w, h); x.restore();
+    begin(x, cx, footY, mo);
+    blit(x, im, 0, 0, im.naturalWidth, im.naturalHeight, -w / 2, -h, w, h, mo); x.restore();   // 피격 뒤 몸 색 외곽선 = mo.edge
   };
   // 칸 시트 한 칸 (외계인 8방향 11차: 15칸 = 방향 5 × 서기·A·B) · h = 칸 높이, 발 = 칸 아래에서 칸 높이 × 0.03125
   UI.cellSprite = (name, n, cell, cx, footY, h, mo = {}) => {
     const im = UI.img[name]; if (!im || !im.naturalWidth) return false;
     const x = UI.x, cw = im.naturalWidth / n, ch = im.naturalHeight, w = h * cw / ch;
-    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.filter = 'brightness(0)'; x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
-    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
-    if (mo.shadow) {}
-    else if (mo.white) x.filter = 'brightness(2.4)';
-    else if (mo.edge) x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`;
-    x.drawImage(im, cell * cw, 0, cw, ch, -w / 2, -h * (1 - 0.03125), w, h); x.restore();
+    begin(x, cx, footY, mo);
+    blit(x, im, cell * cw, 0, cw, ch, -w / 2, -h * (1 - 0.03125), w, h, mo); x.restore();
     return true;
   };
   UI.flag = (iso, px, py, w, h) => { UI.draw('flag/' + iso, px, py, w, h); UI.x.strokeStyle = 'rgba(0,0,0,.5)'; UI.x.lineWidth = 1; UI.x.strokeRect(px, py, w, h); };

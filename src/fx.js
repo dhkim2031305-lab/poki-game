@@ -166,9 +166,7 @@
   const greenCache = {};
   function greenOf(name, im) {
     if (greenCache[name]) return greenCache[name];
-    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
-    const g = c.getContext('2d'); g.filter = 'hue-rotate(-150deg)'; g.drawImage(im, 0, 0);
-    c.naturalWidth = c.width; c.naturalHeight = c.height; return (greenCache[name] = c);
+    return (greenCache[name] = UI.hueRotate(im, -150));   // filter가 없는 iOS에선 픽셀로 바꿔요
   }
   function sheet(name, p, cx, cy, ang, size, alpha = 1, green) {
     let im = UI.img['fx/' + name]; if (!im || !im.naturalWidth || p < 0 || p >= 1) return false;

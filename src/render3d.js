@@ -22,6 +22,8 @@
     } catch (e) { console.warn('[3D] WebGL 안 됨 → 2D로', e); return false; }
     gameCanvas.parentNode.insertBefore(gl, gameCanvas);
     gl.style.display = 'none';
+    // 컨텍스트를 잃으면(메모리 부족 등) 2D로 바꿔요 — game.js가 R3D.lost를 봐요
+    gl.addEventListener('webglcontextlost', e => { e.preventDefault(); R.lost = true; gl.style.display = 'none'; console.warn('[3D] WebGL 컨텍스트 잃음 → 2D로'); });
     renderer.setClearColor(0x0A0B0F, 1);
     renderer.autoClear = false;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
@@ -43,9 +45,20 @@
     return (texCache[key] = t);
   }
   // 칸 시트의 한 칸: 같은 그림을 쓰는 복제 텍스처(칸마다 offset만 달라요)
+  // 그래픽 카드가 받는 텍스처 최대 폭(iOS는 흔히 4096)보다 넓은 시트(보스 5760)는 칸 하나씩 잘라 올려요 — 쓰는 칸만 올라가 메모리도 아껴요
+  const TEST_MAX = (() => { try { const m = /[?&]maxtex=(\d+)/.exec(location.search); return m ? +m[1] : 4096; } catch { return 4096; } })();   // 시험용: ?maxtex=2048
+  const maxTex = () => Math.min(TEST_MAX, renderer.capabilities.maxTextureSize || 4096);
   R.cellTex = (name, variant, n, i) => {
     const key = name + '|' + (variant || '') + '#' + i;
     if (texCache[key]) return texCache[key];
+    const im = UI.img[name]; if (!im || !im.naturalWidth) return null;
+    if (im.naturalWidth > maxTex() || im.naturalHeight > maxTex()) {
+      const cw = im.naturalWidth / n, ch = im.naturalHeight, c = document.createElement('canvas'); c.width = cw; c.height = ch;
+      const cc = c.getContext('2d'); cc.drawImage(im, i * cw, 0, cw, ch, 0, 0, cw, ch);
+      let src = c;
+      if (variant) { const v = document.createElement('canvas'); v.width = cw; v.height = ch; paintVariant(v.getContext('2d'), c, cw, ch, variant, ch / 48 * .8); src = v; }
+      const t = texOf(src, key); t.userData.aspect = cw / ch; return t;
+    }
     const base = R.tex(name, variant); if (!base) return null;
     const t = base.clone(); t.repeat.set(1 / n, 1); t.offset.set(i / n, 0); t.needsUpdate = true;
     t.userData.aspect = base.image.width / n / base.image.height;
@@ -59,12 +72,17 @@
     // 맞음 번쩍임(흰) · 몸 색 외곽선 — 처음 한 번만 만들어 둬요
     const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
     const x = c.getContext('2d'), k = im.naturalHeight / 48 * (im.naturalWidth > im.naturalHeight * 4 ? .8 : 1);
-    if (variant === 'lit') { litPaint(x, im, c.width, c.height); return texOf(c, key); }
-    if (variant === 'white') x.filter = 'brightness(2.4)';
-    else x.filter = `drop-shadow(0 0 ${1.5 * k}px ${variant}) drop-shadow(0 0 ${0.5 * k}px ${variant})`;
-    x.drawImage(im, 0, 0);
+    paintVariant(x, im, c.width, c.height, variant, k);
     return texOf(c, key);
   };
+  // 판 그림 변형: lit(림 라이트) · white(맞음 번쩍) · 색(몸 색 외곽선) — filter 없는 iOS에서도 같은 모양 (UI.blit)
+  function paintVariant(x, im, w, h, variant, k) {
+    if (variant === 'lit') return litPaint(x, im, w, h);
+    const W0 = im.naturalWidth || im.width, H0 = im.naturalHeight || im.height;
+    if (variant === 'white') return UI.blit(x, im, 0, 0, W0, H0, 0, 0, w, h, { white: true });
+    if (UI.FILTER_OK) { x.filter = `drop-shadow(0 0 ${1.5 * k}px ${variant}) drop-shadow(0 0 ${0.5 * k}px ${variant})`; x.drawImage(im, 0, 0, w, h); x.filter = 'none'; return; }
+    const t = UI.tinted(im, variant), o = 1.4 * k; for (const [ox, oy] of [[-o, 0], [o, 0], [0, -o], [0, o]]) x.drawImage(t, ox, oy, w, h); x.drawImage(im, 0, 0, w, h);
+  }
   // 외계인 입체감 (사용자 "몬스터들은 다 2d"): 빛 쪽(왼쪽 위) 가장자리 림 라이트 + 발 쪽 어둡게(접지) — 처음 한 번만 만들어요
   function litPaint(x, im, w, h) {
     x.drawImage(im, 0, 0);
@@ -318,5 +336,5 @@
     renderer.setPixelRatio(1); renderer.setSize(view.cw, view.ch, false);
     console.info('[3D] 느린 기기 → 그림자 끄고 픽셀 배율 1');
   };
-  R.info = () => ({ low: R.low, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, tex: renderer.info.memory.textures, pitch: PITCH });
+  R.info = () => ({ maxTex: renderer.capabilities.maxTextureSize, low: R.low, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, tex: renderer.info.memory.textures, pitch: PITCH });
 })();

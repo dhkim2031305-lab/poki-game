@@ -1,0 +1,11 @@
+const { chromium } = require('playwright');
+(async () => { const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] }); const p = await b.newPage({ viewport: { width: 844, height: 390 } });
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto('http://localhost:8080/web/?debug=1'); await p.waitForFunction(() => window.G && G.scene === 'title');
+  await p.evaluate(() => { G.scene = 'select'; G.sel = 3; }); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(500);
+  await p.evaluate(() => { const gl = document.getElementById('game3d').getContext('webgl2') || document.getElementById('game3d').getContext('webgl'); gl.getExtension('WEBGL_lose_context').loseContext(); });
+  await p.waitForTimeout(800);
+  const st = await p.evaluate(() => ({ lost: R3D.lost, disp: document.getElementById('game3d').style.display, scene: G.scene, t: G.t.toFixed(1) }));
+  await p.waitForTimeout(500); const t2 = await p.evaluate(() => G.t.toFixed(1));
+  await p.screenshot({ path: process.argv[2] + '/shots/lost.png' });
+  console.log('컨텍스트 잃음 →', JSON.stringify(st), '계속 돎', t2, 'errors:', errs.join(' | ') || 'none'); await b.close(); })();
