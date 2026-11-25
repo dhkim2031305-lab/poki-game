@@ -104,11 +104,11 @@
     x.save(); x.translate(cx, footY); if (mo.rot) x.rotate(mo.rot); x.scale(mo.flip ? -1 : 1, mo.sy || 1);
     if (mo.alpha != null) x.globalAlpha = mo.alpha; x.drawImage(im, -w / 2, -h, w, h); x.restore();
   };
-  // 동작 시트: 7칸 가로 한 줄, 발은 칸 아래 2px, 서 있는 키 = 칸 높이의 72/92 (style-guide.md)
-  // 칸 크기는 그림에서 읽어요 (지금 103×82, 키 약 64px) · 0 서기 · 1~4 걷기 · 5 공격 준비 · 6 공격
+  // 동작 시트: 7칸 가로 한 줄, 발은 칸 아래 2px, 서 있는 키 = 칸 높이 × 124/160 (style-guide.md)
+  // 칸 크기는 그림에서 읽어요 (지금 116×93, 키 약 72px) · 0 서기 · 1~4 걷기 · 5 공격 준비 · 6 공격
   UI.frame = (key, f, cx, footY, h, mo = {}) => {
     const im = UI.img['sheet/' + key]; if (!im || !im.naturalWidth) return;
-    const x = UI.x, cw = im.naturalWidth / 7, ch = im.naturalHeight, k = h / (ch * 72 / 92);
+    const x = UI.x, cw = im.naturalWidth / 7, ch = im.naturalHeight, k = h / (ch * 124 / 160);   // 디자인팀 권장식
     x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.rot) x.rotate(mo.rot);
     x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null) x.globalAlpha = mo.alpha;
     if (mo.white) x.filter = 'brightness(2.2)';

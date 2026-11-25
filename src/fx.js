@@ -66,7 +66,15 @@
     spear(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = '#6B4A2E'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-30, 0); x.lineTo(8, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(18, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     boomerang(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 26); x.strokeStyle = '#C9A24A'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.arc(0, 6, 11, -2.6, -.5); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); x.restore(); },
     sling(x, px, py) { UI.circ(px, py, 4.5, '#8E8A84', '#3A3632', 1.5); },
+    // ↓ 던지는 무기 (사용자 결정: 활·총·투석기가 없는 나라는 든 무기가 날아가요). 7차 무기 그림이 오면 그 그림으로 바뀌어요
+    blade(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 20); trail(x); x.fillStyle = '#D9DDE3'; x.beginPath(); x.moveTo(-4, -2); x.lineTo(20, -1.5); x.lineTo(24, 0); x.lineTo(20, 1.5); x.lineTo(-4, 2); x.fill(); x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = .8; x.beginPath(); x.moveTo(-3, 0); x.lineTo(21, 0); x.stroke(); x.fillStyle = '#C9A24A'; x.fillRect(-6, -6, 3, 12); x.fillStyle = '#5A3429'; x.fillRect(-14, -1.8, 8, 3.6); x.restore(); },
+    mace(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 18); trail(x); x.fillStyle = '#6B4A2E'; x.fillRect(-14, -1.8, 20, 3.6); x.fillStyle = '#8E949C'; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; x.beginPath(); x.moveTo(10 + Math.cos(a) * 5, Math.sin(a) * 5); x.lineTo(10 + Math.cos(a) * 9, Math.sin(a) * 9); x.lineTo(10 + Math.cos(a + .4) * 5, Math.sin(a + .4) * 5); x.fill(); } UI.circ(10, 0, 5.5, '#B4BAC2', '#3A3632', 1); x.restore(); },
+    polearm(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.3)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-60, 0); x.lineTo(-36, 0); x.stroke(); x.strokeStyle = '#6B4A2E'; x.lineWidth = 3; x.beginPath(); x.moveTo(-36, 0); x.lineTo(10, 0); x.stroke(); x.fillStyle = '#D9DDE3'; x.beginPath(); x.moveTo(24, 0); x.lineTo(9, -4.5); x.lineTo(9, 4.5); x.fill(); x.restore(); },
   };
+  SHOT.axe = ((orig) => (x, px, py, dir, t) => { x.save(); x.translate(px, py); trail(x); x.restore(); orig(x, px, py, dir, t); })(SHOT.axe);
+  // 회전하며 날아가는 무기 뒤 옅은 원 궤적
+  function trail(x) { x.save(); x.strokeStyle = 'rgba(255,224,138,.35)'; x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 16, 0, Math.PI * 1.3); x.stroke(); x.restore(); }
+  const SPIN = { blade: 20, axe: 22, mace: 18, boomerang: 26 };
 
   function muzzle(x, px, py, dir, q) {
     if (q < 0 || q > .35) return;
@@ -86,6 +94,16 @@
     MELEE, SHOT, muzzle, hit,
     meleeTime: kind => (MELEE[kind] || MELEE.slash)[0],
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
-    drawShot(kind, px, py, dir, t) { (SHOT[kind] || SHOT.arrow)(UI.x, px, py, dir, t); },
+    THROWN: k => k === 'blade' || k === 'axe' || k === 'mace' || k === 'polearm',
+    drawShot(kind, px, py, dir, t, key) {
+      // 7차 무기 그림(weapon/<나라>.webp: 무기만, +x 방향, 손잡이 끝 = 왼쪽 가운데)이 있으면 그 그림을 날려요
+      const im = key && FX.THROWN(kind) && UI.img['weapon/' + key];
+      if (im && im.naturalWidth) {
+        const x = UI.x, w = 40, h = w * im.naturalHeight / im.naturalWidth;
+        x.save(); x.translate(px, py); x.rotate(kind === 'polearm' ? dir : t * SPIN[kind]); x.drawImage(im, -w / 2, -h / 2, w, h); x.restore();
+        return;
+      }
+      (SHOT[kind] || SHOT.arrow)(UI.x, px, py, dir, t);
+    },
   };
 })();

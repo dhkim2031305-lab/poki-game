@@ -134,7 +134,8 @@
 
   // ---------- 입력 ----------
   const keys = new Set();
-  const input = { mx: 0, my: 0, melee: false, ranged: false };
+  const input = { mx: 0, my: 0, melee: false, ranged: false, mMelee: false, mRanged: false };
+  const mouse = { on: false, x: 0, y: 0 };   // 전장 좌표의 마우스 커서 (마우스로 조준할 때)
   const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const held = { melee: new Set(), ranged: new Set() };   // 버튼을 누르고 있는 손가락들
   const btnPos = () => ({
@@ -145,7 +146,7 @@
 
   cv.addEventListener('pointerdown', e => {
     e.preventDefault(); AUDIO.unlock();
-    if (e.pointerType !== 'mouse') G.touchUI = true;
+    if (e.pointerType !== 'mouse') { G.touchUI = true; mouse.on = false; }
     const p = toV(e);
     if (G.scene === 'ad' || portrait()) return;
     try { cv.setPointerCapture(e.pointerId); } catch {}
@@ -153,7 +154,7 @@
     if (id) { if (id.startsWith('card:')) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false, card: id }; return; } AUDIO.play('button'); return action(id); }
     if (G.scene === 'select' && p.x < VW * .6 && p.y > VH * .18) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false }; return; }
     if (G.scene !== 'play' || G.paused) return;
-    if (e.pointerType === 'mouse') { held.melee.add(e.pointerId); input.melee = true; return; }
+    if (e.pointerType === 'mouse') { mouseButtons(e); return; }   // 좌클릭 = 치기, 우클릭 = 쏘기
     const B = btnPos();
     for (const k of ['melee', 'ranged', 'skill']) {
       const b = B[k];
@@ -161,7 +162,15 @@
     }
     if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
   });
+  // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
+  function mouseButtons(e) {
+    const on = G.scene === 'play' && !G.paused;
+    input.mMelee = on && !!(e.buttons & 1); input.mRanged = on && !!(e.buttons & 2);
+    const p = toV(e), fb = fieldBox;
+    mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
+  }
   cv.addEventListener('pointermove', e => {
+    if (e.pointerType === 'mouse') mouseButtons(e);
     const p = toV(e);
     if (drag && drag.id === e.pointerId) {
       if (Math.abs(p.y - drag.y0) > 6) drag.moved = true;
@@ -175,6 +184,7 @@
     }
   });
   const release = (e, tap) => {
+    if (e.pointerType === 'mouse') { input.mMelee = !!(e.buttons & 1) && G.scene === 'play'; input.mRanged = !!(e.buttons & 2) && G.scene === 'play'; }
     if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
@@ -185,7 +195,7 @@
   // 모든 입력 풀기 (광고 앞뒤, 창을 벗어날 때, 화면을 돌릴 때)
   function clearInput() {
     keys.clear(); drag = null; joy.id = null; joy.x = joy.y = 0;
-    held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = false; input.mx = input.my = 0;
+    held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = input.mMelee = input.mRanged = false; input.mx = input.my = 0;
   }
   window.addEventListener('orientationchange', clearInput);
   cv.addEventListener('wheel', e => { if (G.scene === 'select') { G.selScroll = clamp(G.selScroll + e.deltaY * .5, 0, selMaxScroll()); e.preventDefault(); } }, { passive: false });
@@ -331,7 +341,7 @@
   const atkMul = () => (G.hero.buff ? G.hero.buff.mul : 1);
   function melee() {
     const h = G.hero, st = G.run.st;
-    const near = aimAt(Math.PI);                    // 가까운 적 쪽으로 몸을 돌려 쳐요
+    const near = mouse.on ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
     if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
     h.meleeCd = BAL.MELEE_CD; h.atkT = 0.22;
     const dmg = st.melee * atkMul(), ang0 = Math.atan2(h.dir.y, h.dir.x);
@@ -348,7 +358,7 @@
   }
   function ranged() {
     const h = G.hero, st = G.run.st;
-    const tgt = aimAt(Math.PI * 75 / 180);
+    const tgt = mouse.on ? null : aimAt(Math.PI * 75 / 180);
     let dx = h.dir.x, dy = h.dir.y;
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18;
@@ -413,9 +423,11 @@
       const d = Math.hypot(input.mx, input.my); h.dir = { x: input.mx / d, y: input.my / d };
     }
     h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
+    // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
+    if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
     h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
     h.meleeCd -= dt; h.rangedCd -= dt;
-    const mel = input.melee || keys.has('KeyJ'), rng = input.ranged || keys.has('KeyK');
+    const mel = input.melee || input.mMelee || keys.has('KeyJ'), rng = input.ranged || input.mRanged || keys.has('KeyK');
     if (mel && h.meleeCd <= 0) melee(); else if (rng && h.rangedCd <= 0) ranged();
     if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
 
@@ -605,8 +617,8 @@
     const t = G.t;
     const bg = UI.img['title-bg'], hasBg = !!(bg && bg.naturalWidth);
     if (hasBg) { // 최종 배경 그림 (디자인팀 6차) — 화면을 꽉 채우게(cover)
-      const k = Math.max(VW / bg.naturalWidth, VH / bg.naturalHeight), w = bg.naturalWidth * k, h = bg.naturalHeight * k;
-      ctx.drawImage(bg, (VW - w) / 2, (VH - h) / 2, w, h);
+      const k = VW / bg.naturalWidth, h = bg.naturalHeight * k;   // 폭에 맞추고 아래 정렬 (위쪽 벽은 잘려요)
+      ctx.drawImage(bg, 0, VH - h, VW, h);
     } else {
     ctx.globalAlpha = .55; UI.draw('room', 0, 0, VW, VH); ctx.globalAlpha = 1;
     ctx.fillStyle = 'rgba(10,8,6,.45)'; ctx.fillRect(0, 0, VW, VH);
@@ -630,7 +642,7 @@
     const sh = ctx.createRadialGradient(VW / 2, VH * .26, 20, VW / 2, VH * .26, 300); sh.addColorStop(0, 'rgba(10,8,6,.55)'); sh.addColorStop(1, 'rgba(10,8,6,0)'); ctx.fillStyle = sh; ctx.fillRect(0, 0, VW, VH * .6);
     // 장수 4명: 더미 위에 서요 (판마다 무작위)
     if (!G.titleHeroes.length) { const pool = COUNTRIES.map(c => c.key).sort(() => Math.random() - .5); G.titleHeroes = pool.slice(0, 4); }
-    [[.1, .93], [.24, .86], [.76, .86], [.9, .93]].forEach(([u, f], i) => UI.hero(G.titleHeroes[i], VW * u, VH * f, 150, { flip: i >= 2, sy: reduceMotion ? 1 : 1 + Math.sin(t * 2.2 + i * 1.7) * .015 }));
+    (hasBg ? [[.09, .86], [.23, .80], [.77, .80], [.91, .86]] : [[.1, .93], [.24, .86], [.76, .86], [.9, .93]]).forEach(([u, f], i) => UI.hero(G.titleHeroes[i], VW * u, VH * f, 150, { flip: i >= 2, sy: reduceMotion ? 1 : 1 + Math.sin(t * 2.2 + i * 1.7) * .015 }));
     // 제목: 나라를 고르기 전엔 영어
     const title = lastCountry == null ? I18N.t.call({ lang: 'en' }, 'title') : t_('title');
     ctx.save(); ctx.shadowColor = 'rgba(217,174,79,.7)'; ctx.shadowBlur = 14;
@@ -728,7 +740,7 @@
     }
     for (const s of G.shots) {
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
-      FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), G.t);
+      FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key);
     }
     for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = COL.pink; ctx.fillRect(-4, -4, 8, 8); ctx.restore(); }
     for (const p of G.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
