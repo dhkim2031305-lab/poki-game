@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   await p.screenshot({ path: `${S}/shots/m-title.png` });
   const out = [];
   const toScreen = (fx, fy) => p.evaluate(([fx, fy]) => { const u = Math.min(innerWidth / 844, innerHeight / 390); const VW = innerWidth / u, VH = innerHeight / u, s = Math.min(VW / DATA.FIELD.W, VH / DATA.FIELD.H); return [((VW - DATA.FIELD.W * s) / 2 + fx * s) * u, ((VH - DATA.FIELD.H * s) / 2 + fy * s) * u]; }, [fx, fy]);
-  for (const [ci, tag] of [[14, 'kor'], [0, 'lux'], [1, 'irl'], [2, 'sui'], [16, 'cze'], [3, 'usa']]) {
+  for (const [ci, tag] of [[14, 'kor'], [0, 'lux'], [1, 'irl'], [2, 'sui'], [16, 'cze'], [3, 'usa'], [11, 'fin']]) {
     await p.evaluate(i => { G.scene = 'select'; G.sel = i; }, ci); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
     await p.evaluate(() => { G.run.spawnT = 99; G.aliens = []; G.hero.x = 400; G.hero.y = 220; G.msgs = []; G.hero.inv = 99;
       G.aliens.push({ type: 'grunt', x: 170, y: 160, dx: 0, dy: 0, entering: false, hp: 999, max: 999, speed: 0, r: 15, flash: 0, shootT: 99, seed: 0, vx: 1, recoil: 0 }); });

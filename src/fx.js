@@ -65,6 +65,15 @@
     axe(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 22); x.fillStyle = '#6B4A2E'; x.fillRect(-1.5, -11, 3, 22); x.fillStyle = '#C9CDD3'; x.beginPath(); x.moveTo(1, -11); x.quadraticCurveTo(13, -6, 9, 4); x.lineTo(1, -3); x.fill(); x.restore(); },
     spear(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = '#6B4A2E'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-30, 0); x.lineTo(8, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(18, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     boomerang(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 26); x.strokeStyle = '#C9A24A'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.arc(0, 6, 11, -2.6, -.5); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); x.restore(); },
+    // 장난감 물총 (사용자 결정 "그럼 걍 물총으로 만들어~"): 물방울 + 꼬리 물줄기
+    water(x, px, py, dir, t) {
+      x.save(); x.translate(px, py); x.rotate(dir);
+      const g = x.createLinearGradient(-34, 0, 4, 0); g.addColorStop(0, 'rgba(120,200,255,0)'); g.addColorStop(1, 'rgba(150,215,255,.85)');
+      x.strokeStyle = g; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.moveTo(-34, 0); x.lineTo(0, 0); x.stroke();
+      for (let i = 1; i <= 3; i++) UI.circ(-8 - i * 9, Math.sin(t * 30 + i * 2) * 3, 2.2 - i * .4, 'rgba(200,235,255,.8)');
+      x.beginPath(); x.ellipse(2, 0, 6.5, 4.5, 0, 0, Math.PI * 2); x.fillStyle = '#5BC0FF'; x.fill(); x.strokeStyle = '#2C7FC4'; x.lineWidth = 1; x.stroke();
+      UI.circ(3.5, -1.6, 1.8, '#FFFFFF'); x.restore();
+    },
     sling(x, px, py) { UI.circ(px, py, 4.5, '#8E8A84', '#3A3632', 1.5); },
     // ↓ 던지는 무기 (사용자 결정: 활·총·투석기가 없는 나라는 든 무기가 날아가요). 7차 무기 그림이 오면 그 그림으로 바뀌어요
     blade(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 20); trail(x); x.fillStyle = '#D9DDE3'; x.beginPath(); x.moveTo(-4, -2); x.lineTo(20, -1.5); x.lineTo(24, 0); x.lineTo(20, 1.5); x.lineTo(-4, 2); x.fill(); x.strokeStyle = 'rgba(255,255,255,.7)'; x.lineWidth = .8; x.beginPath(); x.moveTo(-3, 0); x.lineTo(21, 0); x.stroke(); x.fillStyle = '#C9A24A'; x.fillRect(-6, -6, 3, 12); x.fillStyle = '#5A3429'; x.fillRect(-14, -1.8, 8, 3.6); x.restore(); },
@@ -76,6 +85,14 @@
   function trail(x) { x.save(); x.strokeStyle = 'rgba(255,224,138,.35)'; x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 16, 0, Math.PI * 1.3); x.stroke(); x.restore(); }
   const SPIN = { blade: 20, axe: 22, mace: 18, boomerang: 26 };
 
+  // 물보라: 맞거나 사라질 때 파랑·흰 물방울이 튀어요
+  function splash(x, px, py, q) {
+    if (q < 0 || q > 1) return;
+    x.save(); x.globalAlpha = 1 - q;
+    x.strokeStyle = 'rgba(150,215,255,.9)'; x.lineWidth = 2; x.beginPath(); x.ellipse(px, py + 4, 6 + q * 16, 2 + q * 6, 0, 0, Math.PI * 2); x.stroke();
+    for (let i = 0; i < 8; i++) { const a = -Math.PI * (i / 7) - .1, d = 6 + q * 20; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d * .8 + q * q * 14, 2.4 - q, i % 2 ? '#FFFFFF' : '#5BC0FF'); }
+    x.restore();
+  }
   function muzzle(x, px, py, dir, q) {
     if (q < 0 || q > .35) return;
     const f = 1 - q / .35;
@@ -91,7 +108,7 @@
   }
 
   window.FX = {
-    MELEE, SHOT, muzzle, hit,
+    MELEE, SHOT, muzzle, hit, splash,
     meleeTime: kind => (MELEE[kind] || MELEE.slash)[0],
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
     THROWN: k => k === 'blade' || k === 'axe' || k === 'mace' || k === 'polearm',
