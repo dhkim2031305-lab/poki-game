@@ -130,6 +130,7 @@
     x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.rot) x.rotate(mo.rot);
     x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null) x.globalAlpha = mo.alpha;
     if (mo.white) x.filter = 'brightness(2.4)';
+    else if (mo.edge) x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`;   // 피격 뒤 몸 색 외곽선
     x.drawImage(im, -w / 2, -h, w, h); x.restore();
   };
   UI.flag = (iso, px, py, w, h) => { UI.draw('flag/' + iso, px, py, w, h); UI.x.strokeStyle = 'rgba(0,0,0,.5)'; UI.x.lineWidth = 1; UI.x.strokeRect(px, py, w, h); };

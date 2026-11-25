@@ -158,10 +158,19 @@
 
   // 8차 이펙트 그림 (src/assets/fx/*.webp: 칸 80×80, 왼쪽부터 발생→최대→소멸, +x 방향) — 빛 더하기로 그려요
   const SHEET_N = { slash: 6, thrust: 6, smash: 6, hit: 6, death: 8 };
+  // 사격 외계인용 초록 시트는 한 번만 변환해 둬요 (매 프레임 hue-rotate 비용을 없애요)
+  const greenCache = {};
+  function greenOf(name, im) {
+    if (greenCache[name]) return greenCache[name];
+    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const g = c.getContext('2d'); g.filter = 'hue-rotate(-150deg)'; g.drawImage(im, 0, 0);
+    c.naturalWidth = c.width; c.naturalHeight = c.height; return (greenCache[name] = c);
+  }
   function sheet(name, p, cx, cy, ang, size, alpha = 1, green) {
-    const im = UI.img['fx/' + name]; if (!im || !im.naturalWidth || p < 0 || p >= 1) return false;
+    let im = UI.img['fx/' + name]; if (!im || !im.naturalWidth || p < 0 || p >= 1) return false;
+    if (green) im = greenOf(name, im);
     const n = SHEET_N[name], cw = im.naturalWidth / n, f = Math.min(n - 1, Math.floor(p * n)), x = UI.x;
-    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; if (green) x.filter = 'hue-rotate(-150deg)'; x.translate(cx, cy); x.rotate(ang);   // 사격 외계인: 보라 그림을 초록으로
+    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; x.translate(cx, cy); x.rotate(ang);
     x.drawImage(im, f * cw, 0, cw, im.naturalHeight, -size / 2, -size / 2, size, size); x.restore();
     return true;
   }
@@ -181,11 +190,12 @@
       }   // 밝기 70% (겹쳐도 하얗게 안 뭉개지게)
       (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p);
     },
-    drawHitAny(px, py, q, col, dir, big, green) { if (!sheet('hit', q, px, py, dir || 0, big ? 44 : 34, .75, green)) hit(UI.x, px, py, q, col, dir, big); },
+    drawHitAny(px, py, q, col, dir, big, green, alpha = 1, size) { if (!sheet('hit', q, px, py, dir || 0, size || (big ? 24 : 20), .75 * alpha, green)) hit(UI.x, px, py, q, col, dir, big); },
     GUN,
     drawGun(key, px, py, ang, flipY, sc = 1) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); x.scale(sc, flipY ? -sc : sc); g(x); x.restore(); return true; },
     MELEE, SHOT, muzzle, hit, splash,
-    meleeTime: () => 0.21,   // 스윙 0.09 + 마무리 0.12 (모든 치기 같은 박자)
+    // 궤적 수명 (리뷰 6): 베기 0.12 · 큰 베기 0.15 · 찌르기 0.08 · 내려찍기 0.13 · 회전 0.21
+    meleeTime: k => ({ slash: .12, bigslash: .15, thrust: .08, rapid: .16, smash: .13, spin: .21 }[k] || .12),
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
     THROWN: k => k === 'blade' || k === 'axe' || k === 'mace' || k === 'polearm',
     drawShot(kind, px, py, dir, t, key) {

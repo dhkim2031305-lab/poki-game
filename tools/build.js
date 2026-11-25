@@ -30,7 +30,7 @@ function zip(entries) { // entries: [{ name, data }]
   return Buffer.concat([...locals, cd, end]);
 }
 
-const MAX_KB = 2048;   // 업로드 ZIP 목표 2MB (사용자 결정 2026-11-25 "ㅇㅇ 올려")
+const MAX_KB = 10240;  // 업로드 ZIP 목표 10MB (사용자 결정 2026-11-25 "게임 파일 용량 걍 더 늘려") · 첫 로딩은 가볍게(나라 그림은 고른 뒤)
 const want = process.argv.slice(2);
 const ids = want.length ? want : Object.keys(PLATFORMS);
 const bad = ids.filter(i => !PLATFORMS[i]);
@@ -50,5 +50,5 @@ for (const id of ids) {
   const out = path.join(DIST, `${id}.zip`);
   fs.writeFileSync(out, zip(entries));
   const kb = fs.statSync(out).size / 1024;
-  console.log(`✔ dist/${id}.zip  (${entries.length}개 파일, ${kb.toFixed(1)}KB)${warn ? `\n  ⚠ ${warn}` : ''}${kb > MAX_KB ? `\n  ⚠ 목표 ${MAX_KB}KB(2MB)를 넘었어요` : ''}`);
+  console.log(`✔ dist/${id}.zip  (${entries.length}개 파일, ${kb.toFixed(1)}KB)${warn ? `\n  ⚠ ${warn}` : ''}${kb > MAX_KB ? `\n  ⚠ 목표 ${MAX_KB}KB(10MB)를 넘었어요` : ''}`);
 }

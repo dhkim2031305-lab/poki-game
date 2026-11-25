@@ -57,22 +57,34 @@
   };
 
   // ---------- 에셋 ----------
-  function loadAssets() {
-    const list = [];
-    COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'dir/' + c.key); if (!FX.GUN[c.key]) list.push('weapon/' + c.key); list.push('flag/' + c.iso); });
-    list.push('weapon/korea-ranged', 'weapon/israel-ranged');
-    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
-    Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
+  // 첫 로딩은 가볍게 (사용자 결정): 시작·나라 고르기·전투 공통 그림만 먼저, 고른 나라의 8방향 몸·무기는 나라를 고른 뒤
+  function loadList(list, onProgress) {
     let done = 0;
     return new Promise(res => {
+      if (!list.length) return res();
       list.forEach(n => {
+        if (UI.img[n] && UI.img[n].complete) { if (++done === list.length) res(); return; }
         const im = new Image();
-        const fin = () => { G.load = ++done / list.length; if (done === list.length) res(); };
+        const fin = () => { done++; onProgress && onProgress(done / list.length); if (done === list.length) res(); };
         im.onload = fin; im.onerror = fin;
         im.src = 'assets/' + n + (n.startsWith('flag/') ? '.svg' : '.webp');
         UI.img[n] = im;
       });
     });
+  }
+  function countryAssets(c) {
+    const l = ['dir/' + c.key];
+    if (!FX.GUN[c.key]) l.push('weapon/' + c.key);
+    if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
+    if (c.ranged === 'sling') l.push('weapon/israel-ranged');
+    return l;
+  }
+  function loadAssets() {
+    const list = [];
+    COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'flag/' + c.iso); });
+    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
+    Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
+    return loadList(list, k => { G.load = k; });
   }
 
   // 예약한 소리 (화면을 떠나면 취소)
@@ -138,7 +150,8 @@
   const input = { mx: 0, my: 0, melee: false, ranged: false, mMelee: false, mRanged: false };
   const mouse = { on: false, x: 0, y: 0 };   // 전장 좌표의 마우스 커서 (마우스로 조준할 때)
   const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
-  const held = { melee: new Set(), ranged: new Set() };   // 버튼을 누르고 있는 손가락들
+  const held = { melee: new Set(), ranged: new Set() };
+  const buf = { melee: 0, ranged: 0 };   // 누른 것을 0.1초 기억 (히트스톱 중 짧은 탭)   // 버튼을 누르고 있는 손가락들
   const btnPos = () => ({
     melee: { x: VW * .87, y: VH * .72, r: 48 }, ranged: { x: VW * .73, y: VH * .84, r: 34 }, skill: { x: VW * .75, y: VH * .56, r: 28 },
   });
@@ -159,7 +172,7 @@
     const B = btnPos();
     for (const k of ['melee', 'ranged', 'skill']) {
       const b = B[k];
-      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.3) ** 2) { if (k === 'skill') useSkill(); else { held[k].add(e.pointerId); input[k] = true; } return; }
+      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.3) ** 2) { if (k === 'skill') useSkill(); else { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; } return; }
     }
     if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
   });
@@ -168,7 +181,9 @@
     // 브라우저가 커서를 안 움직였는데도 보내는 이동 신호(예: 페이지를 띄울 때 0,0)는 조준으로 치지 않아요
     if (e.type === 'pointermove' && !mouse.on && !e.movementX && !e.movementY && !e.buttons) return;
     const on = G.scene === 'play' && !G.paused;
+    const wasM = input.mMelee, wasR = input.mRanged;
     input.mMelee = on && !!(e.buttons & 1); input.mRanged = on && !!(e.buttons & 2);
+    if (input.mMelee && !wasM) buf.melee = 0.1; if (input.mRanged && !wasR) buf.ranged = 0.1;
     const p = toV(e), fb = fieldBox;
     mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
   }
@@ -217,7 +232,7 @@
     }
     const ok = e.code === 'Enter' || e.code === 'Space';
     // 한 번 누른 키가 다음 화면까지 이어서 눌리지 않게 화면마다 하나만 처리해요
-    if (G.scene === 'play') { if (!G.paused && e.code === 'KeyL') useSkill(); }
+    if (G.scene === 'play') { if (!G.paused && e.code === 'KeyL') useSkill(); if (e.code === 'KeyJ') buf.melee = 0.1; if (e.code === 'KeyK') buf.ranged = 0.1; }
     else if (G.scene === 'title') { if (ok) action('start'); }
     else if (G.scene === 'select') {
       const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -5, ArrowDown: 5, KeyA: -1, KeyD: 1, KeyW: -5, KeyS: 5 }[e.code];
@@ -264,7 +279,9 @@
           lastCountry = G.sel; store.set('lastCountry', G.sel);
           I18N.set(COUNTRIES[G.sel].lang);   // 기본은 고른 나라 언어 (번역이 없으면 영어)
           store.set('lang', I18N.lang);
-          newRun(G.sel);
+          // 고른 나라의 몸·무기 그림을 불러온 뒤 시작 (이미 있으면 바로)
+          const ci = G.sel; G.scene = 'loading'; G.load = 0;
+          loadList(countryAssets(COUNTRIES[ci]), k => { G.load = k; }).then(() => { if (G.scene === 'loading') newRun(ci); });
         }
         break;
       case 'play':
@@ -352,24 +369,54 @@
     AUDIO.play('swing');
   }
   const SWING = { wind: 0.07, strike: 0.09, follow: 0.12 };
+  // 무기별 타격 (GPT 타격 리뷰 review-2, 사용자 "11개 다해"):
+  //   hitK = 스윙 중 무기 끝이 표적에 닿는 지점(0~1) → 피해·궤적 정점·코어·피격음을 이 한 프레임에 모아요
+  //   stop = 히트스톱(초), snd = 피격음, kick = 큰 명중 카메라 킥
+  const WP = {
+    slash: { hitK: .2, stop: .034, snd: 'impSlash' }, bigslash: { hitK: .22, stop: .046, snd: 'impSlash', kick: true },
+    thrust: { hitK: .4, stop: .026, snd: 'impThrust' }, rapid: { hitK: .4, stop: .026, snd: 'impThrust' },
+    smash: { hitK: .45, stop: .05, snd: 'impSmash', dust: true }, spin: { hitK: .25, stop: .03, snd: 'impSlash' },
+  };
+  const wp = () => WP[G.country.melee] || WP.slash;
   function meleeStrike() {
-    const h = G.hero, st = G.run.st, sw = h.swing;
+    const h = G.hero, st = G.run.st, sw = h.swing, P = wp();
     const dmg = st.melee * atkMul(), ang0 = sw.ang;
-    const mk = G.country.melee;
-    G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, a: ang0, t: 0, life: FX.meleeTime(mk) });
-    if (mk === 'bigslash' && settings.shake) G.shake = Math.max(G.shake, 2);
-    let hitAny = false, hitBoss = false;
+    const mk = G.country.melee, life = FX.meleeTime(mk);
+    // 궤적은 가장 강한 칸(6칸 중 3번째)이 명중 프레임에 보이게 그 칸부터 재생해요
+    G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
+    const hits = [];
     for (const a of G.aliens) {
       const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
-      if (d > TEMP.MELEE_RANGE + a.r) continue;
+      if (a.dead || d > TEMP.MELEE_RANGE + a.r) continue;
       let da = Math.abs(Math.atan2(dy, dx) - ang0); if (da > Math.PI) da = Math.PI * 2 - da;
-      if (d < a.r + 10 || da <= TEMP.MELEE_ARC / 2) { damage(a, dmg, dx / (d || 1), dy / (d || 1), true); hitAny = true; if (a.type === 'boss') hitBoss = true; }
+      if (d < a.r + 10 || da <= TEMP.MELEE_ARC / 2) hits.push({ a, d, nx: dx / (d || 1), ny: dy / (d || 1) });
     }
-    if (hitAny) {   // 히트스톱 + 작은 흔들림 + 묵직한 소리
-      G.hitstop = hitBoss ? 0.08 : 0.05;
-      if (settings.shake && hitBoss) G.shake = Math.max(G.shake, 2);   // 흔들림은 큰 베기·보스급만 2px (style-guide)
-      AUDIO.play('impact');
+    if (!hits.length) return;   // 헛스윙: 히트스톱 없음
+    hits.sort((p, q) => p.d - q.d);
+    // 연속타 (리뷰 11): 0.62초 안에 이어 맞힌 3번째마다 파편 1.2배 + 금속 꼬리
+    h.combo = (G.t - (h.lastHitT || -9) <= 0.62) ? (h.combo || 0) + 1 : 1; h.lastHitT = G.t;
+    const finisher = h.combo >= 3 && h.combo % 3 === 0;
+    let killBoss = false;
+    hits.forEach((o, i) => {
+      const main = i === 0;   // 대표 표적 하나만 강한 코어, 나머지는 반쯤
+      const wasAlive = !o.a.dead;
+      damage(o.a, dmg, o.nx, o.ny, true, { main, finisher });
+      if (o.a.type === 'boss' && wasAlive && o.a.dead) killBoss = true;
+    });
+    const t0 = hits[0];
+    // 히트스톱: 한 번만, 무기별 차등 · 보스 결정타는 길게 + 잠깐 느리게
+    G.hitstop = killBoss ? .065 : P.stop;
+    if (killBoss) G.slow = .12;
+    // 카메라 킥 (리뷰 9): 큰 베기·보스급만, 공격축으로 2px 밀었다 돌아와요 (흔들림 끄기 존중은 그릴 때)
+    if (P.kick || killBoss || t0.a.type === 'boss') G.kick = { x: t0.nx, y: t0.ny, t: 0 };
+    // 내려찍기 (리뷰 8): 바닥에 납작한 고리 + 회갈색 먼지
+    if (P.dust) {
+      const gx = h.x + Math.cos(ang0) * 34, gy = h.y + Math.sin(ang0) * 18;
+      G.fx.push({ kind: 'groundRing', x: gx, y: gy, t: 0, life: .12 });
+      for (let i = 0; i < 4 && G.parts.length < 150; i++) { const an = Math.PI + (i / 3) * Math.PI; G.parts.push({ x: gx, y: gy, vx: Math.cos(an) * 40, vy: Math.sin(an) * 14 - 10, life: .14, t: 0, color: '#B1A599', s: 2 }); }
     }
+    AUDIO.play(P.snd);
+    if (finisher) later(() => AUDIO.play('tink'), 30);
   }
   function ranged() {
     const h = G.hero, st = G.run.st;
@@ -393,19 +440,37 @@
     AUDIO.play('skill');
   }
   const alienCol = a => a.type === 'shooter' ? '#B8D727' : '#CA57E5';   // 그 외계인 몸 색 한 가지: 보라 외계인·보스 = 보라, 사격 외계인 = 초록 (style-guide d2c56fb)
-  function damage(a, dmg, nx, ny, heavy) {
-    a.hp -= dmg; a.flash = 0.08;
-    // 넉백: 공격 방향으로 밀려나며 미끄러져요 (보스는 조금만)
-    const kb = (a.type === 'boss' ? 30 : heavy ? 112 : 70);   // 감쇠 14 → 치기 약 8px, 쏘기 약 5px, 보스 약 2px
-    a.kb = { x: nx * kb, y: ny * kb };
-    G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), t: 0, life: heavy ? 0.2 : 0.16 });
+  function damage(a, dmg, nx, ny, heavy, o = {}) {
+    const main = o.main !== false;
+    a.hp -= dmg;
+    // 피격 실루엣 (리뷰 4): 흰 0.025초 → 몸 색 외곽선 0.07초 · 공격축으로 눌렸다 복원 0.1초
+    a.flash = 0.025; a.edgeT = 0.095; a.hitT = 0.1; a.hitAx = Math.abs(nx) >= Math.abs(ny) ? 'x' : 'y';
+    // 넉백 (리뷰 2): 처음 0.04초는 쫓아오기를 15%로 눌러 실제로 밀려나요 → 35ms에 약 5px, 이후 3~4px 더
+    const kb = a.type === 'boss' ? 60 : heavy ? 200 : 120;
+    a.kb = { x: nx * kb, y: ny * kb }; a.stun = a.type === 'boss' ? 0.02 : 0.04;
+    // 접촉점 (리뷰 3): 몸 가운데에서 공격이 들어온 쪽으로 6~10px
+    const cy = a.y - (a.type === 'boss' ? 50 : 20), off = Math.min(10, a.r * .5 + 2);
+    const cx = a.x - nx * off, cyy = cy - ny * off * .6;
+    if (main) G.fx.push({ kind: 'core', x: cx, y: cyy, t: 0, life: .1 });   // 흰 코어 0.025초 + 옅은 금 꼬리
+    G.fx.push({ kind: 'hit', x: cx, y: cyy, dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), alpha: main ? 1 : .5, t: 0, life: heavy ? 0.14 : 0.12 });
+    // 방향성 파편 (리뷰 8): 몸 색 2~4개, 공격 방향 ±35°
+    shardBurst(cx, cyy, Math.atan2(ny, nx), alienCol(a), main ? 3 : 2, o.finisher ? 1.2 : 1);
     if (!heavy) AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
-      burst(a.x, a.y - 20, alienCol(a), 6, 110);   // 처치 파편 6개, 보라 한 색
-      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: 0, life: 0.42 });
-      AUDIO.play('kill');
-      if (a.type === 'boss' && settings.shake) G.shake = 5;
+      // 처치 (리뷰 10): 몸이 0.08초 동안 0.65배로 접히며 사라진 뒤 파편 6개 + 처치 잔광
+      const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
+      G.fx.push({ kind: 'corpse', img: 'alien/alien-' + a.type, x: a.x, y: a.y, hgt, flip: a.vx < 0, t: 0, life: .08 });
+      shardBurst(a.x, a.y - 20, Math.atan2(ny, nx), alienCol(a), 6, o.finisher ? 1.3 : 1.1, .07);
+      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: -.07, life: 0.2 });
+      later(() => AUDIO.play('kill'), 30);
+    }
+  }
+  // 공격 방향으로 튀는 파편 (delay초 뒤 시작)
+  function shardBurst(x, y, dir, color, n, speedMul = 1, delay = 0) {
+    for (let i = 0; i < n && G.parts.length < 150; i++) {
+      const a = dir + (Math.random() - .5) * 1.2, v = (90 + Math.random() * 70) * speedMul;
+      G.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .08 + Math.random() * .06, t: -delay, color, s: 1.5 + Math.random() });
     }
   }
   function hurt(dmg, fromX, fromY) {
@@ -450,11 +515,11 @@
     h.meleeCd -= dt; h.rangedCd -= dt;
     if (h.swing) {
       h.swing.t += dt;
-      if (!h.swing.hit && h.swing.t >= SWING.wind) { h.swing.hit = true; meleeStrike(); }
+      if (!h.swing.hit && h.swing.t >= SWING.wind + SWING.strike * wp().hitK) { h.swing.hit = true; meleeStrike(); }
       if (h.swing.t >= SWING.wind + SWING.strike + SWING.follow) h.swing = null;
     }
-    const mel = input.melee || input.mMelee || keys.has('KeyJ'), rng = input.ranged || input.mRanged || keys.has('KeyK');
-    if (mel && h.meleeCd <= 0) melee(); else if (rng && h.rangedCd <= 0) ranged();
+    const mel = input.melee || input.mMelee || keys.has('KeyJ') || buf.melee > 0, rng = input.ranged || input.mRanged || keys.has('KeyK') || buf.ranged > 0;
+    if (mel && h.meleeCd <= 0) { melee(); buf.melee = 0; } else if (rng && h.rangedCd <= 0) { ranged(); buf.ranged = 0; }
     if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
 
     if (r.clearT < 0) updateSpawns(dt);
@@ -463,6 +528,7 @@
     for (const a of G.aliens) {
       if (a.dead) continue;
       a.flash = Math.max(0, a.flash - dt); a.recoil = Math.max(0, a.recoil - dt);
+      a.edgeT = Math.max(0, (a.edgeT || 0) - dt); a.hitT = Math.max(0, (a.hitT || 0) - dt); a.stun = Math.max(0, (a.stun || 0) - dt);
       const dx = h.x - a.x, dy = h.y - a.y, d = Math.hypot(dx, dy) || 1;
       let mx = 0, my = 0;
       if (a.entering) { mx = a.dx; my = a.dy; if (inFloor(a)) a.entering = false; }
@@ -482,8 +548,9 @@
       }
       // 서로 겹치지 않게
       for (const b of G.aliens) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, ed = Math.hypot(ex, ey); const mn = a.r + b.r; if (ed > 0 && ed < mn) { mx += ex / ed * .8; my += ey / ed * .8; } }
-      a.x += mx * a.speed * dt; a.y += my * a.speed * dt; a.vx = mx;
-      if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-14 * dt); a.kb.x *= k; a.kb.y *= k; }
+      const chase = a.stun > 0 ? .15 : 1;   // 넉백 첫 0.04초는 쫓아오기 15%
+      a.x += mx * a.speed * dt * chase; a.y += my * a.speed * dt * chase; if (chase === 1) a.vx = mx;
+      if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-18 * dt); a.kb.x *= k; a.kb.y *= k; }
       if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
       if (d < a.r + h.r) hurt(a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG, a.x, a.y);
       if (h.dead) break;
@@ -573,10 +640,15 @@
     if (pt !== wasPortrait) { wasPortrait = pt; clearInput(); if (pt && G.scene === 'play' && !G.paused) setPause(true); }
     G.shake = Math.max(0, G.shake - dt * 20); G.hurtFlash = Math.max(0, G.hurtFlash - dt);
     for (const m of G.msgs) m.t -= dt; G.msgs = G.msgs.filter(m => m.t > 0);
-    for (const p of G.parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } G.parts = G.parts.filter(p => p.t < p.life);
+    for (const p of G.parts) { p.t += dt; if (p.t > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } } G.parts = G.parts.filter(p => p.t < p.life);
+    if (G.kick) { G.kick.t += dt; if (G.kick.t > .1) G.kick = null; }
+    buf.melee = Math.max(0, buf.melee - dt); buf.ranged = Math.max(0, buf.ranged - dt);
     for (const e of G.fx) e.t += dt; G.fx = G.fx.filter(e => e.t < e.life);
     if (portrait()) return;                     // 세로: 라운드 패널·엔딩도 멈춰요
-    if (G.scene === 'play' && !G.paused) { if (G.hitstop > 0) G.hitstop -= dt; else updatePlay(dt); }
+    if (G.scene === 'play' && !G.paused) {
+      if (G.hitstop > 0) G.hitstop -= dt;
+      else { let gdt = dt; if (G.slow > 0) { G.slow -= dt; gdt = dt * .7; } updatePlay(gdt); }   // 보스 결정타는 0.12초 동안 0.7배속
+    }
     else if (G.scene === 'roundPanel') { G.panel.t += dt; if (G.panel.t > 2.8) { G.run.round++; startRound(); } }
     else if (G.scene === 'ending') updateEnding(dt);
     else if (G.scene === 'result') G.result.t += dt;
@@ -740,7 +812,11 @@
     const fb = fieldBox;
     ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH);
     ctx.save();
-    let sx = 0, sy = 0; if (G.shake > 0) { sx = (Math.random() - .5) * G.shake; sy = (Math.random() - .5) * G.shake; }
+    let sx = 0, sy = 0;
+    if (settings.shake) {   // 흔들림 끄기는 흔들림·카메라 킥 모두에 그릴 때 바로 적용
+      if (G.shake > 0) { sx = (Math.random() - .5) * G.shake; sy = (Math.random() - .5) * G.shake; }
+      if (G.kick) { const k = G.kick.t < .018 ? G.kick.t / .018 : Math.max(0, 1 - (G.kick.t - .018) / .08); sx += G.kick.x * 2 * k; sy += G.kick.y * 2 * k; }
+    }
     ctx.translate(fb.x + sx, fb.y + sy); ctx.scale(fb.s, fb.s);
     UI.draw('room', 0, 0, FIELD.W, FIELD.H);
     const h = G.hero, r = G.run, t = G.t;
@@ -761,10 +837,14 @@
     // 효과
     for (const e of G.fx) {
       const k = e.t / e.life;
+      if (e.t < 0) continue;   // 늦게 시작하는 효과
       if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
-      else if (e.kind === 'death') FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green);
+      else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }   // 번쩍임 끄면 처치 잔광 없이 파편만
+      else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
+      else if (e.kind === 'corpse') { const q = Math.min(1, k); UI.sprite(e.img, e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }); }
+      else if (e.kind === 'groundRing') { ctx.save(); ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
-      else if (e.kind === 'hit') FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green);
+      else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }   // 번쩍임 끄면 외곽선·파편으로만
       else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
     }
@@ -773,7 +853,7 @@
       FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key);
     }
     for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
-    for (const p of G.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
+    for (const p of G.parts) { if (p.t < 0) continue; ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
     ctx.restore();
     // 맞음: 화면 테두리 빨강 (번쩍임 끄면 장수 테두리만)
     if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
@@ -820,8 +900,8 @@
   // ---- 8방향 몸 + 무기 360도 (7차 그림, 사용자 결정 "8방향 그림 + 무기 360도") ----
   // 몸: 조준 각도를 8방향으로 나눠 5칸 중 하나(왼쪽은 뒤집기). 무기: 손 위치에서 조준 각도대로 돌려요
   const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향
-  // 무기 길이 = 장수 키 × 0.75, 창류(창·할버드·기병창)만 × 0.95 (디자인팀 점검 b292673)
-  const wLen = c => (c.ranged === 'polearm' ? 0.95 : 0.75);
+  // 무기 길이 = 장수 키 × 0.68, 창류(창·할버드·기병창)만 × 0.85
+  const wLen = c => (c.ranged === 'polearm' ? 0.85 : 0.68);   // 사용자 "ㅇㅇ 줄여": 한손 무기 0.65~0.7, 창·할버드·장창 0.85
   // 손 위치 (칸 128×128 좌표, 발 = (64,124)) · 칸마다 무기를 몸 앞/뒤 어디에 그릴지 (디자인팀 c8ed6d9)
   const HAND = [[47, 86, false], [86, 85, false], [64, 86, false], [82, 86, true], [88, 84, true]];   // ①아래 ②오른쪽아래 ③오른쪽 ④오른쪽위(뒤) ⑤위(뒤)
   const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
@@ -888,6 +968,13 @@
     return true;
   }
 
+  // 명중 코어: 흰 점 6~10px 0.025초 → 옅은 금 꼬리 0.075초 감쇠
+  function drawCore(e) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    if (e.t < .025) { UI.circ(e.x, e.y, 6, 'rgba(232,217,168,.45)'); UI.circ(e.x, e.y, 4, '#FFFFFF'); }   // 코어 지름 8px
+    else { const q = (e.t - .025) / .075; ctx.globalAlpha = .45 * (1 - q); UI.circ(e.x, e.y, 5 + 4 * q, 'rgba(232,217,168,.35)'); }   // 옅은 금 꼬리 (고리 대신 번지는 빛)
+    ctx.restore();
+  }
   function drawAlien(a) {
     const t = G.t, name = 'alien/alien-' + a.type, hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
     ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(a.x, a.y, a.r * 1.1, a.r * .35, 0, 0, Math.PI * 2); ctx.fill();
@@ -897,7 +984,12 @@
       else if (a.type === 'shooter') { const p = Math.abs(Math.sin(t * 9 + a.seed)); mo.oy = -p * 3; mo.ox = a.recoil > 0 ? (a.vx < 0 ? 3 : -3) : 0; }
       else { mo.sy = 1 + Math.sin(t * 2) * .025; }
     }
+    if (a.hitT > 0) {   // 발 고정, 공격축 0.88배 · 직각 1.08배로 눌렸다가 0.1초에 복원 (기어가기 변형은 잠깐 멈춤)
+      const q = a.hitT > .07 ? 1 : a.hitT / .07, along = 1 - .12 * q, across = 1 + .08 * q;
+      mo.sx = a.hitAx === 'x' ? along : across; mo.sy = a.hitAx === 'x' ? across : along; mo.rot = 0; mo.ox = 0; mo.oy = 0;
+    }
     if (a.flash > 0 && settings.flash) mo.white = true;
+    else if (a.edgeT > 0) mo.edge = alienCol(a);   // 몸 색 외곽선 (번쩍임을 꺼도 보여요)
     if (a.entering) mo.alpha = .85;
     UI.sprite(name, a.x, a.y + 2, hgt, mo);
     if (a.type === 'boss') { // 보스 체력
