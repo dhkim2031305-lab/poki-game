@@ -1,0 +1,1 @@
+고대 이스라엘 전사 일러스트를 생성해 [israel.png](/home/user/poki-game/teams/2-디자인/gpt-art/round2/israel.png)로 저장했습니다. 생성본을 1024×1024로 축소하고 배경의 알파 투명도를 확인했습니다.
