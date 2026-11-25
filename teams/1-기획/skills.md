@@ -1,7 +1,7 @@
 # 나라별 고유 스킬
 
 > 사용자 원문: "좋다 스킬도 만들어 버려 그냥 ㅋㅋ" → 선택: **나라별 고유 스킬** (팀장 세션 전달, 2026-11-25)
-> 상태: **사용자 확정은 "가. 고유 스킬로 바꾸기"뿐이에요** ("ㅇㅇ 무적을 고유스킬 넣어"). 유형 배분, 30개 스킬 이름, 피해 40×F, 라운드마다 2회, 외침은 모두 **[제안]**이고 사용자 확인을 기다려요.
+> 상태: 사용자 확정은 **고유 스킬로 바꾸기**("ㅇㅇ 무적을 고유스킬 넣어"), **라운드마다 2회**, **외침은 나라별 유명한 말**이에요. 유형 배분, 30개 스킬 이름, 피해 40×F는 **[제안]**이에요.
 > 무기는 디자인팀 `characters.draft.md`를 따랐어요.
 
 ## 지키는 원칙
@@ -68,7 +68,7 @@
 - 가 안은 버튼이 그대로라 폰에서 누르기 쉬워요. 나 안은 재미가 더 있지만 오른손 버튼이 4개가 돼요.
 
 ## 횟수와 외침
-- 횟수 [제안]: 지금처럼 **라운드마다 2회**예요. 쿨타임은 없어요.
+- 횟수 ✅ (사용자 확정): **라운드마다 2회**예요. 쿨타임은 없어요.
 - 외침 [제안]: **"{나라}! {스킬 이름}!"**으로 바꿔요. 예: "한국! 화살비!" 지금 외침 "{나라}! 버텨!"는 나 안을 고르면 회피에 그대로 남겨요.
 - 스킬 이름 30개는 `texts.md`에 추가하고 20개 언어로 번역해요.
 
@@ -91,17 +91,17 @@
 | 순위 | 나라 | 외침 (그 나라 말) | 한국어 뜻 | 왜 유명한가 | 확인 (2026-11-25) | 근거 | 출처 |
 |---|---|---|---|---|---|---|---|
 | 1 | 룩셈부르크 | Hopp Lëtzebuerg! | 힘내라 룩셈부르크! | 스포츠 응원에서 흔히 외치는 말이에요 | **OK** | "hopp"는 재촉하는 감탄사예요. 같은 제목 노래는 못 찾았어요 | https://shop.duden.de/ |
-| 2 | 아일랜드 | Come on! | 가자! / 힘내! | 아일랜드 영어에서 응원할 때 가장 흔히 써요 | **주의** | 쓰이지만 미국 "Let's go!"와 느낌이 겹쳐 아일랜드다움이 약해요 | https://www.allaboutirish.ie/blog/Getting-on-with-it |
+| 2 | 아일랜드 | G'wan! | 가 봐! 힘내! | 아일랜드 영어의 일상 격려예요 | **교체 확정** (전: Come on!) | 사용자 확정 2026-11-25 | https://www.allaboutirish.ie/blog/Getting-on-with-it |
 | 3 | 스위스 | Hopp Schwiiz! | 힘내라 스위스! | 스위스 경기 응원의 대표 구호예요 | **주의(낮음)** | 응원 구호예요. 같은 제목 노래가 있으니 노래 가사·음원은 쓰지 않아요 | https://www.swissinfo.ch/eng/culture/forza-forza-hopp-schwiiz-allez-allez-the-official-football-hits-of-the-swiss-national-team/5186450 |
 | 4 | 미국 | Let's go! | 가자! | 미국 응원에서 가장 흔한 말이에요 | **OK** | 가장 흔한 응원 표현 (검색 안 함) | https://en.wiktionary.org/wiki/let%27s_go |
 | 5 | 네덜란드 | Zet 'm op! | 해내자! / 밀어붙여! | "힘내"라는 뜻의 일상 표현이에요 (응원가 "Hup Holland Hup"은 노래 제목이라 뺐어요) | **OK** | "힘내/해내" (검색 안 함) | https://en.wiktionary.org/wiki/zet_%27m_op |
 | 6 | 덴마크 | Kom så! | 자, 가자! | 덴마크 사람들이 기합 넣을 때 흔히 써요 | **OK** | 응원에 쓰는 "자, 가자" (검색 안 함) | https://en.wiktionary.org/wiki/kom_s%C3%A5 |
 | 7 | 오스트리아 | Auf geht's! | 자, 시작하자! | 오스트리아·남부 독일어권에서 흔히 써요 | **OK** | "자, 가자" (검색 안 함) | https://en.wiktionary.org/wiki/auf_geht%27s |
-| 8 | 호주 | She'll be right! | 괜찮을 거야! | "다 잘될 거야"라는 호주 특유의 말이에요 | **교체** | 응원이 아니라 안심하는 말이고, 안전 분야에서 "안일함"의 대명사로 비판받아요 | https://en.wikipedia.org/wiki/She%27ll_be_right |
+| 8 | 호주 | Give it a burl! | 한번 해 봐! | 호주 속어 사전에 있는 격려 표현이에요 | **교체 확정** (전: She'll be right!) | 사용자 확정 2026-11-25 | https://www.vu.edu.au/about-vu/news-events/study-space/australian-slang-dictionary |
 | 9 | 독일 | Los geht's! | 가자! | 독일어에서 가장 흔한 "시작하자" 표현이에요 | **OK** | "가자" (검색 안 함) | https://en.wiktionary.org/wiki/los_geht%27s |
 | 10 | 스웨덴 | Heja! | 힘내! | 스웨덴 응원 구호예요 | **OK** | 응원 감탄사로 사전에 있어요 | https://en.wiktionary.org/wiki/heja |
 | 11 | 캐나다 | Giv'er! | 전력으로 해! | "있는 힘껏 하라"는 캐나다 속어예요 | **OK** | 캐나다 영어 사전에 "전력을 다해"로 있어요 | https://dchp.arts.ubc.ca/entries/give'r |
-| 12 | 핀란드 | Sisu! | 끈기! | 포기하지 않는 핀란드식 정신을 뜻하는 유명한 말이에요 | **교체** | 명사(근성)라 외치는 말이 아니고, 겨울전쟁 때문에 전쟁·민족주의 색이 있어요 | https://en.wikipedia.org/wiki/Sisu |
+| 12 | 핀란드 | Tsemppiä! | 힘내! | 핀란드에서 힘든 일 앞에서 흔히 하는 응원이에요 | **교체 확정** (전: Sisu!) | 사용자 확정 2026-11-25 | https://sublearn.com/learn/fi/phrases/tsemppi%C3%A4 |
 | 13 | 프랑스 | Allez ! | 가자! / 힘내! | 프랑스 응원에서 가장 흔한 말이에요 | **OK** | 가장 흔한 응원 (검색 안 함) | https://en.wiktionary.org/wiki/allez |
 | 14 | 이탈리아 | Andiamo! | 가자! | 일상에서 흔한 "가자"예요 ("Forza Italia"는 정당 이름이라 뺐어요) | **OK** | "가자" (검색 안 함) | https://en.wiktionary.org/wiki/andiamo |
 | 15 | 한국 | 파이팅! | 힘내! | 한국에서 응원할 때 가장 흔히 써요 | **OK** | 일상 응원어 (검색 안 함) | https://en.wiktionary.org/wiki/%ED%8C%8C%EC%9D%B4%ED%8C%85 |
@@ -117,11 +117,11 @@
 | 25 | 슬로바키아 | Poďme! | 가자! | 슬로바키아어의 흔한 "가자"예요 (체코 "Do toho!"와 겹치지 않게 골랐어요) | **OK** | "가자"예요. 같은 이름 정당은 못 찾았어요 | https://en.wiktionary.org/wiki/po%C4%8Fme |
 | 26 | 그리스 | Πάμε! (Páme!) | 가자! | 그리스어에서 가장 흔한 "가자"예요 | **주의(낮음)** | 일상 "가자"예요. 대문자 ΠΑΜΕ는 노동단체 이름이라 소문자로만 써요 | https://en.wikipedia.org/wiki/All-Workers_Militant_Front |
 | 27 | 튀르키예 | Haydi! | 어서! / 가자! | 튀르키예어의 흔한 기합이에요 | **OK** | "come on" 감탄사예요. 구어로는 "Hadi!"가 더 흔해요 | https://en.wiktionary.org/wiki/hayde |
-| 28 | 칠레 | ¡Vamos que se puede! | 가자, 할 수 있어! | 칠레 응원에서 흔히 외쳐요 | **주의** | "Se puede"는 대선 구호였고, 우파 연합 이름이 "Chile Vamos"예요 | https://en.wikipedia.org/wiki/Chile_Vamos |
-| 29 | 멕시코 | ¡Ándale! | 어서! / 서둘러! | 멕시코 스페인어의 대표 표현이에요 | **주의** | 일상어지만, 영어권에서는 고정관념 논란이 있는 만화 캐릭터 대사로 유명해요 | https://en.wikipedia.org/wiki/Speedy_Gonzales |
+| 28 | 칠레 | ¡Dale, po! | 자, 가자! | 칠레 말투("po")가 들어간 응원이에요 · 칠레 사람 확인 필요 | **교체 확정** (전: ¡Vamos que se puede!) | 사용자 확정 2026-11-25 | — |
+| 29 | 멕시코 | ¡Échale ganas! | 최선을 다해! | 멕시코의 대표 격려 표현이에요 | **교체 확정** (전: ¡Ándale!) | 사용자 확정 2026-11-25 | https://www.spanishdict.com/translate/%C3%A9chale%20ganas |
 | 30 | 콜롬비아 | ¡Hágale! | 해 버려! | "해 봐, 밀어붙여"라는 콜롬비아 특유의 말이에요 | **OK** | 콜롬비아 대표 격려 표현이에요. 연구 논문도 있어요 | https://www.redalyc.org/journal/4765/476556824017/476556824017.pdf |
 
-### 바꾸기 후보 [제안 · 사용자 확인 대기]
+### 바꾸기 후보 → ✅ 5개 모두 교체 확정 (2026-11-25, 사용자 "가") · 뉴질랜드만 결정 대기
 | 순위 | 나라 | 지금 | 바꾸면 | 이유 | 출처 |
 |---|---|---|---|---|---|
 | 8 | 호주 | She'll be right! | **Give it a burl!** ("한번 해 봐!") | 응원이 아니라 안심하는 말이에요. 바꿀 말은 호주 속어 사전에 있어요 | https://www.vu.edu.au/about-vu/news-events/study-space/australian-slang-dictionary |
