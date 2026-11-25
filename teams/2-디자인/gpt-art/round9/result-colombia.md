@@ -1,0 +1,3 @@
+내장 이미지 생성 기능으로 [walk-colombia.png](/home/user/poki-game/teams/2-디자인/gpt-art/round9/walk-colombia.png)를 만들어 저장했습니다. 2560×256 RGBA PNG이며, 5방향의 걷기 프레임 10개를 256×256 칸에 가로로 배치했습니다. 모든 칸의 투명 배경과 참조 이미지에 맞춘 발 기준선을 확인했습니다.
+
+가운데 세 방향은 두 걸음의 자세가 구분되지만, A에서 오른발, B에서 왼발이 앞서는지는 그림만으로 확정하기 어렵습니다. 크기, 투명 여부, 생성 프롬프트는 [result-colombia.md](/home/user/poki-game/teams/2-디자인/gpt-art/round9/result-colombia.md)에 기록했습니다.
