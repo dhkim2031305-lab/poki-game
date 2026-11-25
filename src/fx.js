@@ -71,6 +71,10 @@
 
   // 쏘기 8종: 날아가는 것 그리기 (dir = 날아가는 방향, t = 시간)
   const SHOT = {
+    // 스킬 연사(검·창 나라): 짧은 빛줄기 — 흰 머리 + 옅은 금 꼬리 (style-guide "스킬 5유형")
+    streak(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
+      const g = x.createLinearGradient(-30, 0, 6, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(.6, PALE + '.7)'); g.addColorStop(1, 'rgba(255,255,255,.95)');
+      x.strokeStyle = g; x.lineWidth = 4; x.beginPath(); x.moveTo(-30, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#FFFFFF'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(-8, 0); x.lineTo(6, 0); x.stroke(); x.restore(); },
     arrow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-34, 0); x.lineTo(-12, 0); x.stroke(); x.strokeStyle = '#8A5A2B'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-12, 0); x.lineTo(10, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(14, 0); x.lineTo(8, -3.5); x.lineTo(8, 3.5); x.fill(); x.fillStyle = '#F2E3C6'; x.fillRect(-13, -3, 5, 2); x.fillRect(-13, 1, 5, 2); x.restore(); },
     crossbow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-26, 0); x.lineTo(-6, 0); x.stroke(); x.fillStyle = '#5A3429'; x.fillRect(-6, -2, 14, 4); x.fillStyle = '#C9C9C9'; x.beginPath(); x.moveTo(13, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     bullet(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); const g = x.createLinearGradient(-40, 0, 4, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(1, 'rgba(255,255,255,.9)'); x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(-40, 0); x.lineTo(2, 0); x.stroke(); UI.circ(3, 0, 2.8, '#FFFFFF'); x.restore(); },
@@ -178,8 +182,17 @@
   // 회전 베기(호주)는 그림 없이 코드로 그려요
   const MELEE_SHEET = { slash: ['slash', 76, 30], bigslash: ['slash', 99, 36], thrust: ['thrust', 84, 40], rapid: ['thrust', 70, 34, 3], smash: ['smash', 80, 30] };
 
+  // 스킬 이펙트 시트 (10차 skill/fx-<유형>.webp): 칸 n개 가로, +x 방향, 가산 합성 · frame 번째 칸을 그려요
+  function cell(name, n, frame, cx, cy, ang, size, alpha = 1, flip = false) {
+    const im = UI.img[name]; if (!im || !im.naturalWidth) return false;
+    const cw = im.naturalWidth / n, f = Math.max(0, Math.min(n - 1, frame | 0)), x = UI.x, h = size * im.naturalHeight / cw;
+    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; x.translate(cx, cy); x.rotate(ang); if (flip) x.scale(-1, 1);
+    x.drawImage(im, f * cw, 0, cw, im.naturalHeight, -size / 2, -h / 2, size, h); x.restore();
+    return true;
+  }
   window.FX = {
     sheet,
+    cell,
     // 그림이 있으면 그림, 없으면 코드 효과
     drawMeleeAny(kind, cx, cy, dir, p) {
       const m = MELEE_SHEET[kind];

@@ -62,52 +62,58 @@
     stops.forEach(([o, col]) => g.addColorStop(o, col)); x.fillStyle = g; x.fillRect(0, 0, w, h);
     return canvasTex(c);
   }
-  // 벽돌 (임시: 디자인팀 10차 tex-wall이 오면 바꿔요) — room 그림 벽 색에 맞춘 어두운 돌
-  function brickTex() {
+  // 반복 텍스처 (디자인팀 10차 src/assets/3d/) — 없으면 null
+  function repTex(name) {
+    const im = UI.img[name]; if (!im || !im.naturalWidth) return null;
+    const t = texOf(im, name); t.wrapS = t.wrapT = T.RepeatWrapping; t.needsUpdate = true; return t;
+  }
+  // 문 앞 바닥 빛: 왼쪽 보라 · 오른쪽 초록 (room 그림에 있던 빛을 코드로)
+  function doorGlowTex() {
     const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d');
-    x.fillStyle = '#2A2731'; x.fillRect(0, 0, 256, 128);
-    let seed = 7; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    for (let row = 0; row < 4; row++) {
-      const off = row % 2 ? 32 : 0;
-      for (let i = -1; i < 4; i++) {
-        const bx = i * 64 + off + 2, by = row * 32 + 2, l = 88 + r() * 26 | 0;
-        x.fillStyle = `rgb(${l},${l - 6},${l + 4})`; x.fillRect(bx, by, 60, 28);
-        x.fillStyle = 'rgba(255,255,255,.10)'; x.fillRect(bx, by, 60, 3);
-        x.fillStyle = 'rgba(0,0,0,.22)'; x.fillRect(bx, by + 24, 60, 4);
-      }
+    for (const [cx, col] of [[104, '202,87,229'], [152, '184,215,39']]) {
+      const g = x.createRadialGradient(cx, 0, 0, cx, 0, 100); g.addColorStop(0, `rgba(${col},.5)`); g.addColorStop(.4, `rgba(${col},.18)`); g.addColorStop(1, `rgba(${col},0)`);
+      x.fillStyle = g; x.fillRect(0, 0, 256, 128);
     }
-    const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 4;
-    return t;
+    return canvasTex(c);
   }
 
   // ---------- 방 만들기 (에셋 로딩 뒤 처음 그릴 때 한 번) ----------
-  const UVK = 48;   // 벽돌 한 장(64px)이 게임 단위 48에 맞게
-  function wallBox(x0, z0, x1, z1, h, mats) {
+  // 벽 상자: 옆면 = wall(가로 60단위마다 반복, 세로 = 높이 30), 윗면 = wall-top(긴 쪽으로 반복, 짧은 쪽 = 두께)
+  // pillar = 기둥 그림을 네 옆면에 (그림 가운데 기둥 부분만)
+  function wallBox(x0, z0, x1, z1, h, mats, kind = 'wall') {
     const g = new T.BoxGeometry(x1 - x0, h, z1 - z0);
     g.translate((x0 + x1) / 2, h / 2, (z0 + z1) / 2);
-    const p = g.attributes.position, uv = g.attributes.uv;
+    const p = g.attributes.position, uv = g.attributes.uv, alongX = x1 - x0 >= z1 - z0, t = alongX ? z1 - z0 : x1 - x0;
     for (let i = 0; i < p.count; i++) {
       const face = Math.floor(i / 4), X = p.getX(i), Y = p.getY(i), Z = p.getZ(i);
-      if (face === 2) uv.setXY(i, X / W, 1 - Z / H);            // 윗면 = room 그림의 그 자리 (갓돌)
-      else if (face < 2) uv.setXY(i, Z / UVK, Y / UVK * 2);      // 옆면
-      else uv.setXY(i, X / UVK, Y / UVK * 2);                    // 앞·뒷면
+      if (face === 2) {
+        if (kind === 'pillar') uv.setXY(i, (X - x0) / (x1 - x0) * .25, (Z - z0) / (z1 - z0));
+        else if (alongX) uv.setXY(i, X / (t * 4), (Z - z0) / t);
+        else uv.setXY(i, Z / (t * 4), (X - x0) / t);
+      } else if (face === 3) uv.setXY(i, 0, 0);
+      else if (kind === 'pillar') { const u = face < 2 ? (Z - z0) / (z1 - z0) : (X - x0) / (x1 - x0); uv.setXY(i, .3 + u * .4, .015 + Y / h * .97); }
+      else uv.setXY(i, (face < 2 ? Z : X) / 60, Y / WALL.h);
     }
     const m = new T.Mesh(g, mats); m.castShadow = true; m.receiveShadow = true; scene.add(m);
     return m;
   }
   function build() {
     const room = UI.img.room; if (!room || !room.naturalWidth) return false;
+    const floorT = repTex('3d/floor'), wallT = repTex('3d/wall'), topT = repTex('3d/wall-top');
+    const pilIm = UI.img['3d/pillar'], archIm = UI.img['3d/door-arch'];
     const roomTex = texOf(room, 'room');
-    // 바닥: room 그림 전체 (문 앞 보라·초록 빛도 그림에 있어요)
-    const floor = new T.Mesh(new T.PlaneGeometry(W, H), new T.MeshLambertMaterial({ map: roomTex }));
+    // 바닥: 돌바닥 텍스처 반복(약 260단위) · 없으면 room 그림
+    let floorMat;
+    if (floorT) { floorT.repeat.set(W / 260, H / 260); floorMat = new T.MeshLambertMaterial({ map: floorT }); }
+    else floorMat = new T.MeshLambertMaterial({ map: roomTex });
+    const floor = new T.Mesh(new T.PlaneGeometry(W, H), floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.set(W / 2, 0, H / 2); floor.receiveShadow = true; scene.add(floor);
     // 가장자리 어둡게 (방 조명)
     const vig = new T.Mesh(new T.PlaneGeometry(W, H), new T.MeshBasicMaterial({ map: gradTex([[0, 'rgba(6,5,10,0)'], [.62, 'rgba(6,5,10,.05)'], [1, 'rgba(6,5,10,.55)']], 256, 256), transparent: true, depthWrite: false }));
     vig.rotation.x = -Math.PI / 2; vig.position.set(W / 2, .3, H / 2); vig.scale.set(1.15, 1.25, 1); vig.renderOrder = -5; scene.add(vig);
 
-    const brick = brickTex();
-    const side = new T.MeshLambertMaterial({ map: brick, color: 0xC8C0D4 });
-    const top = new T.MeshLambertMaterial({ map: roomTex });
+    const side = new T.MeshLambertMaterial(wallT ? { map: wallT } : { color: 0x5A5560 });
+    const top = new T.MeshLambertMaterial(topT ? { map: topT, color: 0xB4ADBA } : { map: roomTex });
     const mats = [side, side, top, side, side, side];
     const d = WALL.door, cx = W / 2, cz = H / 2;
     // 위 벽 (문 자리 비움)
@@ -119,31 +125,35 @@
     // 앞 벽: 낮게 (안이 가려지지 않게)
     wallBox(0, WALL.bottom, cx - d, H, WALL.low, mats); wallBox(cx + d, WALL.bottom, W, H, WALL.low, mats);
     for (const x0 of [0, W - WALL.side]) wallBox(x0, WALL.bottom - 40, x0 + WALL.side, WALL.bottom, WALL.low + 10, mats);
-    // 기둥 (room 그림의 기둥 자리)
+    // 기둥 (room 그림의 기둥 자리) — pillar 그림
+    const pilT = pilIm && pilIm.naturalWidth ? texOf(pilIm, '3d/pillar') : null;
+    const pm = pilT ? new T.MeshLambertMaterial({ map: pilT, alphaTest: .5 }) : side;
+    const pmats = [pm, pm, top, pm, pm, pm];
     const pil = [[.155, 0], [.305, 0], [.695, 0], [.845, 0], [0, .33], [1, .33]];
     for (const [u, v] of pil) {
       const px = u === 0 ? WALL.side / 2 : u === 1 ? W - WALL.side / 2 : W * u, pz = v === 0 ? WALL.top / 2 : H * v;
-      wallBox(px - 13, pz - 13, px + 13, pz + 13, WALL.h + 8, mats);
+      wallBox(px - 11, pz - 11, px + 11, pz + 11, WALL.h + 16, pmats, 'pillar');
     }
-    // 문: 안쪽은 어둡고 보라·초록 빛이 새어 나와요
-    const glow = gradTex([[0, 'rgba(202,87,229,.95)'], [.48, 'rgba(160,70,200,.5)'], [.52, 'rgba(150,200,40,.5)'], [1, 'rgba(184,215,39,.95)']], 128, 8, false);
+    // 문: door-arch 그림(아치 + 안쪽 어둠·보라/초록 빛)을 벽 안쪽 면에 세워요 + 바닥에 문 빛
+    const archT = archIm && archIm.naturalWidth ? texOf(archIm, '3d/door-arch') : null;
+    const archMat = archT ? new T.MeshLambertMaterial({ map: archT, transparent: true, alphaTest: .4, side: T.DoubleSide }) : null;
     const voidMat = new T.MeshBasicMaterial({ color: 0x07060B });
-    const glowMat = new T.MeshBasicMaterial({ map: glow, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: .8 });
-    const archMat = new T.MeshLambertMaterial({ map: brick, color: 0xB8B0C4 });
+    const glowMat = new T.MeshBasicMaterial({ map: doorGlowTex(), transparent: true, blending: T.AdditiveBlending, depthWrite: false });
     // (x, z) = 벽 안쪽 면의 문 가운데, rotY = 방 안쪽을 보게, t = 벽 두께
-    const door = (x, z, rotY, hgt, t) => {
+    const AW = 108, AH = 70;   // 아치 판: 그림 속 아치 폭(0.785) ≈ 85 → 문 구멍 68을 덮어요. 높이는 벽 위로 조금 솟게 눌러요
+    const door = (x, z, rotY, hgt, t, arch) => {
       const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = rotY; scene.add(g);
       const back = new T.Mesh(new T.PlaneGeometry(d * 2, hgt), voidMat); back.position.set(0, hgt / 2, -t * .45); g.add(back);
-      const gl = new T.Mesh(new T.PlaneGeometry(d * 2, hgt), glowMat); gl.position.set(0, hgt / 2, -t * .4); g.add(gl);
-      if (hgt > 12) {
-        const arch = new T.Mesh(new T.TorusGeometry(d + 3, 5, 6, 14, Math.PI), archMat); arch.position.set(0, hgt * .62, -5); arch.castShadow = true; g.add(arch);
-        for (const s of [-1, 1]) { const p = new T.Mesh(new T.BoxGeometry(10, hgt * .62, 12), archMat); p.position.set(s * (d + 3), hgt * .31, -5); p.castShadow = true; g.add(p); }
+      if (arch && archMat) {
+        const a = new T.Mesh(new T.PlaneGeometry(AW, AH), archMat); a.position.set(0, AH / 2 - AH * (1 - .921), 1.5); a.castShadow = true; a.receiveShadow = true; g.add(a);
       }
+      const fl = new T.Mesh(new T.PlaneGeometry(150, 75), glowMat); fl.rotation.x = -Math.PI / 2; fl.position.set(0, .5, 37); fl.renderOrder = -4; g.add(fl);
       return g;
     };
-    door(cx, WALL.top, 0, WALL.h, WALL.top);
-    door(WALL.side, cz, Math.PI / 2, WALL.h, WALL.side);
-    door(W - WALL.side, cz, -Math.PI / 2, WALL.h, WALL.side);
+    door(cx, WALL.top, 0, WALL.h, WALL.top, true);
+    door(WALL.side, cz, Math.PI / 2, WALL.h, WALL.side, true);
+    door(W - WALL.side, cz, -Math.PI / 2, WALL.h, WALL.side, true);
+    door(cx, WALL.bottom, Math.PI, WALL.low, WALL.top, false);
 
     // 조명: 은은한 환경광 + 왼쪽 위 앞에서 오는 따뜻한 빛 (그림자는 오른쪽 뒤로)
     scene.add(new T.HemisphereLight(0xC9C2DC, 0x3A3346, .62));
@@ -160,7 +170,8 @@
   // 카메라: PITCH도로 내려다보며 방 전체(먼 벽 위 ~ 앞 벽)가 화면에 꼭 차게 거리를 맞춰요
   function fitCamera() {
     const th = PITCH * Math.PI / 180, dir = new T.Vector3(0, -Math.sin(th), -Math.cos(th));
-    const pts = [[0, WALL.h, 0], [W, WALL.h, 0], [0, 0, H], [W, 0, H], [WALL.side, 0, H - 30], [W / 2, WALL.h + 8, 0]].map(p => new T.Vector3(...p));
+    // 먼 벽은 윗면 앞쪽 모서리까지만 (그 위는 HUD 자리라 조금 잘려도 돼요) → 캐릭터가 더 크게
+    const pts = [[WALL.side, WALL.h, WALL.top], [W - WALL.side, WALL.h, WALL.top], [WALL.side * .5, 0, WALL.bottom + 8], [W - WALL.side * .5, 0, WALL.bottom + 8], [W / 2, WALL.h * .6, WALL.top * .5]].map(p => new T.Vector3(...p));
     let zc = H / 2;
     const place = D => { camera.position.set(W / 2, 0, zc).addScaledVector(dir, -D); camera.lookAt(W / 2, 0, zc); camera.updateMatrixWorld(); };
     const ext = () => { let y0 = 9, y1 = -9, xm = 0; for (const p of pts) { v1.copy(p).project(camera); y0 = Math.min(y0, v1.y); y1 = Math.max(y1, v1.y); xm = Math.max(xm, Math.abs(v1.x)); } return { y0, y1, xm }; };
@@ -242,6 +253,18 @@
     renderer.setViewport(0, 0, view.cw, view.ch); renderer.clear();
     renderer.setViewport(x, view.ch - y - h, w, h);
     renderer.render(scene, camera);
+  };
+  // 배경용 (나라 고르기·결과 화면): 빈 방을 천천히 도는 카메라로 화면 전체에 그려요
+  const savePos = new T.Vector3(), saveQ = new T.Quaternion();
+  R.backdrop = (t, cw, ch, still) => {
+    if (!R.begin()) return false;
+    savePos.copy(camera.position); saveQ.copy(camera.quaternion);
+    const a = still ? 0 : Math.sin(t * .12) * .5, r = 760, cxz = [W / 2, H / 2];
+    camera.position.set(cxz[0] + Math.sin(a) * r * .55, 520, cxz[1] + Math.cos(a) * r * .55);
+    camera.aspect = cw / ch; camera.updateProjectionMatrix(); camera.lookAt(cxz[0], 0, cxz[1]);
+    renderer.setViewport(0, 0, view.cw, view.ch); renderer.clear(); renderer.render(scene, camera);
+    camera.position.copy(savePos); camera.quaternion.copy(saveQ); camera.aspect = W / H; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    return true;
   };
   // 바닥 점(x, y, 높이 hgt) → 전장 좌표(0~FIELD.W, 0~FIELD.H) + 그 자리에서 게임 단위 1의 크기
   const out = { x: 0, y: 0, s: 1 };

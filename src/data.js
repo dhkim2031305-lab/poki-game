@@ -57,6 +57,9 @@
     MELEE_CD: 0.4, RANGED_CD: 0.3,
     SKILL_TIME: 0.5, SKILL_PER_ROUND: 2,
     REVIVE_INVULN: 2.0,
+    // 고유 스킬 유형별 수치 (balance.md 확정, 사용자 "추천대로"): 피해 = 40 × F
+    SKILL: { DMG: 40, DASH_DIST: 260, DASH_TIME: 0.35, AREA_R: 140, BARRAGE_TIME: 1.5, BARRAGE_N: 8, BARRAGE_DIV: 4,
+      GUARD_TIME: 2, ZONE_D: 180, ZONE_TIME: 3, ZONE_TICK: 0.5, ZONE_DIV: 3 },
     ITEM_TIME: 8, ITEM_LIFE: 10, ITEMS_PER_ROUND: 2,
     CONTACT_DMG: 10, BOSS_CONTACT_DMG: 20,
     // 라운드별 외계인: n = 외계인 수(보스 제외), hp·speed, boss = 보스 체력
@@ -70,6 +73,19 @@
     ],
   };
 
+  // 나라별 고유 스킬 — teams/1-기획/skills.md (전부 확정 2026-11-25) · 순위 순서
+  // type: dash 돌진 · area 범위 · barrage 연사 · guard 방어 · zone 설치 / shout: 그 나라에서 유명한 말 (번역 안 함)
+  const SK = (type, shout) => ({ type, shout });
+  const SKILLS = [
+    SK('dash', 'Hopp Lëtzebuerg!'), SK('area', "G'wan!"), SK('guard', 'Hopp Schwiiz!'), SK('barrage', "Let's go!"), SK('barrage', "Zet 'm op!"),
+    SK('guard', 'Kom så!'), SK('dash', "Auf geht's!"), SK('barrage', 'Give it a burl!'), SK('area', "Los geht's!"), SK('dash', 'Heja!'),
+    SK('barrage', "Giv'er!"), SK('dash', 'Tsemppiä!'), SK('area', 'Allez !'), SK('guard', 'Andiamo!'), SK('zone', '파이팅!'),
+    SK('dash', '¡Vamos!'), SK('zone', 'Do toho!'), SK('barrage', 'יאללה!'), SK('dash', 'Pirmyn!'), SK('zone', 'Good on ya!'),
+    SK('dash', '頑張れ！'), SK('area', 'Vamos lá!'), SK('dash', 'Dajesz!'), SK('barrage', 'Hajrá!'), SK('area', 'Poďme!'),
+    SK('guard', 'Πάμε!'), SK('area', 'Haydi!'), SK('area', '¡Dale, po!'), SK('dash', '¡Échale ganas!'), SK('area', '¡Hágale!'),
+  ];
+  COUNTRIES.forEach((c, i) => { c.skill = SKILLS[i]; });
+
   // ---- 기획서에 수치가 없어서 개발팀이 넣은 임시 값 [제안 · 기획팀 확인 필요] ----
   const TEMP = {
     HURT_INVULN: 0.7,             // 외계인에 닿은 뒤 다시 맞기까지 (없으면 닿는 순간 HP가 녹아요)
@@ -82,6 +98,7 @@
     ITEM_TIMES: [5, 15],          // 라운드 시작 뒤 화폐가 나오는 시간(초)
     ITEM_SPOTS: [[0.3, 0.35], [0.7, 0.65], [0.7, 0.35], [0.3, 0.65], [0.5, 0.3], [0.5, 0.7]],
     // 라운드마다 나오는 화폐 2개 (모든 나라 같음) — 약한 것에서 강한 것으로
+    SKILL_GUARD_R: 46, SKILL_GUARD_AHEAD: 30, SKILL_ZONE_AHEAD: 120,   // 방어 벽 반지름·앞 거리, 설치 구역을 놓는 앞 거리 (기획서에 없음)
     ITEM_CURS: [['KRW', 'JPY'], ['MXN', 'SEK'], ['PLN', 'NZD'], ['CAD', 'USD'], ['EUR', 'CHF'], ['GBP', 'CNY']],
   };
 
@@ -95,5 +112,5 @@
     { x: 30, y: FIELD.H / 2, dx: 1, dy: 0 },            // 왼쪽
   ];
 
-  window.DATA = { COUNTRIES, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
+  window.DATA = { COUNTRIES, SKILLS, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
 })();
