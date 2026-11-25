@@ -1,0 +1,1 @@
+[room.png](/home/user/poki-game/teams/2-디자인/gpt-art/round3/room.png)를 1920×1080 PNG로 저장했습니다. 위에서 내려다본 성채 안뜰의 중앙은 어두운 돌바닥으로 비워 두었고, 네 벽의 중앙에 있는 문마다 보라색과 초록색 빛이 새어 나옵니다.
