@@ -71,6 +71,14 @@
 
   // 쏘기 8종: 날아가는 것 그리기 (dir = 날아가는 방향, t = 시간)
   const SHOT = {
+    // 스위스 2 꿰뚫는 찌르기: 길고 가는 직선 빛
+    lance(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
+      const g = x.createLinearGradient(-56, 0, 10, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(1, 'rgba(255,255,255,.95)'); x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(-56, 0); x.lineTo(10, 0); x.stroke();
+      x.strokeStyle = GLOW; x.lineWidth = 1; x.beginPath(); x.moveTo(-40, -3); x.lineTo(4, -1); x.moveTo(-40, 3); x.lineTo(4, 1); x.stroke(); x.restore(); },
+    // 네덜란드 1 마지막 찌르기: 굵은 빛 + 별빛
+    star(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
+      x.strokeStyle = PALE + '.8)'; x.lineWidth = 7; x.beginPath(); x.moveTo(-34, 0); x.lineTo(8, 0); x.stroke(); x.strokeStyle = '#FFFFFF'; x.lineWidth = 3; x.stroke();
+      star(x, 10, 0, 4, 11, 3, '#FFFFFF'); x.restore(); },
     // 충격파 (체코 도리깨, 사용자 확정): 땅을 따라 나가는 은빛 물결 — 바닥 높이에 납작하게 (FX.flat = 바닥 원 납작 비율)
     quake(x, px, py, dir, t) {
       const fl = FX.flat || .35, k = Math.min(1, t / .62);

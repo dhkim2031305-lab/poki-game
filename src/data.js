@@ -126,6 +126,22 @@
   ];
   COUNTRIES.forEach((c, i) => { c.skill2 = SKILLS2[i]; });
 
+  // 스킬 60개 고유 특징 — teams/1-기획/skills-unique.md (확정 2026-11-25, 사용자 "이대로 확정") · [1번, 2번]
+  // k = 특징 꼬리표 (game.js SKILL_FN이 읽어요), mul·div 등 = 표의 피해 칸 그대로 (기준 피해 80 × F)
+  const SKILL_MOD = {
+    luxembourg: [{ k: 'dashInv', mul: .9, inv: 1 }, { k: 'reflect', ratio: .5 }],
+    ireland: [{ k: 'pull', mul: .8 }, { k: 'zigzag', mul: .9 }],
+    switzerland: [{ k: 'spikes', div: 6 }, { k: 'pierce', div: 5 }],
+    usa: [{ k: 'bounce', div: 4 }, { k: 'rings', div: 3 }],
+    netherlands: [{ k: 'lastHit', div: 8, last: .4, n: 5 }, { k: 'blink', mul: .9 }],
+    denmark: [{ k: 'advance', mul: .5 }, { k: 'grow', mul1: .6, mul2: .4 }],
+    austria: [{ k: 'prints', mul: .7, div: 8 }, { k: 'twoRings', mul: .5 }],
+    australia: [{ k: 'boomer', out: .4, back: .4 }, { k: 'cross', div: 4 }],
+    germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
+    sweden: [{ k: 'clones', mul: .7 }, { k: 'counter', mul: .8 }],
+  };
+  COUNTRIES.forEach(c => { const m = SKILL_MOD[c.key]; if (m) { c.skill.mod = m[0]; c.skill2.mod = m[1]; } });
+
   // ---- 기획서에 수치가 없어서 개발팀이 넣은 임시 값 [제안 · 기획팀 확인 필요] ----
   const TEMP = {
     HURT_INVULN: 0.7,             // 외계인에 닿은 뒤 다시 맞기까지 (없으면 닿는 순간 HP가 녹아요)
@@ -155,5 +171,5 @@
     { x: 30, y: FIELD.H / 2, dx: 1, dy: 0 },            // 왼쪽
   ];
 
-  window.DATA = { COUNTRIES, SKILLS, SKILLS2, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
+  window.DATA = { COUNTRIES, SKILLS, SKILLS2, SKILL_MOD, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
 })();
