@@ -26,7 +26,7 @@
 | `ui.07` | 파산 | Bankrupt | 파산 화면 제목 | 확정 |
 | `ui.09` | 설정 | Settings | 설정 버튼·화면 제목 | 확정 |
 | `ui.10` | Language | Language | 설정 화면 맨 위 (모든 언어에서 영어 그대로 + 지구본 아이콘) | 확정 |
-| `ui.08` | 1인당 GDP(PPP) · OECD 2024 | GDP per capita (PPP) · OECD 2024 | 나라 카드 출처 표시 | 확정 |
+| `ui.08` | 1인당 GDP(PPP) · OECD 2024 | GDP per capita (PPP) · OECD 2024 | ~~나라 카드 출처 표시~~ → 화면에서 가림(GDD 0-13). 게임 설명 페이지용으로만 남겨요 | 확정 |
 | `round.clear.1` | 완벽해요! 세상은 정말 아름다워요! | Perfect! The world is truly beautiful! | 라운드 클리어 (무작위) | 확정 |
 | `round.clear.2` | 당신은 뭐든 할 수 있어요! | You can do anything! | 라운드 클리어 (무작위) | 확정 |
 | `end.unfair` | …하지만 인생은 불공평해요. | …But life isn't fair. | 6라운드 클리어 뒤, 장수가 쓰러지기 직전 | 확정 |
