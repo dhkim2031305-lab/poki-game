@@ -2,7 +2,7 @@
 // node skills60.js OUT [port] [ci,ci,...]   (npm run dev 켜 둔 뒤)
 const { chromium } = require('playwright');
 (async () => {
-  const [OUT, port = 8080, only] = process.argv.slice(2);
+  const [OUT, port = 8080, only, render = ''] = process.argv.slice(2); const Q = render ? '?render=' + render : '';
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const list = only ? only.split(',').map(Number) : [...Array(30).keys()];
   const res = [];
@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
     const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = [];
     p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
     await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
-    await p.goto(`http://localhost:${port}/web/`); await p.waitForFunction(() => window.G && G.scene === 'title');
+    await p.goto(`http://localhost:${port}/web/${Q}`); await p.waitForFunction(() => window.G && G.scene === 'title');
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter');
     await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(400);
     await p.evaluate(() => {
@@ -19,9 +19,9 @@ const { chromium } = require('playwright');
       const mk = (id, type, x, y, ex) => Object.assign({ id, type, x, y, dx: 0, dy: 0, entering: false, hp: 99999, max: 99999, speed: 0, r: type === 'boss' ? 30 : 15, flash: 0, shootT: 99, seed: x, vx: -1, kb: { x: 0, y: 0 }, recoil: 0 }, ex);
       G.aliens.push(mk('A', 'grunt', 330, 210), mk('B', 'grunt', 420, 214), mk('C', 'grunt', 520, 206), mk('D', 'grunt', 262, 150), mk('E', 'grunt', 190, 214), mk('Boss', 'boss', 360, 268));
       window.__trk = { dmg: {}, ctl: {}, heroSkillT: 0, heroMinX: h.x, heroMaxX: h.x, heroHp0: h.hp };
-      G.aliens.forEach(a => { __trk.dmg[a.id] = 0; __trk.ctl[a.id] = { freeze: 0, seal: 0, root: 0, air: 0 }; a.__hp = a.hp; });
+      G.aliens.forEach(a => { __trk.dmg[a.id] = 0; __trk.ctl[a.id] = { freeze: 0, seal: 0, root: 0, air: 0, fear: 0, mark: 0, weak: 0 }; a.__hp = a.hp; });
       window.__step = k => { for (let i = 0; i < k; i++) { window.__t += 1000 / 60; window.__cb(window.__t);
-        for (const a of G.aliens) { if (a.hp < a.__hp) __trk.dmg[a.id] += a.__hp - a.hp; a.__hp = a.hp; for (const c of ['freeze', 'seal', 'root', 'air']) __trk.ctl[a.id][c] = Math.max(__trk.ctl[a.id][c], a[c] || 0); }
+        for (const a of G.aliens) { if (a.hp < a.__hp) __trk.dmg[a.id] += a.__hp - a.hp; a.__hp = a.hp; for (const c of ['freeze', 'seal', 'root', 'air', 'fear', 'mark', 'weak']) __trk.ctl[a.id][c] = Math.max(__trk.ctl[a.id][c], a[c] || 0); }
         __trk.heroSkillT = Math.max(__trk.heroSkillT, G.hero.skillT || 0); __trk.heroMinX = Math.min(__trk.heroMinX, G.hero.x); __trk.heroMaxX = Math.max(__trk.heroMaxX, G.hero.x); } };
       window.__manual = true;
     });

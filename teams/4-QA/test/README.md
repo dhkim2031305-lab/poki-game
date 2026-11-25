@@ -17,4 +17,7 @@
 | `misc.js` | 기록 저장·저장소 막힘·페이지 스크롤 | `node misc.js` |
 | `pause.js` | PC 일시정지 Esc만·클릭은 공격·포커스 잃으면 조용히 멈춤, 터치 일시정지 버튼 (GDD 0-14) | `node pause.js` |
 | `recheck.js` | 능력치 ???·무적 시간·1위 보정 다시 보기 | `node recheck.js OUT` |
+| `new9.js` | 방어 대체: 덴마크1 표식 2배·그리스1 약화 +30%·스웨덴2 테두리 넘을 때만 | `node new9.js` |
+| `quake3d.js` | 체코 충격파가 3D·2D에서 보이는지 프레임별 캡처 | `node quake3d.js OUT` |
+| `phone-first.js` | 폰 첫 터치 전 화면·치기+쏘기 같이 = 무적·3D PC 더블클릭 | `node phone-first.js OUT` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
