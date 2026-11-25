@@ -86,10 +86,16 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 <section>
   <h2>5. 결과 화면 <small>실패(이어하기 광고) · 클리어 · 파산</small></h2>
   <div class="row" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-    <figure style="margin:0"><div class="phone"><canvas id="c-fail" width="1688" height="780"></canvas></div><figcaption>실패 · 초록 버튼은 보상형 광고 이어하기예요. 쓰러진 자리에서 바로 이어 해요. 한 번만 나오고 web에서는 숨겨요</figcaption></figure>
+    <figure style="margin:0"><div class="phone"><canvas id="c-fail" width="1688" height="780"></canvas></div><figcaption>실패 · 금테 버튼(AD)은 보상형 광고 이어하기예요[색 제안]. 쓰러진 자리에서 바로 이어 해요. 한 번만 나오고 web에서는 숨겨요</figcaption></figure>
     <figure style="margin:0"><div class="phone"><canvas id="c-clear" width="1688" height="780"></canvas></div><figcaption>6라운드 클리어 · 이어하기 버튼 없음</figcaption></figure>
-    <figure style="margin:0"><div class="phone"><canvas id="c-bankrupt" width="1688" height="780"></canvas></div><figcaption>파산 (아래 절반 나라) · HP가 0이 된 게 아니라서 이어하기 버튼이 없어요 [제안]</figcaption></figure>
+    <figure style="margin:0"><div class="phone"><canvas id="c-bankrupt" width="1688" height="780"></canvas></div><figcaption>파산 · 광고 보고 이어하기(무제한, 돈을 조금 받고 다음 라운드) · 이어 가면 "이런다고 없던 돈이 생길까?"</figcaption></figure>
   </div>
+</section>
+
+<section>
+  <h2>5-1. 설정·일시정지 <small>‖ 버튼이나 PC ESC · 맨 위에 Language</small></h2>
+  <p>기본 언어는 고른 나라 말이에요. 맨 위 <b>Language</b>에서 다른 언어로 바꿀 수 있어요. 언어 이름은 그 언어 자기 표기로 써요(English, 한국어, 日本語 …). 이 칸만은 어떤 언어에서도 영어 "Language" + 지구 아이콘으로 둬서 누구나 찾을 수 있게 해요.</p>
+  <div class="phone"><canvas id="c-settings" width="1688" height="780"></canvas></div>
 </section>
 
 <section>
@@ -127,7 +133,7 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 <script>
 const C={bg:'#151820',grid:'#1F2430',edge:'#4A3F2E',side:'#0A0B0F',fg:'#F2E3C6',muted:'#B1A599',panel:'rgba(24,22,24,.94)',frame:'#8C6B32',
  gold:'#D9AE4F',glow:'#FFD166',shot:'#FFE08A',purple:'#B14DFF',green:'#7CFF4F',pink:'#FF4FD8',red:'#FF5A5F',amber:'#F4B860',
- btn2:'#2C2A30',ad:'#3DDC97',hp:'#3DDC97'};
+ btn2:'#2C2A30',ad:'#D9AE4F',hp:'#3DDC97'};
 const KR=['#FFFFFF','#CD2E3A','#0047A0'];
 const CUR='₩';
 const NAMES=['luxembourg','ireland','switzerland','usa','netherlands','denmark','austria','australia','germany','sweden','canada','finland','france','italy','korea','spain','czechia','israel','lithuania','newzealand','japan','portugal','poland','hungary','slovakia','greece','turkiye','chile','mexico','colombia'];
@@ -369,7 +375,7 @@ function drawResult(id,win,t){const x=ctxOf(id);field(x,0);if(win){stars(x,t*3);
   if(win){x.save();x.shadowColor=C.gold;x.shadowBlur=reduce?0:8+Math.sin(t*5)*6;txt(x,'NEW',W/2+58,H*.66,12,C.gold,'center',800);x.restore();}
   btnSub(x,win?W*.4:W*.34,H*.82,28,'globe');
   btnMain(x,win?W*.6:W/2,H*.82,36,'retry');
-  if(!win){const bx=W*.66-10,by=H*.82-28;rr(x,bx,by+3,150,56,14,'rgba(0,0,0,.35)');rr(x,bx,by,150,56,14,C.ad);I.video(x,bx+30,by+28,28,C.bg);txt(x,'그 자리에서',bx+92,by+28,14,C.bg,'center',700);}
+  if(!win){const bx=W*.66-10,by=H*.82-28;adBtn(x,bx,by,150,56,'그 자리에서');}
 }
 
 /* ===== 아이템 ===== */
@@ -418,13 +424,32 @@ function drawAliens(t){const c=document.getElementById('c-aliens');const x=c.get
     x.fillStyle='rgba(0,0,0,.45)';x.beginPath();x.ellipse(px,205,h*.32,h*.07,0,0,Math.PI*2);x.fill();const mo=n==='alien-grunt'?M.crawl(t,0,1):n==='alien-boss'?{sy:reduce?1:1+Math.sin(t*1.6)*.025,sx:reduce?1:1-Math.sin(t*1.6)*.012}:M.idle(t*2,1);sprite(x,n,px,208,h,mo);if(n==='alien-boss'&&!reduce){x.save();x.globalCompositeOperation='lighter';x.globalAlpha=.25+.2*Math.sin(t*3);const g=x.createRadialGradient(px,120,5,px,120,70);g.addColorStop(0,'#8EBB2E');g.addColorStop(1,'rgba(142,187,46,0)');x.fillStyle=g;x.fillRect(px-80,40,160,160);x.restore();}txt(x,a,px,228,14,C.fg,'center',700);txt(x,b,px,246,11,C.muted,'center',500);});
 }
 
+function adBtn(x,bx,by,w,h,label){rr(x,bx,by+3,w,h,14,'rgba(0,0,0,.35)');rr(x,bx,by,w,h,14,'#2A2218',C.gold,2.5);I.video(x,bx+28,by+h/2,26,C.gold);txt(x,label,bx+w/2+16,by+h/2,13,C.gold,'center',700);rr(x,bx+w-26,by-8,30,16,8,C.gold);txt(x,'AD',bx+w-11,by,10,'#1A1410','center',800);}
 function drawBankrupt(t){const x=ctxOf('c-bankrupt');field(x,0);x.fillStyle='rgba(7,8,12,.6)';x.fillRect(0,0,W,H);
   hero(x,W*.15,H*.62,-Math.PI/2,.05,KR,t,'spain',190);
   circ(x,W/2,H*.17,26,null,C.gold,3);x.strokeStyle=C.gold;x.lineWidth=3;x.beginPath();x.moveTo(W/2-18,H*.17-18);x.lineTo(W/2+18,H*.17+18);x.stroke();txt(x,'€',W/2,H*.17,22,C.gold);
-  txt(x,'Bancarrota',W/2,H*.33,28,C.fg);txt(x,'(파산 · 그 나라 언어로)',W/2,H*.33+22,11,C.muted,'center',500);
+  txt(x,'Bancarrota',W/2,H*.31,28,C.fg);txt(x,'"아… 잘난 사람들만 잘나가는 세상." (첫 파산 문구 예 · 그 나라 말로)',W/2,H*.31+24,11,C.muted,'center',500);
   drawFlag(x,'es',W/2-62,H*.45,36,24);txt(x,'España',W/2+14,H*.45+12,16,C.fg,'center',600);
   for(let i=0;i<6;i++)circ(x,W/2-110+i*16,H*.6,5,i<5?C.gold:C.btn2);txt(x,'€0',W/2+20,H*.6,15,C.amber,'left',700);
-  btnSub(x,W*.4,H*.82,28,'globe');btnMain(x,W*.6,H*.82,36,'retry');
+  btnSub(x,W*.34,H*.82,28,'globe');btnMain(x,W/2,H*.82,36,'retry');adBtn(x,W*.66-10,H*.82-28,160,56,'다음 라운드');
+}
+
+const LANGS=['English','Français','Deutsch','Nederlands','Dansk','Svenska','Suomi','Italiano','한국어','Español','Čeština','עברית','Lietuvių','日本語','Português','Polski','Magyar','Slovenčina','Ελληνικά','Türkçe'];
+function toggle(x,cx,cy,on){rr(x,cx-22,cy-12,44,24,12,on?C.gold:C.btn2);circ(x,on?cx+10:cx-10,cy,9,on?'#1A1410':C.muted);}
+function drawSettings(t){const x=ctxOf('c-settings');field(x,0);x.fillStyle='rgba(7,8,12,.66)';x.fillRect(0,0,W,H);
+  const px=W*.07,pw=W*.4;rr(x,px,H*.07,pw,H*.86,16,C.panel,C.frame,2);const cx=px+pw/2;
+  I.pause(x,px+30,H*.15,22,C.muted);txt(x,'ESC',px+pw-34,H*.15,11,C.muted,'center',600);
+  I.globe(x,px+30,H*.3,24,C.gold);txt(x,'Language',px+52,H*.3,15,C.fg,'left',700);
+  rr(x,px+150,H*.3-17,pw-170,34,10,'#1E1C1F',C.gold,2);txt(x,'한국어',px+166,H*.3,15,C.fg,'left',700);x.fillStyle=C.gold;x.beginPath();x.moveTo(px+pw-38,H*.3-4);x.lineTo(px+pw-28,H*.3-4);x.lineTo(px+pw-33,H*.3+3);x.fill();
+  x.strokeStyle=C.frame;x.lineWidth=1;x.beginPath();x.moveTo(px+20,H*.4);x.lineTo(px+pw-20,H*.4);x.stroke();
+  I.speaker(x,px+30,H*.49,22,C.fg);toggle(x,px+pw-48,H*.49,true);
+  x.save();x.translate(px+30,H*.61);for(let i=0;i<3;i++){x.strokeStyle=C.fg;x.lineWidth=2;x.beginPath();x.moveTo(-9+i*6,-8);x.lineTo(-12+i*6,0);x.lineTo(-9+i*6,8);x.stroke();}x.restore();toggle(x,px+pw-48,H*.61,true);
+  txt(x,'소리',px+52,H*.49,13,C.muted,'left',500);txt(x,'흔들림',px+52,H*.61,13,C.muted,'left',500);
+  btnMain(x,cx+40,H*.8,32,'play');btnSub(x,cx-40,H*.8,26,'back');
+  const lx=W*.5,lw=W*.44;rr(x,lx,H*.07,lw,H*.86,14,'#1E1C1F',C.gold,2);
+  LANGS.forEach((l,i)=>{const col=i%2,row=Math.floor(i/2),tx=lx+16+col*lw/2,ty=H*.07+22+row*31;const sel=l==='한국어';
+    if(sel)rr(x,tx-8,ty-13,lw/2-16,26,8,'rgba(217,174,79,.22)',C.gold,1.5);
+    const rtl=l==='עברית';txt(x,l,rtl?tx+lw/2-30:tx,ty,14,sel?C.gold:C.fg,rtl?'right':'left',sel?700:500);});
 }
 
 /* ===== 공격 효과 ===== */
@@ -528,6 +553,6 @@ const sw=document.getElementById('sounds');SND.forEach(([l,f])=>{const b=documen
 
 /* 그리기 */
 drawSelect();
-function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);if(!reduce)requestAnimationFrame(frame);}
+function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);if(!reduce)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
