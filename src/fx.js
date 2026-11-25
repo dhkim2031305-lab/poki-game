@@ -2,8 +2,8 @@
 // 모양만 나라마다 달라요. 공격력·사거리·탄 속도는 모든 나라가 같아요 (balance.md).
 (() => {
   const UI = window.UI;
-  const GLOW = '#E8E2D2';   // 우리 공격 효과는 모두 흰색 + 옅은 은금색 한 계열 (나라·무기별 색 없음, 차이는 모양뿐)
-  const PALE = 'rgba(232,226,210,';
+  const GLOW = '#C9CED6';   // 우리 공격 효과: 흰 + 강철 은색 #C9CED6 / 옅은 금 #E8D9A8 한 계열 (style-guide "이펙트 색 규칙")
+  const PALE = 'rgba(232,217,168,';
   const ease = p => 1 - Math.pow(1 - p, 3);
   function star(x, px, py, n, outer, inner, col) {
     x.beginPath();
@@ -74,7 +74,7 @@
     arrow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-34, 0); x.lineTo(-12, 0); x.stroke(); x.strokeStyle = '#8A5A2B'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-12, 0); x.lineTo(10, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(14, 0); x.lineTo(8, -3.5); x.lineTo(8, 3.5); x.fill(); x.fillStyle = '#F2E3C6'; x.fillRect(-13, -3, 5, 2); x.fillRect(-13, 1, 5, 2); x.restore(); },
     crossbow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-26, 0); x.lineTo(-6, 0); x.stroke(); x.fillStyle = '#5A3429'; x.fillRect(-6, -2, 14, 4); x.fillStyle = '#C9C9C9'; x.beginPath(); x.moveTo(13, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     bullet(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); const g = x.createLinearGradient(-40, 0, 4, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(1, 'rgba(255,255,255,.9)'); x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(-40, 0); x.lineTo(2, 0); x.stroke(); UI.circ(3, 0, 2.8, '#FFFFFF'); x.restore(); },
-    beam(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.lineCap = 'round'; x.strokeStyle = GLOW; x.lineWidth = 6; x.shadowColor = GLOW; x.shadowBlur = 6; x.beginPath(); x.moveTo(-46, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.shadowBlur = 0; x.stroke(); x.restore(); },
+    beam(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.lineCap = 'round'; x.strokeStyle = GLOW; x.lineWidth = 6; x.shadowColor = GLOW; x.shadowBlur = 3; x.beginPath(); x.moveTo(-46, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.shadowBlur = 0; x.stroke(); x.restore(); },
     axe(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 22); x.fillStyle = '#6B4A2E'; x.fillRect(-1.5, -11, 3, 22); x.fillStyle = '#C9CDD3'; x.beginPath(); x.moveTo(1, -11); x.quadraticCurveTo(13, -6, 9, 4); x.lineTo(1, -3); x.fill(); x.restore(); },
     spear(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = '#6B4A2E'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-30, 0); x.lineTo(8, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(18, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     boomerang(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 26); x.strokeStyle = '#C9A24A'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.arc(0, 6, 11, -2.6, -.5); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); x.restore(); },
@@ -156,7 +156,28 @@
     },
   };
 
+  // 8차 이펙트 그림 (src/assets/fx/*.webp: 칸 80×80, 왼쪽부터 발생→최대→소멸, +x 방향) — 빛 더하기로 그려요
+  const SHEET_N = { slash: 6, thrust: 6, smash: 6, hit: 6, death: 8 };
+  function sheet(name, p, cx, cy, ang, size, alpha = 1) {
+    const im = UI.img['fx/' + name]; if (!im || !im.naturalWidth || p < 0 || p >= 1) return false;
+    const n = SHEET_N[name], cw = im.naturalWidth / n, f = Math.min(n - 1, Math.floor(p * n)), x = UI.x;
+    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; x.translate(cx, cy); x.rotate(ang);
+    x.drawImage(im, f * cw, 0, cw, im.naturalHeight, -size / 2, -size / 2, size, size); x.restore();
+    return true;
+  }
+  // 치기 종류 → 그림: 베기·큰 베기·회전 베기 = slash, 찌르기·빠른 찌르기 = thrust, 내려찍기 = smash
+  const MELEE_SHEET = { slash: ['slash', 76, 30], bigslash: ['slash', 96, 34], spin: ['slash', 80, 24], thrust: ['thrust', 84, 40], rapid: ['thrust', 70, 34], smash: ['smash', 80, 30] };
+
   window.FX = {
+    sheet,
+    // 그림이 있으면 그림, 없으면 코드 효과
+    drawMeleeAny(kind, cx, cy, dir, p) {
+      const m = MELEE_SHEET[kind] || MELEE_SHEET.slash;
+      const ang = kind === 'spin' ? dir + p * Math.PI * 2 : dir;
+      if (sheet(m[0], p, cx + Math.cos(ang) * m[2], cy + Math.sin(ang) * m[2] * .82, ang, m[1], .7)) return;   // 밝기 70% (겹쳐도 하얗게 안 뭉개지게)
+      (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p);
+    },
+    drawHitAny(px, py, q, col, dir, big) { if (!sheet('hit', q, px, py, dir || 0, big ? 44 : 34, .75)) hit(UI.x, px, py, q, col, dir, big); },
     GUN,
     drawGun(key, px, py, ang, flipY) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); if (flipY) x.scale(1, -1); g(x); x.restore(); return true; },
     MELEE, SHOT, muzzle, hit, splash,

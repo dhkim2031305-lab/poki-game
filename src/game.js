@@ -60,7 +60,7 @@
   function loadAssets() {
     const list = [];
     COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'sheet/' + c.key); list.push('flag/' + c.iso); });
-    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
+    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
     Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
     let done = 0;
     return new Promise(res => {
@@ -164,6 +164,8 @@
   });
   // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
   function mouseButtons(e) {
+    // 브라우저가 커서를 안 움직였는데도 보내는 이동 신호(예: 페이지를 띄울 때 0,0)는 조준으로 치지 않아요
+    if (e.type === 'pointermove' && !mouse.on && !e.movementX && !e.movementY && !e.buttons) return;
     const on = G.scene === 'play' && !G.paused;
     input.mMelee = on && !!(e.buttons & 1); input.mRanged = on && !!(e.buttons & 2);
     const p = toV(e), fb = fieldBox;
@@ -364,7 +366,7 @@
     }
     if (hitAny) {   // 히트스톱 + 작은 흔들림 + 묵직한 소리
       G.hitstop = hitBoss ? 0.08 : 0.05;
-      if (settings.shake) G.shake = Math.max(G.shake, hitBoss ? 3 : 2);
+      if (settings.shake && hitBoss) G.shake = Math.max(G.shake, 2);   // 흔들림은 큰 베기·보스급만 2px (style-guide)
       AUDIO.play('impact');
     }
   }
@@ -389,17 +391,18 @@
     G.msgs.push({ text: t_('skill.shout', { country: I18N.countryName(G.country) }), t: 1.2, shout: true });
     AUDIO.play('skill');
   }
-  const alienCol = a => a.type === 'shooter' ? '#B8D727' : '#B14DE0';   // 보라 외계인·보스 = 보라, 사격 외계인 = 초록
+  const alienCol = () => '#CA57E5';   // 외계인 쪽 효과·탄은 보라 한 색 (style-guide "이펙트 색 규칙")
   function damage(a, dmg, nx, ny, heavy) {
-    a.hp -= dmg; a.flash = 0.12;
+    a.hp -= dmg; a.flash = 0.08;
     // 넉백: 공격 방향으로 밀려나며 미끄러져요 (보스는 조금만)
-    const kb = (a.type === 'boss' ? 60 : heavy ? 260 : 140);
+    const kb = (a.type === 'boss' ? 30 : heavy ? 112 : 70);   // 감쇠 14 → 치기 약 8px, 쏘기 약 5px, 보스 약 2px
     a.kb = { x: nx * kb, y: ny * kb };
     G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, col: alienCol(a), t: 0, life: heavy ? 0.2 : 0.16 });
     if (!heavy) AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
-      burst(a.x, a.y - 20, alienCol(a), a.type === 'boss' ? 14 : 5, 110);   // 처치 파편: 그 외계인 색 하나, 양은 반
+      burst(a.x, a.y - 20, alienCol(a), 6, 110);   // 처치 파편 6개, 보라 한 색
+      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), size: a.type === 'boss' ? 140 : 60, t: 0, life: 0.42 });
       AUDIO.play('kill');
       if (a.type === 'boss' && settings.shake) G.shake = 5;
     }
@@ -464,14 +467,14 @@
       else if (a.type === 'shooter') {
         if (d > 170) { mx = dx / d; my = dy / d; } else if (d < 120) { mx = -dx / d; my = -dy / d; } else { mx = -dy / d * .6; my = dx / d * .6; }
         a.shootT -= dt;
-        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3, col: '#B8D727' }); }
+        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3, col: '#CA57E5' }); }
       } else {
         mx = dx / d; my = dy / d;
         if (a.type === 'boss') {
           a.shootT -= dt;
           if (a.shootT <= 0) {
             a.shootT = TEMP.BOSS_RING_GAP;
-            for (let i = 0; i < TEMP.BOSS_RING_N; i++) { const an = i / TEMP.BOSS_RING_N * Math.PI * 2 + a.seed; G.eshots.push({ x: a.x, y: a.y - 30, vx: Math.cos(an) * TEMP.ENEMY_SHOT_SPEED * .8, vy: Math.sin(an) * TEMP.ENEMY_SHOT_SPEED * .8, dmg: TEMP.BOSS_SHOT_DMG, life: 3.5, col: '#B14DE0' }); }
+            for (let i = 0; i < TEMP.BOSS_RING_N; i++) { const an = i / TEMP.BOSS_RING_N * Math.PI * 2 + a.seed; G.eshots.push({ x: a.x, y: a.y - 30, vx: Math.cos(an) * TEMP.ENEMY_SHOT_SPEED * .8, vy: Math.sin(an) * TEMP.ENEMY_SHOT_SPEED * .8, dmg: TEMP.BOSS_SHOT_DMG, life: 3.5, col: '#CA57E5' }); }
           }
         }
       }
@@ -756,9 +759,10 @@
     // 효과
     for (const e of G.fx) {
       const k = e.t / e.life;
-      if (e.kind === 'melee') FX.drawMelee(e.m, e.x, e.y, e.a, k);
+      if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
+      else if (e.kind === 'death') FX.sheet('death', k, e.x, e.y, 0, e.size, .8);
       else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
-      else if (e.kind === 'hit') FX.hit(ctx, e.x, e.y, k, e.col, e.dir || 0, e.big);
+      else if (e.kind === 'hit') FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big);
       else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
     }
@@ -766,7 +770,7 @@
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
       FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key);
     }
-    for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#B8D727'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
+    for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
     for (const p of G.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
     ctx.restore();
     // 맞음: 화면 테두리 빨강 (번쩍임 끄면 장수 테두리만)
