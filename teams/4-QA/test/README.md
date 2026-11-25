@@ -24,4 +24,5 @@
 | `rpad.js` | GDD 0-18 폰 오른쪽 큰 원 + 화살표 4개: 크기·화면 안·HUD·엄지 거리, 손잡이 쏘기, 스킬 톡/꾹/×3/취소, 치기 톡/누름/끌기, 무적, 예전 조작 없음 | `node rpad.js OUT` |
 | `multitouch.js` | 두 손가락: 손잡이 민 채 화살표 누르면 쏘기 멈춤·떼면 다시 (PointerEvent 직접) | `node multitouch.js` |
 | `safe.js` | 안전 영역: 스킬2 취소 원 화면 안·무적 아래 ≥12px·?safe= 흉내에서 HUD·일시정지 안쪽·화살표 ≥44px | `node safe.js OUT` |
+| `smartbot.js` | 자동 봇 밸런스 (smart 잘함·mid 보통·dumb 서툼): 실제 키·마우스 입력, 게임 시간 1/60초씩 빨리 돌림 · 2026-11-25 사용자 요청으로 중간에 멈춤 | `node smartbot.js OUT 8080 0,1 5 smart` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
