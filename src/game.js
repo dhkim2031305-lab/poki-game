@@ -193,7 +193,10 @@
       // 배치 (사용자 2026-11-25 "무적은 아래로"): ← 치기 · ↑ 스킬1 · → 스킬2 · ↓ 무적
     };
   };
-  const rstick = { id: null, x: 0, y: 0 };   // 오른쪽 손잡이 (−1..1)
+  const rstick = { id: null, x: 0, y: 0 };
+  // 폰 톡 이동 (GDD 0-19, 사용자 "휴대폰 화면 클릭하면 클릭한 위치로 이동"): 짧게(0.25초 안) 거의 안 움직이고(12px 안) 떼면 그 바닥 지점까지 걸어가요
+  const TAP_T = .25, TAP_D = 12;
+  let tapP = null, moveTo = null;   // 오른쪽 손잡이 (−1..1)
   const mArrow = { id: null, x0: 0, y0: 0, dir: null };   // ← 치기 화살표: 누르고 있으면 계속, 끌면 끈 방향
   const arrowHeld = () => aim != null || mArrow.id != null;   // 화살표를 누르는 동안 쏘기 멈춤
   G.btnPos = btnPos;   // 테스트용 (버튼 자리)
@@ -210,7 +213,7 @@
   const AIM_GAIN = 3, AIM_HOLD = .2;
   const aimPoint = a => { const h = G.hero, hs = G.dbgField(h.x, h.y); return toGround({ x: hs.x + a.dp.x * AIM_GAIN, y: hs.y + a.dp.y * AIM_GAIN }); };
   G.dbgField = (x, y) => { const fb = fieldBox; if (use3d && R3D.built) { const q = R3D.proj(x, y); return { x: fb.x + q.x * fb.s, y: fb.y + q.y * fb.s }; } return { x: fb.x + x * fb.s, y: fb.y + y * fb.s }; };
-  G.dbgMouse = () => mouse; G.dbgAim = () => aim;
+  G.dbgMouse = () => mouse; G.dbgAim = () => aim; G.dbgMoveTo = () => moveTo;
   cv.addEventListener('pointerdown', e => {
     e.preventDefault(); AUDIO.unlock();
     if (e.pointerType !== 'mouse') { G.touchUI = true; mouse.on = false; }
@@ -235,6 +238,7 @@
       }
     }
     if (rstick.id == null && Math.hypot(p.x - B.stick.x, p.y - B.stick.y) < B.stick.r + 4) { rstick.id = e.pointerId; rstick.x = rstick.y = 0; return; }
+    if (!tapP) tapP = { id: e.pointerId, x: p.x, y: p.y, t: e.timeStamp / 1000, moved: false };   // 톡 이동 후보
     if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
   });
   // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
@@ -278,6 +282,7 @@
       if (drag.moved) G.selScroll = clamp(drag.s0 - (p.y - drag.y0), 0, selMaxScroll());
       return;
     }
+    if (tapP && tapP.id === e.pointerId && Math.hypot(p.x - tapP.x, p.y - tapP.y) > TAP_D) tapP.moved = true;
     if (rstick.id === e.pointerId) {   // 오른쪽 손잡이: 밀면 그 방향으로 쏘기
       const B = btnPos(); let dx = (p.x - B.stick.x) / 40, dy = (p.y - B.stick.y) / 40; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
       rstick.x = dx; rstick.y = dy; return;
@@ -303,6 +308,10 @@
     if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
     if (rstick.id === e.pointerId) { rstick.id = null; rstick.x = rstick.y = 0; }
+    if (tapP && tapP.id === e.pointerId) {   // 톡이면 그 바닥 지점으로 (다시 톡하면 바뀌어요)
+      const tp = tapP; tapP = null;
+      if (tap && !tp.moved && e.timeStamp / 1000 - tp.t < TAP_T && G.scene === 'play' && !G.paused && G.hero) { const f = FIELD.floor, q = toGround(toV(e)); moveTo = { x: clamp(q.x, f.x0 + 12, f.x1 - 12), y: clamp(q.y, f.y0 + 22, f.y1), t: 0, stuck: 0 }; }
+    }
     if (mArrow.id === e.pointerId) { mArrow.id = null; mArrow.dir = null; }
     if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel) useSkill(a.n, Math.hypot(a.dp.x, a.dp.y) > 10 ? a.t : undefined); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
@@ -312,7 +321,7 @@
   cv.addEventListener('lostpointercapture', e => release(e, false));
   // 모든 입력 풀기 (광고 앞뒤, 창을 벗어날 때, 화면을 돌릴 때)
   function clearInput() {
-    keys.clear(); drag = null; aim = null; joy.id = null; joy.x = joy.y = 0; rstick.id = null; rstick.x = rstick.y = 0; mArrow.id = null; mArrow.dir = null;
+    keys.clear(); drag = null; aim = null; tapP = null; moveTo = null; joy.id = null; joy.x = joy.y = 0; rstick.id = null; rstick.x = rstick.y = 0; mArrow.id = null; mArrow.dir = null;
     held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = input.mMelee = input.mRanged = false; input.mx = input.my = 0;
   }
   window.addEventListener('orientationchange', clearInput);
@@ -358,6 +367,8 @@
     const d = Math.hypot(x, y);
     if (d > 1) { x /= d; y /= d; }
     input.mx = Math.abs(x) < .12 ? 0 : x; input.my = Math.abs(y) < .12 ? 0 : y;
+    if (input.mx || input.my) moveTo = null;   // 조이스틱·키를 쓰면 톡 이동 취소
+    else if (moveTo && G.hero) { const dx = moveTo.x - G.hero.x, dy = moveTo.y - G.hero.y, d = Math.hypot(dx, dy); if (d < 6) moveTo = null; else { input.mx = dx / d; input.my = dy / d; } }   // 도착하면 멈춰요
   }
 
   function setPause(p) {
@@ -933,6 +944,7 @@
     const h = G.hero;
     if (!h) return;
     drawAim(at);
+    if (moveTo) { const mt = moveTo; mt.t += 1 / 60; at(mt.x, mt.y, () => { ctx.save(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.globalAlpha = .85; ctx.setLineDash([4, 4]); ctx.lineDashOffset = -G.t * 20; gEll(mt.x, mt.y, 12 + Math.sin(G.t * 6) * 1.5); ctx.stroke(); ctx.restore(); }); }   // 톡한 자리 (임시 표시, 디자인 안 대기)
     for (const mk of G.marks) at(mk.x, mk.y, () => {   // 말발굽 자국 (U자)
       ctx.save(); ctx.globalAlpha = .6 * (1 - mk.t / mk.life); ctx.strokeStyle = SKG; ctx.lineWidth = 2; ctx.translate(mk.x, mk.y); ctx.scale(1, GK() * 1.6); ctx.rotate(mk.a + Math.PI / 2);
       ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI); ctx.stroke(); ctx.restore();
@@ -1246,10 +1258,13 @@
     readMove();
     h.moving = !!(input.mx || input.my);
     if (h.moving && !h.dash) {
-      const spd = r.st.speed * heroSpd(); h.x += input.mx * spd * dt; h.y += input.my * spd * dt; h.walkT += dt;
+      const spd = r.st.speed * heroSpd(), hx0 = h.x, hy0 = h.y; h.x += input.mx * spd * dt; h.y += input.my * spd * dt; h.walkT += dt;
       const d = Math.hypot(input.mx, input.my); h.dir = { x: input.mx / d, y: input.my / d };
+      h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
+      if (moveTo) { if (Math.hypot(h.x - hx0, h.y - hy0) < spd * dt * .2) { if ((moveTo.stuck += dt) > .15) moveTo = null; } else moveTo.stuck = 0; }   // 벽에 막히면 멈춰요
     }
     h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
+    if (rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3) { const l = Math.hypot(rstick.x, rstick.y); h.dir = { x: rstick.x / l, y: rstick.y / l }; }   // 오른쪽 손잡이를 밀면 조준 쪽을 봐요
     if (h.rangedT > 0) h.rangedT -= dt;
     // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
     if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
