@@ -9,15 +9,27 @@
     for (let i = 0; i < n * 2; i++) { const a = -Math.PI / 2 + i * Math.PI / n, r = i % 2 ? inner : outer; x.lineTo(px + Math.cos(a) * r, py + Math.sin(a) * r); }
     x.closePath(); x.fillStyle = col; x.fill();
   }
+  // 베기 호: 칼날 모양 초승달. 앞(칼끝)이 두껍고 뒤로 갈수록 가늘어지는 잔상 + 빛 더하기
+  // p: 0~0.45 빠른 스윙(이징), 0.45~1 마무리(잔상이 칼끝 쪽으로 줄며 사라짐)
+  function crescent(x, cx, cy, from, to, R, w, alpha, fill) {
+    const n = 18, span = to - from; if (Math.abs(span) < .01) return;
+    x.beginPath();
+    for (let i = 0; i <= n; i++) { const a = from + span * i / n; x.lineTo(cx + Math.cos(a) * (R + w * .5), cy + Math.sin(a) * (R + w * .5) * .82); }
+    for (let i = n; i >= 0; i--) { const a = from + span * i / n, th = w * Math.pow(i / n, .8); x.lineTo(cx + Math.cos(a) * (R + w * .5 - th), cy + Math.sin(a) * (R + w * .5 - th) * .82); }
+    x.closePath(); x.globalAlpha = alpha; x.fillStyle = fill; x.fill();
+  }
   function arc(x, cx, cy, dir, p, R, spread, w, col) {
     if (p < 0 || p > 1) return;
-    const a0 = dir - spread / 2, a1 = a0 + spread * ease(Math.min(1, p * 1.6)), fade = p < .6 ? 1 : 1 - (p - .6) / .4;
-    x.save(); x.lineCap = 'round';
-    for (let i = 0; i < 5; i++) {
-      x.strokeStyle = i < 2 ? col : '#FFFFFF'; x.globalAlpha = fade * (i < 2 ? .35 : .9 - i * .12); x.lineWidth = w * (1 - i * .18);
-      x.beginPath(); x.arc(cx, cy, R - i * w * .18, Math.max(a0, a1 - spread * .75), a1); x.stroke();
-    }
+    const sw = Math.min(1, p / .45), head = dir - spread / 2 + spread * ease(sw);
+    const tail = p < .45 ? Math.max(dir - spread / 2, head - spread * .85) : head - spread * .85 * (1 - (p - .45) / .55);
+    const fade = p < .45 ? 1 : 1 - (p - .45) / .55;
+    x.save(); x.globalCompositeOperation = 'lighter';
+    const RR = R + 8;
+    crescent(x, cx, cy, tail, head, RR + 3, w * 2.2, .45 * fade, col);         // 바깥 빛
+    crescent(x, cx, cy, tail, head, RR, w * 1.5, .95 * fade, col);             // 칼날 빛
+    crescent(x, cx, cy, tail + (head - tail) * .3, head, RR - w * .1, w * .7, fade, '#FFFFFF'); // 흰 심
     x.restore();
+    if (p < .5) { const hx = cx + Math.cos(head) * (R + 8), hy = cy + Math.sin(head) * (R + 8) * .82; x.save(); x.globalCompositeOperation = 'lighter'; star(x, hx, hy, 4, 9 * fade + 3, 2, '#FFF6D6'); x.restore(); }
   }
   function thrust(x, cx, cy, dir, p, len, col, n = 1) {
     for (let k = 0; k < n; k++) {
@@ -100,10 +112,19 @@
     x.save(); x.globalAlpha = .5 * f; for (let i = 0; i < 3; i++) UI.circ(px - Math.cos(dir) * (4 + i * 5) + (i - 1) * 3, py - 6 - i * 4 - q * 20, 5 + i * 2 + q * 10, 'rgba(177,165,153,.6)'); x.restore();
   }
   // 맞음: 흰 별 + 외계인 색 파편 6개
-  function hit(x, px, py, q, col) {
+  // 타격 섬광: 둥근 빛 + 큰 흰 별 + 공격 방향으로 튀는 줄 3개 + 외계인 색 파편
+  function hit(x, px, py, q, col, dir = 0, big) {
     if (q < 0 || q > 1) return;
-    x.save(); x.globalAlpha = 1 - q; star(x, px, py, 4, 12 + q * 10, 3, '#fff');
-    for (let i = 0; i < 6; i++) { const a = i * 1.05 + .3; UI.circ(px + Math.cos(a) * q * 22, py + Math.sin(a) * q * 22, 2.4, col); }
+    const s = big ? 1.5 : 1, f = 1 - q;
+    x.save(); x.globalCompositeOperation = 'lighter';
+    const g = x.createRadialGradient(px, py, 0, px, py, 15 * s); g.addColorStop(0, `rgba(255,246,214,${.55 * f})`); g.addColorStop(1, 'rgba(255,209,102,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, 15 * s, 0, Math.PI * 2); x.fill();
+    x.globalAlpha = f; star(x, px, py, 4, (9 + q * 7) * s, 2, '#FFFFFF');
+    x.strokeStyle = '#FFF6D6'; x.lineWidth = 2.5 * f + .5; x.lineCap = 'round';
+    for (let i = -1; i <= 1; i++) { const a = dir + i * .5, r0 = 7 + q * 12, r1 = r0 + 8 * f * s; x.beginPath(); x.moveTo(px + Math.cos(a) * r0, py + Math.sin(a) * r0); x.lineTo(px + Math.cos(a) * r1, py + Math.sin(a) * r1); x.stroke(); }
+    x.restore();
+    x.save(); x.globalAlpha = f;
+    for (let i = 0; i < 8; i++) { const a = dir + (i - 3.5) * .45, d = q * 24 * s; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d + q * q * 10, 2 * f + .5, col); }
     x.restore();
   }
 
@@ -138,7 +159,7 @@
     GUN,
     drawGun(key, px, py, ang, flipY) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); if (flipY) x.scale(1, -1); g(x); x.restore(); return true; },
     MELEE, SHOT, muzzle, hit, splash,
-    meleeTime: kind => (MELEE[kind] || MELEE.slash)[0],
+    meleeTime: () => 0.21,   // 스윙 0.09 + 마무리 0.12 (모든 치기 같은 박자)
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
     THROWN: k => k === 'blade' || k === 'axe' || k === 'mace' || k === 'polearm',
     drawShot(kind, px, py, dir, t, key) {

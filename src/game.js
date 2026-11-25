@@ -343,17 +343,29 @@
     const h = G.hero, st = G.run.st;
     const near = mouse.on ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
     if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
-    h.meleeCd = BAL.MELEE_CD; h.atkT = 0.22;
-    const dmg = st.melee * atkMul(), ang0 = Math.atan2(h.dir.y, h.dir.x);
+    h.meleeCd = BAL.MELEE_CD; h.atkT = 0;
+    // 휘두르기 3단계: 예비동작 0.07 → 스윙 0.09 → 마무리 0.12 (피해는 스윙이 시작될 때)
+    h.swing = { t: 0, ang: Math.atan2(h.dir.y, h.dir.x), hit: false };
+    AUDIO.play('swing');
+  }
+  const SWING = { wind: 0.07, strike: 0.09, follow: 0.12 };
+  function meleeStrike() {
+    const h = G.hero, st = G.run.st, sw = h.swing;
+    const dmg = st.melee * atkMul(), ang0 = sw.ang;
     const mk = G.country.melee;
-    G.fx.push({ kind: 'melee', m: mk, x: h.x, y: h.y - 22, a: ang0, t: 0, life: FX.meleeTime(mk) });
+    G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, a: ang0, t: 0, life: FX.meleeTime(mk) });
     if (mk === 'bigslash' && settings.shake) G.shake = Math.max(G.shake, 2);
-    AUDIO.play('attack');
+    let hitAny = false, hitBoss = false;
     for (const a of G.aliens) {
       const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
       if (d > TEMP.MELEE_RANGE + a.r) continue;
       let da = Math.abs(Math.atan2(dy, dx) - ang0); if (da > Math.PI) da = Math.PI * 2 - da;
-      if (d < a.r + 10 || da <= TEMP.MELEE_ARC / 2) damage(a, dmg, dx / (d || 1), dy / (d || 1));
+      if (d < a.r + 10 || da <= TEMP.MELEE_ARC / 2) { damage(a, dmg, dx / (d || 1), dy / (d || 1), true); hitAny = true; if (a.type === 'boss') hitBoss = true; }
+    }
+    if (hitAny) {   // 히트스톱 + 작은 흔들림 + 묵직한 소리
+      G.hitstop = hitBoss ? 0.08 : 0.05;
+      if (settings.shake) G.shake = Math.max(G.shake, hitBoss ? 3 : 2);
+      AUDIO.play('impact');
     }
   }
   function ranged() {
@@ -377,11 +389,13 @@
     G.msgs.push({ text: t_('skill.shout', { country: I18N.countryName(G.country) }), t: 1.2, shout: true });
     AUDIO.play('skill');
   }
-  function damage(a, dmg, nx, ny) {
-    a.hp -= dmg; a.flash = 0.1;
-    if (a.type !== 'boss') { a.x += nx * 4; a.y += ny * 4; }
-    G.fx.push({ kind: 'hit', x: a.x - nx * 4, y: a.y - (a.type === 'boss' ? 50 : 20), col: a.type === 'grunt' ? '#CA57E5' : a.type === 'shooter' ? '#B8D727' : '#8EBB2E', t: 0, life: 0.25 });
-    AUDIO.play('hit');
+  function damage(a, dmg, nx, ny, heavy) {
+    a.hp -= dmg; a.flash = 0.12;
+    // 넉백: 공격 방향으로 밀려나며 미끄러져요 (보스는 조금만)
+    const kb = (a.type === 'boss' ? 60 : heavy ? 260 : 140);
+    a.kb = { x: nx * kb, y: ny * kb };
+    G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, col: a.type === 'grunt' ? '#CA57E5' : a.type === 'shooter' ? '#B8D727' : '#8EBB2E', t: 0, life: heavy ? 0.3 : 0.25 });
+    if (!heavy) AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
       burst(a.x, a.y - 20, a.type === 'grunt' ? '#CA57E5' : a.type === 'shooter' ? '#B8D727' : '#8EBB2E', a.type === 'boss' ? 30 : 10, 140);
@@ -428,6 +442,11 @@
     if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
     h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
     h.meleeCd -= dt; h.rangedCd -= dt;
+    if (h.swing) {
+      h.swing.t += dt;
+      if (!h.swing.hit && h.swing.t >= SWING.wind) { h.swing.hit = true; meleeStrike(); }
+      if (h.swing.t >= SWING.wind + SWING.strike + SWING.follow) h.swing = null;
+    }
     const mel = input.melee || input.mMelee || keys.has('KeyJ'), rng = input.ranged || input.mRanged || keys.has('KeyK');
     if (mel && h.meleeCd <= 0) melee(); else if (rng && h.rangedCd <= 0) ranged();
     if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
@@ -458,6 +477,7 @@
       // 서로 겹치지 않게
       for (const b of G.aliens) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, ed = Math.hypot(ex, ey); const mn = a.r + b.r; if (ed > 0 && ed < mn) { mx += ex / ed * .8; my += ey / ed * .8; } }
       a.x += mx * a.speed * dt; a.y += my * a.speed * dt; a.vx = mx;
+      if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-14 * dt); a.kb.x *= k; a.kb.y *= k; }
       if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
       if (d < a.r + h.r) hurt(a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG, a.x, a.y);
       if (h.dead) break;
@@ -550,7 +570,7 @@
     for (const p of G.parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } G.parts = G.parts.filter(p => p.t < p.life);
     for (const e of G.fx) e.t += dt; G.fx = G.fx.filter(e => e.t < e.life);
     if (portrait()) return;                     // 세로: 라운드 패널·엔딩도 멈춰요
-    if (G.scene === 'play' && !G.paused) updatePlay(dt);
+    if (G.scene === 'play' && !G.paused) { if (G.hitstop > 0) G.hitstop -= dt; else updatePlay(dt); }
     else if (G.scene === 'roundPanel') { G.panel.t += dt; if (G.panel.t > 2.8) { G.run.round++; startRound(); } }
     else if (G.scene === 'ending') updateEnding(dt);
     else if (G.scene === 'result') G.result.t += dt;
@@ -737,7 +757,7 @@
       const k = e.t / e.life;
       if (e.kind === 'melee') FX.drawMelee(e.m, e.x, e.y, e.a, k);
       else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
-      else if (e.kind === 'hit') FX.hit(ctx, e.x, e.y, k, e.col);
+      else if (e.kind === 'hit') FX.hit(ctx, e.x, e.y, k, e.col, e.dir || 0, e.big);
       else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
     }
@@ -767,6 +787,19 @@
     let mo = { flip: h.dir.x < -0.05 };
     let frame = 0;
     if (h.dead && G.scene !== 'ending') { const k = Math.min(1, h.deadT / .6); mo.alpha = 1 - k * .5; mo.sy = 1 - k * .35; }
+    else if (h.swing) {
+      const s = h.swing, t1 = SWING.wind, t2 = t1 + SWING.strike, ca = Math.cos(s.ang), sa = Math.sin(s.ang);
+      let lunge;
+      if (s.t < t1) { frame = 5; lunge = -3 * (s.t / t1); }
+      else if (s.t < t2) { frame = 6; const k = (s.t - t1) / SWING.strike; lunge = -3 + 9 * (1 - Math.pow(1 - k, 3)); }
+      else { frame = 6; lunge = 6 * (1 - (s.t - t2) / SWING.follow); }
+      if (!reduceMotion) {
+        mo.ox = ca * lunge; mo.oy = sa * lunge * .6;
+        const squash = s.t >= t1 && s.t < t2 ? 1 : 0;
+        mo.sx = 1 + .08 * squash; mo.sy = 1 - .06 * squash;
+        mo.rot = (mo.flip ? -1 : 1) * (s.t < t1 ? -.1 : .14 * Math.max(0, lunge) / 6);
+      }
+    }
     else if (h.atkT > 0) { frame = h.atkT > .14 ? 5 : 6; if (!reduceMotion) { mo.rot = (mo.flip ? -1 : 1) * .16 * Math.sin((1 - h.atkT / .22) * Math.PI); mo.sx = 1.04; mo.sy = 1.04; } }
     else if (h.moving) { frame = reduceMotion ? 0 : 1 + Math.floor(h.walkT * 8) % 4; if (!reduceMotion) { const p = Math.abs(Math.sin(h.walkT * 11)); mo.oy = -p * 2; mo.rot = clamp(h.dir.x * .1, -.12, .12); } }
     else if (!reduceMotion) mo.sy = 1 + Math.sin(t * 2.2) * .015;

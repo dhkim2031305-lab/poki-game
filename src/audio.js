@@ -44,6 +44,8 @@
   const SFX = {
     attack: [0.06, () => tone('square', 880, 660, 0.06, 0.12)],
     hit: [0.04, () => noise(0.04, 0.15)],
+    swing: [0.09, () => noise(0.09, 0.1, 0, ['bandpass', 1400])],                                        // 휘두르기 "휙"
+    impact: [0.12, () => { tone('sine', 170, 55, 0.12, 0.32); noise(0.06, 0.2, 0, ['lowpass', 900]); noise(0.03, 0.12); }], // 치기 맞음 "쿵"
     kill: [0.14, () => { tone('triangle', 520, 120, 0.14, 0.25); noise(0.08, 0.12, 0, ['bandpass', 1500]); }],
     hurt: [0.2, () => tone('sawtooth', 180, 70, 0.2, 0.35, 0, ['lowpass', 800])],
     skill: [0.3, () => { tone('sine', 200, 900, 0.3, 0.3); noise(0.3, 0.08, 0, ['bandpass', 1200]); }],
