@@ -54,36 +54,36 @@
 | `bankrupt.again.03` | 통장은 그대로예요. | Your bank balance hasn't changed. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `continue.ad` | 이런다고 없던 돈이 생길까? | Think this will make money appear out of nowhere? | 광고를 보고 이어 갈 때 | 확정 |
 | `skill.shout` | (나라별) `skills.md` "skill-shout" 표의 그 나라 말 | (나라별, 번역 안 함) | 스킬 쓸 때 외침 · 글자 + 목소리 · **번역하지 않고 그 나라 말 그대로** 보여 줘요. 다른 언어 설정에서는 한 줄 뜻풀이를 작게 덧붙일 수 있어요 [제안] | 확정 (2026-11-25, 외침 방식) |
-| `skill.name.01` | 사자 문장 돌격 | Lion Crest Charge | 룩셈부르크 스킬 이름 (돌진) | [제안] |
-| `skill.name.02` | 회오리 도끼 | Whirlwind Axe | 아일랜드 스킬 이름 (범위) | [제안] |
-| `skill.name.03` | 창벽 | Pike Wall | 스위스 스킬 이름 (방어) | [제안] |
-| `skill.name.04` | 에너지 난사 | Energy Barrage | 미국 스킬 이름 (연사) | [제안] |
-| `skill.name.05` | 연속 찌르기 | Flurry Thrust | 네덜란드 스킬 이름 (연사) | [제안] |
-| `skill.name.06` | 방패벽 | Shield Wall | 덴마크 스킬 이름 (방어) | [제안] |
-| `skill.name.07` | 기병 돌격 | Cavalry Charge | 오스트리아 스킬 이름 (돌진) | [제안] |
-| `skill.name.08` | 부메랑 투척 | Boomerang Throw | 호주 스킬 이름 (연사) | [제안] |
-| `skill.name.09` | 대검 회전베기 | Greatsword Spin | 독일 스킬 이름 (범위) | [제안] |
-| `skill.name.10` | 돌격 대형 | Charge Formation | 스웨덴 스킬 이름 (돌진) | [제안] |
-| `skill.name.11` | 도끼 던지기 | Axe Toss | 캐나다 스킬 이름 (연사) | [제안] |
-| `skill.name.12` | 설원 질주 | Snowfield Dash | 핀란드 스킬 이름 (돌진) | [제안] |
-| `skill.name.13` | 기병검 휩쓸기 | Saber Sweep | 프랑스 스킬 이름 (범위) | [제안] |
-| `skill.name.14` | 거북 대형 | Tortoise Formation | 이탈리아 스킬 이름 (방어) | [제안] |
-| `skill.name.15` | 화살비 | Arrow Rain | 한국 스킬 이름 (설치) | [제안] |
-| `skill.name.16` | 일섬 | Single Flash | 스페인 스킬 이름 (돌진) | [제안] |
-| `skill.name.17` | 방패 진지 | Shield Fort | 체코 스킬 이름 (설치) | [제안] |
-| `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | [제안] |
-| `skill.name.19` | 기마 창돌격 | Mounted Lance Charge | 리투아니아 스킬 이름 (돌진) | [제안] |
-| `skill.name.20` | 은빛 고사리 결계 | Silver Fern Ward | 뉴질랜드 스킬 이름 (설치) | [제안] |
-| `skill.name.21` | 발도술 돌진 | Quickdraw Dash | 일본 스킬 이름 (돌진) | [제안] |
-| `skill.name.22` | 항해의 바람 | Sailing Wind | 포르투갈 스킬 이름 (범위) | [제안] |
-| `skill.name.23` | 날개 기병 돌격 | Winged Cavalry Charge | 폴란드 스킬 이름 (돌진) | [제안] |
-| `skill.name.24` | 사브르 연격 | Saber Combo | 헝가리 스킬 이름 (연사) | [제안] |
-| `skill.name.25` | 산악 도끼 내려찍기 | Mountain Axe Slam | 슬로바키아 스킬 이름 (범위) | [제안] |
-| `skill.name.26` | 방패 밀치기 | Shield Bash | 그리스 스킬 이름 (방어) | [제안] |
-| `skill.name.27` | 곡도 회전베기 | Scimitar Spin | 튀르키예 스킬 이름 (범위) | [제안] |
-| `skill.name.28` | 산바람 | Mountain Gale | 칠레 스킬 이름 (범위) | [제안] |
-| `skill.name.29` | 독수리 일격 | Eagle Strike | 멕시코 스킬 이름 (돌진) | [제안] |
-| `skill.name.30` | 함성 | Battle Cry | 콜롬비아 스킬 이름 (범위) | [제안] |
+| `skill.name.01` | 사자 문장 돌격 | Lion Crest Charge | 룩셈부르크 스킬 이름 (돌진) | 확정 |
+| `skill.name.02` | 회오리 도끼 | Whirlwind Axe | 아일랜드 스킬 이름 (범위) | 확정 |
+| `skill.name.03` | 창벽 | Pike Wall | 스위스 스킬 이름 (방어) | 확정 |
+| `skill.name.04` | 에너지 난사 | Energy Barrage | 미국 스킬 이름 (연사) | 확정 |
+| `skill.name.05` | 연속 찌르기 | Flurry Thrust | 네덜란드 스킬 이름 (연사) | 확정 |
+| `skill.name.06` | 방패벽 | Shield Wall | 덴마크 스킬 이름 (방어) | 확정 |
+| `skill.name.07` | 기병 돌격 | Cavalry Charge | 오스트리아 스킬 이름 (돌진) | 확정 |
+| `skill.name.08` | 부메랑 투척 | Boomerang Throw | 호주 스킬 이름 (연사) | 확정 |
+| `skill.name.09` | 대검 회전베기 | Greatsword Spin | 독일 스킬 이름 (범위) | 확정 |
+| `skill.name.10` | 돌격 대형 | Charge Formation | 스웨덴 스킬 이름 (돌진) | 확정 |
+| `skill.name.11` | 도끼 던지기 | Axe Toss | 캐나다 스킬 이름 (연사) | 확정 |
+| `skill.name.12` | 설원 질주 | Snowfield Dash | 핀란드 스킬 이름 (돌진) | 확정 |
+| `skill.name.13` | 기병검 휩쓸기 | Saber Sweep | 프랑스 스킬 이름 (범위) | 확정 |
+| `skill.name.14` | 거북 대형 | Tortoise Formation | 이탈리아 스킬 이름 (방어) | 확정 |
+| `skill.name.15` | 화살비 | Arrow Rain | 한국 스킬 이름 (설치) | 확정 |
+| `skill.name.16` | 일섬 | Single Flash | 스페인 스킬 이름 (돌진) | 확정 |
+| `skill.name.17` | 방패 진지 | Shield Fort | 체코 스킬 이름 (설치) | 확정 |
+| `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | 확정 |
+| `skill.name.19` | 기마 창돌격 | Mounted Lance Charge | 리투아니아 스킬 이름 (돌진) | 확정 |
+| `skill.name.20` | 은빛 고사리 결계 | Silver Fern Ward | 뉴질랜드 스킬 이름 (설치) | 확정 |
+| `skill.name.21` | 발도술 돌진 | Quickdraw Dash | 일본 스킬 이름 (돌진) | 확정 |
+| `skill.name.22` | 항해의 바람 | Sailing Wind | 포르투갈 스킬 이름 (범위) | 확정 |
+| `skill.name.23` | 날개 기병 돌격 | Winged Cavalry Charge | 폴란드 스킬 이름 (돌진) | 확정 |
+| `skill.name.24` | 사브르 연격 | Saber Combo | 헝가리 스킬 이름 (연사) | 확정 |
+| `skill.name.25` | 산악 도끼 내려찍기 | Mountain Axe Slam | 슬로바키아 스킬 이름 (범위) | 확정 |
+| `skill.name.26` | 방패 밀치기 | Shield Bash | 그리스 스킬 이름 (방어) | 확정 |
+| `skill.name.27` | 곡도 회전베기 | Scimitar Spin | 튀르키예 스킬 이름 (범위) | 확정 |
+| `skill.name.28` | 산바람 | Mountain Gale | 칠레 스킬 이름 (범위) | 확정 |
+| `skill.name.29` | 독수리 일격 | Eagle Strike | 멕시코 스킬 이름 (돌진) | 확정 |
+| `skill.name.30` | 함성 | Battle Cry | 콜롬비아 스킬 이름 (범위) | 확정 |
 
 ## 나라 이름 (30개)
 - 각 나라 이름은 그 나라 언어로만 보여 줘요. 예: 한국 → 대한민국/한국, 일본 → 日本.
