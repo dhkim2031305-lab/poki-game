@@ -1,0 +1,3 @@
+내장 이미지 생성 기능으로 [walk-lithuania.png](/home/user/poki-game/teams/2-디자인/gpt-art/round9/walk-lithuania.png)를 만들었습니다. **2560 × 256 px**, **256 × 256 px짜리 10칸**이며, 모든 칸의 투명 배경과 기준 시트에 맞춘 발 기준선을 확인했습니다. 검증 결과는 [result-lithuania.md](/home/user/poki-game/teams/2-디자인/gpt-art/round9/result-lithuania.md)에 기록했습니다.
+
+생성 프롬프트에는 기준 장수의 갑옷과 방패를 유지하고, 무기 없이 방향마다 오른발과 왼발을 번갈아 내딛도록 지정했습니다. 옆모습과 사선에서는 어느 발이 앞인지 정면보다 덜 뚜렷합니다.
