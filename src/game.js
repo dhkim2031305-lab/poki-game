@@ -82,7 +82,7 @@
     if (!FX.GUN[c.key]) l.push('weapon/' + c.key);
     if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
     if (c.ranged === 'sling') l.push('weapon/israel-ranged');
-    l.push('skill/fx-' + c.skill.type);   // 그 나라 스킬 이펙트만
+    for (const t of new Set([c.skill.type, c.skill2.type, 'area'])) l.push('skill/fx-' + t);   // 그 나라 스킬 두 개의 이펙트만
     return l;
   }
   function loadAssets() {
@@ -102,12 +102,12 @@
   // ---------- 판 · 라운드 ----------
   function newRun(ci) {
     G.country = COUNTRIES[ci];
-    G.run = { round: 1, money: G.country.money, skillsLeft: BAL.SKILL_PER_RUN, kills: 0, reviveUsed: false, rewardedSeen: false, bankrupts: 0, maxRound: 0 };
+    G.run = { round: 1, money: G.country.money, skillsLeft: [0, BAL.SKILL_PER_RUN, BAL.SKILL_PER_RUN], kills: 0, reviveUsed: false, rewardedSeen: false, bankrupts: 0, maxRound: 0 };
     startRound(true);
   }
   function startRound(first) {
     const r = G.run, c = G.country, wave = BAL.WAVES[r.round - 1], st = stats(r.money);
-    r.wave = wave; r.st = st; r.roundT = 0; r.spawned = 0; r.spawnT = 0.8; r.killsRound = 0; r.bossSpawned = false;
+    r.wave = wave; r.st = st; r.roundT = 0; r.spawned = 0; r.grunts = 0; r.jumpers = 0; r.spawnT = 0.8; r.killsRound = 0; r.bossSpawned = false;
     r.itemIdx = 0; r.invuln = BAL.INVULN_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
     G.hero = {
       x: FIELD.W / 2, y: FIELD.H / 2 + 30, r: 14, hp: st.hp, maxHp: st.hp, dir: { x: 1, y: 0 }, moving: false, walkT: 0,
@@ -130,6 +130,10 @@
       speed: w.speed * (type === 'boss' ? TEMP.BOSS_SPEED_MUL : type === 'shooter' ? 0.9 : 1),
       r: type === 'boss' ? 38 : 15, flash: 0, shootT: type === 'boss' ? 2 : 1 + r.rng(), seed: r.rng() * 10, vx: 0, kb: { x: 0, y: 0 }, recoil: 0,
     };
+    // 점프 (GDD 0-11): 3라운드부터 졸개 일부(라운드별 수, 졸개 2마리 중 1마리), 4라운드부터 보스 — 모든 나라가 같은 순서
+    const J = TEMP.JUMP, BJ = TEMP.BOSS_JUMP;
+    if (type === 'grunt') { if (r.grunts++ % 2 === 0 && r.jumpers < J.n[r.round - 1]) { r.jumpers++; a.jumpCfg = J; a.jumpT = J.gap[r.round - 1]; } }
+    else if (type === 'boss' && r.round >= BJ.from) { a.jumpCfg = BJ; a.jumpT = BJ.gap * .5; }
     G.aliens.push(a);
   }
 
@@ -466,7 +470,9 @@
   // ---- 나라별 고유 스킬 (skills.md 확정): 유형 5개 · 라운드마다 2회 · 쓰는 동안 0.5초 무적 · 피해 40 × F ----
   const SKB = BAL.SKILL;
   const BARRAGE_SHOT = { beam: 'beam', boomerang: 'boomerang', axe: 'axe', sling: 'sling', bullet: 'bullet', arrow: 'arrow' };   // 쏘는 무기 나라는 그 탄, 칼·창 나라는 빛줄기
-  const skillOf = c => c.skill;
+  const skillOf = (c, n) => (n === 2 ? c.skill2 : c.skill);
+  // 남은 횟수: 1번·2번 각각 5번 (BAL.SKILL_SHARED면 합쳐서 5번 — 1번 칸 하나를 같이 써요)
+  const sLeft = n => G.run.skillsLeft[BAL.SKILL_SHARED ? 1 : n];
   // 무적 (좌·우 동시 / Space / 무적 버튼): 0.5초, 라운드마다 2번 — 고유 스킬과 따로 (사용자 결정 2026-11-25)
   function useInvuln() {
     const r = G.run, h = G.hero;
@@ -480,10 +486,9 @@
   // 횟수: 1번·2번 합쳐 한 판에 5번 (라운드마다 안 채워져요)
   function useSkill(n = 1) {
     const r = G.run, h = G.hero;
-    if (n === 2) return;   // TODO: 2번 스킬 내용이 정해지면 (skills.md)
-    if (!r || r.skillsLeft <= 0 || h.dead || h.dash || h.barrage || h.guard) return;
-    r.skillsLeft--;
-    const sk = skillOf(G.country), dmg = SKB.DMG * r.st.F;
+    if (!r || sLeft(n) <= 0 || h.dead || h.dash || h.barrage || h.guard) return;
+    r.skillsLeft[BAL.SKILL_SHARED ? 1 : n]--;
+    const sk = skillOf(G.country, n), dmg = SKB.DMG * r.st.F;
     const ang = Math.atan2(h.dir.y, h.dir.x), dx = Math.cos(ang), dy = Math.sin(ang), f = FIELD.floor;
     if (sk.type === 'dash') h.dash = { t: 0, dx, dy, dmg, hit: new Set(), gT: 0 };
     else if (sk.type === 'area') {
@@ -493,10 +498,10 @@
     }
     else if (sk.type === 'barrage') h.barrage = { t: 0, n: 0, dmg: dmg / SKB.BARRAGE_DIV };
     else if (sk.type === 'guard') h.guard = { t: 0, a: ang, dmg, hit: new Set() };
-    else if (sk.type === 'zone') G.zones.push({ x: clamp(h.x + dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK, dmg: dmg / SKB.ZONE_DIV, arrows: G.country.ranged === 'arrow' });
+    else if (sk.type === 'zone') G.zones.push({ x: clamp(h.x + dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK, dmg: dmg / SKB.ZONE_DIV, arrows: n === 1 && G.country.ranged === 'arrow', slow: n === 2 && G.country.key === 'finland' });   // 한국 화살비 · 핀란드 눈 함정(느리게)
     // 외침: 그 나라에서 유명한 말 (번역 안 함) + 스킬 이름(설정 언어)
     G.msgs = G.msgs.filter(m => !m.shout);
-    G.msgs.push({ text: sk.shout, sub: t_('skill.name.' + String(G.country.rank).padStart(2, '0')), t: 1.2, shout: true, rtl: G.country.lang === 'he' });
+    G.msgs.push({ text: sk.shout, sub: t_((n === 2 ? 'skill2.name.' : 'skill.name.') + String(G.country.rank).padStart(2, '0')), t: n === 2 ? 1.6 : 1.2, life0: n === 2 ? 1.6 : 1.2, shout: true, rtl: G.country.lang === 'he' });   // 2번 외침은 길어서 1.6초
     if (settings.shake) G.shake = Math.max(G.shake, sk.type === 'area' ? 4 : 2);
     AUDIO.play('skill');
   }
@@ -554,32 +559,50 @@
   // 스킬 그림 (2D·3D 같이): at(x, 바닥y, fn) 은 3D에서 원근 자리로 옮겨요
   const GK = () => (use3d ? .62 : .35);   // 바닥 원의 납작한 정도 (3D는 카메라가 더 위에서 봐요)
   function drawSkills(at) {
-    const h = G.hero, type = G.country && G.country.skill.type, fxName = 'skill/fx-' + type;
+    const h = G.hero;
     if (!h) return;
     for (const z of G.zones) at(z.x, z.y, () => {
       const T = SKB.ZONE_TIME, fr = z.t < .25 ? z.t / .25 * 2 : z.t > T - .3 ? 6 + (z.t - (T - .3)) / .3 * 2 : 2 + Math.floor(z.t * 8) % 4;
       const al = z.t < .2 ? z.t / .2 : z.t > T - .3 ? (T - z.t) / .3 : 1;
       ctx.save(); ctx.globalAlpha = .55 * al; ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2;   // 정한 자리 표시 (지름 180)
       ctx.beginPath(); ctx.ellipse(z.x, z.y, SKB.ZONE_D / 2, SKB.ZONE_D / 2 * GK(), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-      FX.cell(fxName, 8, fr, z.x, z.y - SKB.ZONE_D * .3, 0, SKB.ZONE_D * 1.15, .85 * al);
+      FX.cell('skill/fx-zone', 8, fr, z.x, z.y - SKB.ZONE_D * .3, 0, SKB.ZONE_D * 1.15, .85 * al);
       if (z.arrows) for (let i = 0; i < 5; i++) {   // 한국 화살비: 화살이 쏟아져요
         const q = (z.t * 2.2 + i * .2) % 1, u = hash(i * 7 + Math.floor(z.t * 2.2 + i * .2)), v = hash(i * 13 + Math.floor(z.t * 2.2 + i * .2));
         const ax = z.x + (u - .5) * SKB.ZONE_D * .8, ay = z.y + (v - .5) * SKB.ZONE_D * GK() * .8;
         ctx.save(); ctx.globalAlpha = Math.sin(q * Math.PI) * al; FX.drawShot('arrow', ax, ay - 90 * (1 - q), Math.PI / 2, 0); ctx.restore();
       }
     });
-    if (h.dash) at(h.x, h.y, () => FX.cell(fxName, 6, h.dash.t / SKB.DASH_TIME * 6, h.x - h.dash.dx * 34, h.y - 30 - h.dash.dy * 10, Math.atan2(h.dash.dy, h.dash.dx), 120, .9));
+    if (h.dash) at(h.x, h.y, () => FX.cell('skill/fx-dash', 6, h.dash.t / SKB.DASH_TIME * 6, h.x - h.dash.dx * 34, h.y - 30 - h.dash.dy * 10, Math.atan2(h.dash.dy, h.dash.dx), 120, .9));
     if (h.guard) {
       const g = h.guard, T = SKB.GUARD_TIME, cx = h.x + Math.cos(g.a) * TEMP.SKILL_GUARD_AHEAD, cy = h.y + Math.sin(g.a) * TEMP.SKILL_GUARD_AHEAD;
       const fr = g.t < .3 ? g.t / .3 * 3 : g.t > T - .3 ? 4 + (g.t - (T - .3)) / .3 * 2 : 3;
-      at(cx, cy, () => FX.cell(fxName, 6, fr, cx, cy - 30, 0, 104, .9, Math.cos(g.a) < -.2));
+      at(cx, cy, () => FX.cell('skill/fx-guard', 6, fr, cx, cy - 30, 0, 104, .9, Math.cos(g.a) < -.2));
     }
+  }
+  // 점프 예고 원(바닥) · 착지 충격 — 외계인 쪽이라 외계인 보라색 (2D·3D 같이)
+  function drawJumps(at) {
+    for (const a of G.aliens) {
+      if (!a.jump) continue;
+      const J = a.jump, C = a.jumpCfg, k = J.ph === 'crouch' ? J.t / C.crouch : 1, fill = J.ph === 'air' ? Math.min(1, J.t / C.air) : 0;
+      at(J.tx, J.ty, () => {
+        ctx.save(); ctx.globalAlpha = .25 + .45 * k;
+        ctx.fillStyle = 'rgba(10,6,16,.45)'; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r, C.r * GK(), 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(202,87,229,.35)'; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r * fill, C.r * fill * GK(), 0, 0, Math.PI * 2); ctx.fill();   // 떨어질 때까지 차오름
+        ctx.strokeStyle = '#CA57E5'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r, C.r * GK(), 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      });
+    }
+  }
+  function drawJumpLand(e, k) {
+    ctx.save(); ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = '#E2B6F0'; ctx.lineWidth = 5 * (1 - k) + 1;
+    const R = e.r * (.6 + .6 * k); ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * GK(), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
   function drawSkillFx(e, k) {   // G.fx 의 스킬 효과
     if (e.type === 'area') {
       FX.cell('skill/fx-area', 6, k * 6, e.x, e.y, 0, SKB.AREA_R * 2.2, .72);
       ctx.save(); for (const [s, col] of [[1, '#FFFFFF'], [.72, '#E8D9A8']]) { const R = (20 + k * (SKB.AREA_R - 20)) * s; ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = col; ctx.lineWidth = 4 * (1 - k) + 1; ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * GK(), 0, 0, Math.PI * 2); ctx.stroke(); } ctx.restore();
-    } else if (e.type === 'barrage') FX.cell('skill/fx-' + G.country.skill.type, 6, k * 6, e.x, e.y, e.a, 72, .8);
+    } else if (e.type === 'barrage') FX.cell('skill/fx-barrage', 6, k * 6, e.x, e.y, e.a, 72, .8);
   }
   function drawGhost(e, k) {
     UI.dirBody(G.country.key, e.cell, e.x, e.y, 60, { flip: e.flip, white: true, alpha: .22 * 4 * (1 - k) / 4 + .05 }, e.folder);
@@ -677,6 +700,28 @@
       a.flash = Math.max(0, a.flash - dt); a.recoil = Math.max(0, a.recoil - dt);
       a.edgeT = Math.max(0, (a.edgeT || 0) - dt); a.hitT = Math.max(0, (a.hitT || 0) - dt); a.stun = Math.max(0, (a.stun || 0) - dt);
       const dx = h.x - a.x, dy = h.y - a.y, d = Math.hypot(dx, dy) || 1;
+      // 점프: 웅크림(바닥 원 예고) → 공중(포물선) → 착지 충격 (원 안이면 피해, 무적이면 안 맞음)
+      if (a.jump) {
+        const J = a.jump, C = a.jumpCfg; J.t += dt;
+        if (J.ph === 'crouch') { if (J.t >= C.crouch) { J.ph = 'air'; J.t = 0; J.sx = a.x; J.sy = a.y; } }
+        else {
+          const q = Math.min(1, J.t / C.air), e = q * q * (3 - 2 * q);
+          a.x = J.sx + (J.tx - J.sx) * e; a.y = J.sy + (J.ty - J.sy) * e; a.lift = Math.sin(Math.PI * q) * C.lift;
+          if (q >= 1) {
+            a.lift = 0; a.jump = null; a.jumpT = a.type === 'boss' ? C.gap : C.gap[G.run.round - 1];
+            if (Math.hypot(h.x - J.tx, h.y - J.ty) < C.r + h.r * .5) hurt(C.dmg, J.tx, J.ty);
+            G.fx.push({ kind: 'jumpLand', x: J.tx, y: J.ty, r: C.r, t: 0, life: .35 });
+            for (let i = 0; i < 8 && G.parts.length < 150; i++) { const an = i / 8 * Math.PI * 2; G.parts.push({ x: J.tx, y: J.ty, h0: 2, vx: Math.cos(an) * 90, vy: Math.sin(an) * 40, life: .3, t: 0, color: '#8E8679', s: 2.5 }); }
+            if (settings.shake) G.shake = Math.max(G.shake, a.type === 'boss' ? 7 : 4);
+            AUDIO.play('impact');
+          }
+        }
+        continue;   // 점프 중엔 쫓기·쏘기·닿기 없음
+      }
+      if (a.jumpCfg && !a.entering && !(a.stun > 0)) {
+        a.jumpT -= dt;
+        if (a.jumpT <= 0) { a.jump = { ph: 'crouch', t: 0, tx: clamp(h.x, f.x0 + 20, f.x1 - 20), ty: clamp(h.y, f.y0 + 20, f.y1) }; continue; }   // 그 순간 장수가 있는 곳으로
+      }
       let mx = 0, my = 0;
       if (a.entering) { mx = a.dx; my = a.dy; if (inFloor(a)) a.entering = false; }
       else if (a.type === 'shooter') {
@@ -695,8 +740,9 @@
       }
       // 서로 겹치지 않게
       for (const b of G.aliens) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, ed = Math.hypot(ex, ey); const mn = a.r + b.r; if (ed > 0 && ed < mn) { mx += ex / ed * .8; my += ey / ed * .8; } }
-      const chase = a.stun > 0 ? .15 : 1;   // 넉백 첫 0.04초는 쫓아오기 15%
-      a.x += mx * a.speed * dt * chase; a.y += my * a.speed * dt * chase; if (chase === 1) a.vx = mx;
+      let chase = a.stun > 0 ? .15 : 1;   // 넉백 첫 0.04초는 쫓아오기 15%
+      for (const z of G.zones) if (z.slow && Math.hypot(a.x - z.x, a.y - z.y) < SKB.ZONE_D / 2) chase *= .5;   // 핀란드 눈 함정: 느리게
+      a.x += mx * a.speed * dt * chase; a.y += my * a.speed * dt * chase; if (chase > .2) a.vx = mx;
       { const ml = Math.hypot(mx, my) || 1, kk = Math.min(1, dt * 8); a.fx = (a.fx || 0) + (mx / ml - (a.fx || 0)) * kk; a.fy = (a.fy || 0) + (my / ml - (a.fy || 0)) * kk; a.step = (a.step || 0) + dt * a.speed / 9; }   // 보는 방향(부드럽게)·걸음
       if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-18 * dt); a.kb.x *= k; a.kb.y *= k; }
       if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
@@ -1023,8 +1069,9 @@
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
       else if (e.kind === 'skill') drawSkillFx(e, k);
       else if (e.kind === 'ghost') drawGhost(e, k);
+      else if (e.kind === 'jumpLand') drawJumpLand(e, k);
     }
-    drawSkills((x, y, fn) => fn());
+    drawSkills((x, y, fn) => fn()); drawJumps((x, y, fn) => fn());
     for (const s of G.shots) {
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
       softShadow(s.x, s.y, 7, 2.5, .28);   // 날아가는 것 아래 바닥 그림자 (높이가 보여요)
@@ -1040,7 +1087,7 @@
   // ---- 2.5D (B안, 사용자 "b안"): 바닥·벽·문은 3D, 장수·외계인·화폐는 판(빌보드), 효과·HUD는 2D를 원근에 맞춰 위에 겹쳐요 ----
   const HERO_BOX = { l: 80, t: 104, w: 160, h: 144, k: 2 };          // 장수 판: 발 기준 왼쪽 80 · 위 104 (무기 포함) · 2배 해상도
   const GROUND_BOX = { w: 76, h: 30, k: 2, stretch: 2.1 };           // 발밑 빛·화폐 고리 (2D 납작 타원을 바닥에 맞게 세로로 늘려요)
-  const FX_H0 = { melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0, ghost: 0, skill: 0 };   // 효과가 뜨는 높이 (바닥에서)
+  const FX_H0 = { melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0, ghost: 0, skill: 0, jumpLand: 0 };   // 효과가 뜨는 높이 (바닥에서)
   let heroCv = null, heroTex = null, groundCv = null, groundTex = null;
   const itemCv = [], itemTex = [];
   const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -1117,9 +1164,10 @@
         else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); }
         else if (e.kind === 'skill') drawSkillFx(e, k);
         else if (e.kind === 'ghost') drawGhost(e, k);
+        else if (e.kind === 'jumpLand') drawJumpLand(e, k);
       });
     }
-    drawSkills(at);
+    drawSkills(at); drawJumps(at);
     for (const s of G.shots) {
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;
       at(s.x, s.y, () => FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key));
@@ -1341,6 +1389,10 @@
       if (fy < -.35) mo.tint = .8 + .2 * (1 + fy);
       const kb = a.kb ? a.kb.x : 0; if (Math.abs(kb) > 15) mo.rot += clamp(kb / 700, -.28, .28);
     }
+    if (a.jump) {   // 점프: 웅크리며 떨기 → 공중에서 늘어나며 떠오름
+      if (a.jump.ph === 'crouch') { const q = Math.min(1, a.jump.t / a.jumpCfg.crouch); mo.sy = 1 - .22 * q; mo.sx = 1 + .12 * q; mo.rot = 0; mo.ox = reduceMotion ? 0 : Math.sin(t * 70) * 1.6 * q; mo.oy = 0; }
+      else { mo.sy = 1.1; mo.sx = .92; mo.oy = -(a.lift || 0); mo.rot = (a.vx < 0 ? -1 : 1) * .15; }
+    }
     if (a.hitT > 0) {   // 발 고정, 공격축 0.88배 · 직각 1.08배로 눌렸다가 0.1초에 복원 (기어가기 변형은 잠깐 멈춤)
       const q = a.hitT > .07 ? 1 : a.hitT / .07, along = 1 - .12 * q, across = 1 + .08 * q;
       mo.sx = a.hitAx === 'x' ? along : across; mo.sy = a.hitAx === 'x' ? across : along; mo.rot = 0; mo.ox = 0; mo.oy = 0;
@@ -1363,10 +1415,12 @@
     UI.txt(`${Math.ceil(h.hp)}/${h.maxHp}`, x0 + 178, VH * .09, 12, COL.fg, 'left', 700);
     UI.txt(UI.money(c, r.money), x0, VH * .17 + 2, 18, COL.glow, 'left', 800);
     // 남은 스킬(한 판 5번) · 무적(라운드마다 2번)
-    { const sy = VH * .17 + 2, im = UI.img['skill/icon-' + c.skill.type];
-      ctx.globalAlpha = r.skillsLeft > 0 ? 1 : .4; if (im && im.naturalWidth) ctx.drawImage(im, x0 + 112, sy - 11, 22, 22); else UI.I.bolt(x0 + 123, sy, 18, COL.gold);
-      UI.txt('×' + r.skillsLeft, x0 + 137, sy, 14, COL.fg, 'left', 800);
-      ctx.globalAlpha = r.invuln > 0 ? 1 : .4; UI.I.shield(x0 + 176, sy, 18, COL.fg); UI.txt('×' + r.invuln, x0 + 188, sy, 14, COL.fg, 'left', 800); ctx.globalAlpha = 1; }
+    { const sy = VH * .17 + 2, ic = (n, x) => {   // 1번 ×5 · 2번 ×5 · 무적 ×2
+        const im = UI.img['skill/icon-' + skillOf(c, n).type]; ctx.globalAlpha = sLeft(n) > 0 ? 1 : .4;
+        if (im && im.naturalWidth) ctx.drawImage(im, x, sy - 10, 20, 20); else UI.I.bolt(x + 10, sy, 16, COL.gold);
+        UI.txt(n + '', x - 2, sy + 7, 8, COL.gold, 'center', 900); UI.txt('×' + sLeft(n), x + 22, sy, 13, COL.fg, 'left', 800); };
+      ic(1, x0 + 96); if (!BAL.SKILL_SHARED) ic(2, x0 + 142);
+      ctx.globalAlpha = r.invuln > 0 ? 1 : .4; UI.I.shield(x0 + 196, sy, 16, COL.fg); UI.txt('×' + r.invuln, x0 + 206, sy, 13, COL.fg, 'left', 800); ctx.globalAlpha = 1; }
     // 화폐 효과 중
     if (h.buff) {
       const bx = x0 + 16, by = VH * .28 + 4;
@@ -1402,10 +1456,9 @@
       if (im && im.naturalWidth) ctx.drawImage(im, b.x - b.r * .82, b.y - b.r * .82, b.r * 1.64, b.r * 1.64); else UI.I[fallback](b.x, b.y, b.r * 1.05, COL.fg);
       if (label) UI.txt(label, b.x - b.r * .7, b.y + b.r * .7, 11, COL.fg, 'center', 800);
     };
-    ctx.globalAlpha = r.skillsLeft > 0 ? 1 : .4; imgBtn(B.skill, UI.img['skill/icon-' + G.country.skill.type], h.dash || h.guard || h.barrage, 'bolt', '1'); ctx.globalAlpha = 1;
-    ctx.globalAlpha = .35; imgBtn(B.skill2, null, false, 'bolt', '2'); ctx.globalAlpha = 1;   // 2번 스킬: 기획 확정 전 (자리만)
+    for (const [n, b] of [[1, B.skill], [2, B.skill2]]) { ctx.globalAlpha = sLeft(n) > 0 ? 1 : .4; imgBtn(b, UI.img['skill/icon-' + skillOf(G.country, n).type], false, 'bolt', String(n)); ctx.globalAlpha = 1; }
     ctx.globalAlpha = r.invuln > 0 ? 1 : .4; imgBtn(B.invuln, null, h.skillT > 0, 'shield'); ctx.globalAlpha = 1;
-    badge(B.skill, r.skillsLeft); badge(B.invuln, r.invuln);
+    badge(B.skill, sLeft(1)); badge(B.skill2, sLeft(2)); badge(B.invuln, r.invuln);
   }
 
   // 장수 머리 위 화면 좌표 (2D·3D)
@@ -1421,11 +1474,12 @@
       if (m.big) { UI.rr(VW / 2 - 110, VH * .42 - 26, 220, 52, 12, 'rgba(10,11,15,.6)'); UI.txt(m.text, VW / 2, VH * .42, 30, COL.fg, 'center', 800, 200); }
       else if (m.hint) UI.txt(m.text, VW / 2, VH * .84, 12, COL.muted, 'center', 600);
       else if (m.shout) {   // 외침: 장수 머리 위 1.2초, 양피지색 글자 + 어두운 반투명 띠 (style-guide)
-        const hd = heroHead(), p = 1 + (1 - Math.min(1, (1.2 - m.t) / .15)) * .25, x = clamp(hd.x, 120, VW - 120), y = clamp(hd.y - 22, 46, VH - 40);
-        UI.x.font = `900 ${20 * p}px ${UI.FONT || 'system-ui, sans-serif'}`; const w = Math.min(VW * .7, Math.max(140, UI.x.measureText(m.text).width + 36));
+        const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
+        UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, UI.x.measureText(m.text).width + 36));
+        const x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22, 46, VH - 40);
         UI.rr(x - w / 2, y - 18 * p, w, (m.sub ? 50 : 36) * p, 10, 'rgba(10,11,15,.62)');
         if (m.rtl) ctx.direction = 'rtl';
-        UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, VW * .68);
+        UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, w - 28);
         ctx.direction = 'ltr';
         if (m.sub) UI.txt(m.sub, x, y + 20 * p, 11 * p, COL.gold, 'center', 700, VW * .6);
       }

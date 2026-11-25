@@ -56,7 +56,8 @@
     BASE: { hp: 100, melee: 15, ranged: 8, speed: 220 },
     MELEE_CD: 0.4, RANGED_CD: 0.3,
     SKILL_TIME: 0.5,              // 무적 0.5초
-    SKILL_PER_RUN: 5,             // 고유 스킬(1번·2번 합쳐) 한 판에 5번 (사용자 "스킬은 모든 라운드에서 총 5번")
+    SKILL_PER_RUN: 5,             // 고유 스킬 한 판 5번 (사용자 "스킬은 모든 라운드에서 총 5번")
+    SKILL_SHARED: false,          // false = 1번·2번 **각각** 5번 (사용자 "1. 각각 5번") · true면 합쳐서 5번
     INVULN_PER_ROUND: 2,          // 무적은 라운드마다 2번 (사용자 "무적스킬은 라운드당 2번")
     REVIVE_INVULN: 2.0,
     // 고유 스킬 유형별 수치 (balance.md 확정, 사용자 "추천대로"): 피해 = 40 × F
@@ -88,6 +89,41 @@
   ];
   COUNTRIES.forEach((c, i) => { c.skill = SKILLS[i]; });
 
+  // 두 번째 고유 스킬 — teams/1-기획/skills2.md (이름·유형 확정 2026-11-25) · 외침 = texts.md skill2.shout ("내가 돈이 없지 가오가 없나"를 그 나라 말로)
+  const SKILLS2 = [
+    SK('guard', "Je suis peut-être fauché, mais j'ai ma fierté !"),
+    SK('dash', "I may be broke, but I've got my pride!"),
+    SK('barrage', 'Ich bin vielleicht pleite, aber ich hab meinen Stolz!'),
+    SK('zone', "I may be broke, but I've got my pride!"),
+    SK('dash', 'Ik ben misschien blut, maar ik heb mijn trots!'),
+    SK('area', 'Jeg er måske flad, men jeg har min stolthed!'),
+    SK('area', 'Ich bin vielleicht pleite, aber ich hab meinen Stolz!'),
+    SK('zone', "I may be broke, but I've got my pride!"),
+    SK('dash', 'Ich bin vielleicht pleite, aber ich hab meinen Stolz!'),
+    SK('guard', 'Jag må vara pank, men jag har min stolthet!'),
+    SK('guard', "I may be broke, but I've got my pride!"),
+    SK('zone', 'Rahaa ei ole, mutta ylpeyttä on!'),
+    SK('dash', "Je suis peut-être fauché, mais j'ai ma fierté !"),
+    SK('barrage', 'Sarò anche al verde, ma ho il mio orgoglio!'),
+    SK('barrage', '내가 돈이 없지 가오가 없나!'),
+    SK('area', '¡Estaré sin un duro, pero tengo mi orgullo!'),
+    SK('area', 'Možná nemám peníze, ale mám svou hrdost!'),
+    SK('dash', 'אולי אין לי כסף, אבל יש לי כבוד!'),
+    SK('guard', 'Gal ir neturiu pinigų, bet turiu savigarbą!'),
+    SK('dash', "I may be broke, but I've got my pride!"),
+    SK('area', '金はなくても、プライドはある！'),
+    SK('barrage', 'Posso estar teso, mas tenho o meu orgulho!'),
+    SK('area', 'Może nie mam kasy, ale mam honor!'),
+    SK('dash', 'Lehet, hogy nincs pénzem, de büszkeségem az van!'),
+    SK('barrage', 'Možno nemám peniaze, ale hrdosť mám!'),
+    SK('dash', 'Μπορεί να μην έχω λεφτά, αλλά έχω αξιοπρέπεια!'),
+    SK('dash', 'Param olmayabilir ama gururum var!'),
+    SK('zone', '¡Estaré sin plata, pero tengo mi orgullo!'),
+    SK('guard', '¡Estaré sin lana, pero tengo mi orgullo!'),
+    SK('dash', '¡Estaré sin plata, pero tengo mi orgullo!'),
+  ];
+  COUNTRIES.forEach((c, i) => { c.skill2 = SKILLS2[i]; });
+
   // ---- 기획서에 수치가 없어서 개발팀이 넣은 임시 값 [제안 · 기획팀 확인 필요] ----
   const TEMP = {
     HURT_INVULN: 0.7,             // 외계인에 닿은 뒤 다시 맞기까지 (없으면 닿는 순간 HP가 녹아요)
@@ -101,6 +137,9 @@
     ITEM_SPOTS: [[0.3, 0.35], [0.7, 0.65], [0.7, 0.35], [0.3, 0.65], [0.5, 0.3], [0.5, 0.7]],
     // 라운드마다 나오는 화폐 2개 (모든 나라 같음) — 약한 것에서 강한 것으로
     SKILL_GUARD_R: 46, SKILL_GUARD_AHEAD: 30, SKILL_ZONE_AHEAD: 120,   // 방어 벽 반지름·앞 거리, 설치 구역을 놓는 앞 거리 (기획서에 없음)
+    // 외계인 점프 (GDD 0-11 확정: 졸개 일부 + 4라운드부터 보스 · 수치는 alien-jump.md [제안])
+    JUMP: { n: [0, 0, 2, 3, 4, 5], gap: [0, 0, 6, 5, 5, 4], crouch: 0.5, air: 0.6, r: 70, dmg: 15, lift: 46 },
+    BOSS_JUMP: { from: 4, gap: 10, crouch: 0.7, air: 0.8, r: 120, dmg: 25, lift: 90 },
     ITEM_CURS: [['KRW', 'JPY'], ['MXN', 'SEK'], ['PLN', 'NZD'], ['CAD', 'USD'], ['EUR', 'CHF'], ['GBP', 'CNY']],
   };
 
@@ -114,5 +153,5 @@
     { x: 30, y: FIELD.H / 2, dx: 1, dy: 0 },            // 왼쪽
   ];
 
-  window.DATA = { COUNTRIES, SKILLS, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
+  window.DATA = { COUNTRIES, SKILLS, SKILLS2, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
 })();
