@@ -1920,7 +1920,7 @@
     const low = h.hp / h.maxHp <= .25;
     UI.I.heart(x0 + 8, VH * .09, 18 * (low && !reduceMotion ? 1 + Math.abs(Math.sin(G.t * 6)) * .15 : 1), low ? COL.red : COL.hp);
     UI.bar(x0 + 22, VH * .09 - 7, 150, 14, h.hp / h.maxHp, low ? COL.red : COL.hp);
-    UI.txt(`${Math.ceil(h.hp)}/${h.maxHp}`, x0 + 178, VH * .09, 12, COL.fg, 'left', 700);
+    // 체력 숫자는 안 보여요 — 최대 체력으로 나라 세기를 짐작할 수 있어서 (사용자 "나라 순위만 일부러 보여준거야", 막대만 남김)
     UI.txt(UI.money(c, r.money), x0, VH * .17 + 2, 18, COL.glow, 'left', 800);
     // 남은 스킬(한 판 5번) · 무적(라운드마다 2번)
     { const sy = VH * .17 + 2, ic = (n, x) => {   // 1번 ×5 · 2번 ×5 · 무적 ×2
