@@ -65,7 +65,7 @@
     axe(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 22); x.fillStyle = '#6B4A2E'; x.fillRect(-1.5, -11, 3, 22); x.fillStyle = '#C9CDD3'; x.beginPath(); x.moveTo(1, -11); x.quadraticCurveTo(13, -6, 9, 4); x.lineTo(1, -3); x.fill(); x.restore(); },
     spear(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = '#6B4A2E'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-30, 0); x.lineTo(8, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(18, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     boomerang(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 26); x.strokeStyle = '#C9A24A'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.arc(0, 6, 11, -2.6, -.5); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); x.restore(); },
-    // 장난감 물총 (사용자 결정 "그럼 걍 물총으로 만들어~"): 물방울 + 꼬리 물줄기
+    // (안 씀) 장난감 물총 — 사용자가 취소 ("물총 무시하고 코드로 그려"). 다시 쓸 수 있게 남겨 둬요
     water(x, px, py, dir, t) {
       x.save(); x.translate(px, py); x.rotate(dir);
       const g = x.createLinearGradient(-34, 0, 4, 0); g.addColorStop(0, 'rgba(120,200,255,0)'); g.addColorStop(1, 'rgba(150,215,255,.85)');
@@ -107,7 +107,36 @@
     x.restore();
   }
 
+  // 손에 드는 총 2종 (사용자 결정: 그림 대신 코드로). 7차 weapon 규칙과 같게
+  // 원점 = 손잡이 끝(왼쪽 가운데), +x 방향, 길이 약 44px. 8방향 작업 때 손 위치에 붙여 각도대로 돌려요
+  const GUN = {
+    // 미국: 미래형 에너지 소총 (남색 몸통 · 빨강 줄 · 흰 별 · 하늘색 에너지 칸)
+    usa(x) {
+      x.save(); x.lineJoin = 'round';
+      x.fillStyle = '#1F2E5C'; x.beginPath(); x.moveTo(0, -3); x.lineTo(12, -5); x.lineTo(30, -5); x.lineTo(36, -3); x.lineTo(36, 3); x.lineTo(14, 4); x.lineTo(10, 9); x.lineTo(5, 9); x.lineTo(6, 4); x.lineTo(0, 3); x.closePath(); x.fill();
+      x.strokeStyle = '#0E1530'; x.lineWidth = 1; x.stroke();
+      x.fillStyle = '#C8283A'; x.fillRect(12, -1.2, 22, 2.4);
+      x.fillStyle = '#E8EEF8'; x.fillRect(36, -2, 8, 4); x.fillStyle = '#7FD8FF'; x.fillRect(40, -1.2, 5, 2.4);
+      x.fillStyle = '#5BC8FF'; x.fillRect(16, -4.2, 10, 2);
+      star(x, 9, -1, 5, 2.6, 1.1, '#FFFFFF');
+      x.restore();
+    },
+    // 핀란드: 나무 개머리판 + 금속 총열 소총
+    finland(x) {
+      x.save(); x.lineJoin = 'round';
+      x.fillStyle = '#8A5A2B'; x.beginPath(); x.moveTo(0, -3.5); x.lineTo(14, -2.5); x.lineTo(28, -2.5); x.lineTo(28, 2.5); x.lineTo(14, 2.5); x.lineTo(8, 5.5); x.lineTo(0, 4); x.closePath(); x.fill();
+      x.strokeStyle = '#4A2E14'; x.lineWidth = 1; x.stroke();
+      x.fillStyle = '#5A3A1C'; x.fillRect(2, -1, 8, 2);
+      x.fillStyle = '#3A3E44'; x.fillRect(14, -4, 10, 2.5); x.fillRect(24, -1.6, 22, 3.2);
+      x.fillStyle = '#8E949C'; x.fillRect(24, -1.6, 22, 1); x.fillRect(44, -3, 2, 1.5);
+      x.fillStyle = '#2A2C30'; x.fillRect(17, 2, 2, 4);
+      x.restore();
+    },
+  };
+
   window.FX = {
+    GUN,
+    drawGun(key, px, py, ang, flipY) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); if (flipY) x.scale(1, -1); g(x); x.restore(); return true; },
     MELEE, SHOT, muzzle, hit, splash,
     meleeTime: kind => (MELEE[kind] || MELEE.slash)[0],
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },

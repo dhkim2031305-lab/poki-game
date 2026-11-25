@@ -4,14 +4,14 @@
   // 30개국 (게임 순위 순서). gdp = 1인당 GDP USD PPP 2024, money = 시작 돈(1위=100)
   // lang = 대표 언어, cur = 통화 코드(아이템 그림 이름), sym = 통화 기호, iso = 국기 파일
   // melee = 치기 효과, ranged = 쏘기 (style-guide.md "나라별 치기·쏘기")
-  //   탄: arrow(활)·water(장난감 물총: 미국·핀란드, 사용자 결정)·sling(투석기) / 던지기: blade·axe·mace(회전), polearm(곧게), boomerang(돌아옴)
+  //   탄: arrow(활)·beam(미국 에너지 소총)·bullet(핀란드 소총)·sling(투석기) — 물총은 사용자가 취소 / 던지기: blade·axe·mace(회전), polearm(곧게), boomerang(돌아옴)
   const C = (key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged) =>
     ({ key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged });
   const COUNTRIES = [
     C('luxembourg', 'lu', 157809, 100.0, 'fr', 'EUR', '€', 'Luxembourg', 'Luxembourg', '룩셈부르크', 'slash', 'blade'),
     C('ireland', 'ie', 140848, 89.3, 'en', 'EUR', '€', 'Ireland', 'Ireland', '아일랜드', 'smash', 'axe'),
     C('switzerland', 'ch', 97357, 61.7, 'de', 'CHF', 'CHF', 'Schweiz', 'Switzerland', '스위스', 'thrust', 'polearm'),
-    C('usa', 'us', 86147, 54.6, 'en', 'USD', '$', 'United States', 'United States', '미국', 'slash', 'water'),
+    C('usa', 'us', 86147, 54.6, 'en', 'USD', '$', 'United States', 'United States', '미국', 'slash', 'beam'),
     C('netherlands', 'nl', 84738, 53.7, 'nl', 'EUR', '€', 'Nederland', 'Netherlands', '네덜란드', 'rapid', 'blade'),
     C('denmark', 'dk', 82563, 52.3, 'da', 'DKK', 'kr', 'Danmark', 'Denmark', '덴마크', 'smash', 'axe'),
     C('austria', 'at', 76674, 48.6, 'de', 'EUR', '€', 'Österreich', 'Austria', '오스트리아', 'slash', 'blade'),
@@ -19,7 +19,7 @@
     C('germany', 'de', 74947, 47.5, 'de', 'EUR', '€', 'Deutschland', 'Germany', '독일', 'bigslash', 'blade'),
     C('sweden', 'se', 71381, 45.2, 'sv', 'SEK', 'kr', 'Sverige', 'Sweden', '스웨덴', 'slash', 'blade'),
     C('canada', 'ca', 65483, 41.5, 'en', 'CAD', '$', 'Canada', 'Canada', '캐나다', 'smash', 'axe'),
-    C('finland', 'fi', 65163, 41.3, 'fi', 'EUR', '€', 'Suomi', 'Finland', '핀란드', 'slash', 'water'),
+    C('finland', 'fi', 65163, 41.3, 'fi', 'EUR', '€', 'Suomi', 'Finland', '핀란드', 'slash', 'bullet'),
     C('france', 'fr', 62648, 39.7, 'fr', 'EUR', '€', 'France', 'France', '프랑스', 'slash', 'blade'),
     C('italy', 'it', 62530, 39.6, 'it', 'EUR', '€', 'Italia', 'Italy', '이탈리아', 'thrust', 'blade'),
     C('korea', 'kr', 61227, 38.8, 'ko', 'KRW', '₩', '한국', 'Korea', '한국', 'slash', 'arrow'),

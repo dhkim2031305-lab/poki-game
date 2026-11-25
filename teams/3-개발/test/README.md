@@ -12,6 +12,7 @@
 | `ending.js` | 라운드를 강제로 넘겨 6라운드 클리어 엔딩 확인 | `node ending.js out 14 korea` |
 | `fxtest.js` | 12개국 치기·쏘기 효과 캡처 + 설정 언어 20개 | `node fxtest.js out` |
 | `mouse.js` | 마우스: 커서 조준·좌클릭 치기·우클릭 쏘기/던지기, 던지는 무기 모양 | `node mouse.js out` |
+| `guns.js` | 코드로 그린 총 2종(미국·핀란드) 각도별 캡처 | `node guns.js out` |
 | `bot.js` | 자동 플레이 봇 (거리 두고 쏘기). 밸런스 감 잡기용, 사람보다 서툴러요 | `node bot.js out web 0 lux` (0 = 1위 룩셈부르크) |
 
 - `G`(게임 상태), `UI.hits`(누를 수 있는 곳), `Platform`을 페이지에서 읽어요. 게임 코드에 테스트 전용 장치는 없어요.
