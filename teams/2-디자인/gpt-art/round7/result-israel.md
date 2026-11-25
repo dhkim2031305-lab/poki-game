@@ -1,15 +1,7 @@
-# 이스라엘 장수 이미지 결과
+내장 이미지 생성 기능으로 PNG 세 장을 만들어 저장했습니다. 세 파일 모두 투명 배경을 확인했습니다.
 
-| 파일 | 크기 | 배경 | 확인 사항 |
-| --- | --- | --- | --- |
-| [dir-israel.png](dir-israel.png) | 1280 × 256 px | 투명 (RGBA) | 256 × 256 px 5칸. 아래, 오른쪽 아래, 오른쪽, 오른쪽 위, 위 순서. 빈손이며 발을 각 칸 아래 가운데에 정렬. |
-| [weapon-israel.png](weapon-israel.png) | 512 × 512 px | 투명 (RGBA) | 왼쪽 세로 중앙에 검 손잡이 끝을, 오른쪽에 은색 검 끝을 배치. |
-| [ranged-israel.png](ranged-israel.png) | 512 × 512 px | 투명 (RGBA) | 왼쪽 세로 중앙에 가죽 끈의 손잡이 쪽을, 오른쪽에 가죽 주머니를 배치. |
+- [dir-israel.png](/home/user/poki-game/teams/2-디자인/gpt-art/round7/dir-israel.png) · 1280×256 px. 무기를 뺀 장수를 아래 → 오른쪽 아래 → 오른쪽 → 오른쪽 위 → 위 순서로 배치하고, 각 256×256 px 칸의 아래 가운데에 발을 맞췄습니다.
+- [weapon-israel.png](/home/user/poki-game/teams/2-디자인/gpt-art/round7/weapon-israel.png) · 512×512 px. 검 손잡이 끝은 왼쪽 세로 중앙에 있고, 칼끝은 오른쪽을 향합니다.
+- [ranged-israel.png](/home/user/poki-game/teams/2-디자인/gpt-art/round7/ranged-israel.png) · 512×512 px. 가죽 끈의 손잡이 쪽은 왼쪽 세로 중앙에 있고, 가죽 주머니는 오른쪽에 있습니다.
 
-내장 이미지 생성 기능으로 제작했습니다. 다섯 방향의 그림 높이를 240 px로 맞추고, 두 장비의 왼쪽 끝을 캔버스 안쪽 12 px에 배치했습니다. 저장된 PNG 세 장의 크기와 알파 채널을 확인했습니다.
-
-## 생성 프롬프트
-
-1. Create a transparent game sprite turnaround of the exact character in the first user attachment (Israel, white feather with gold mount, closed dark bronze helmet with gold trim, blue cape with two gold clasps, gold scale armor, cream fabric, brown strapped sandals). Second user attachment supplies armor detail; Korean red sprite if visible is ONLY a body proportion guide, never copy its costume. Match the approved blue character in 2.5-head chibi proportions. Exactly five full length unarmed views in one single evenly spaced row, in this precise left-to-right order: direct front, three-quarter front facing image right, strict right profile, three-quarter rear facing image right, direct rear. In 4 see mostly back and blue cape plus sliver of right-facing helmet. In 5 see entirely blue cape and back of helmet. Exact same scale, standing pose, feet level across row, sufficient gaps and margins. Empty hands, anatomical right in a closed grip. No sword or sling, no face, no religious motif, no labels, no shadows. Thick crisp near black outline and detailed saturated cel shading like the approved blue art. Wide horizontal canvas with genuine transparent background.
-2. Create only one isolated 2D cartoon inventory icon for a fantasy game, matching the straight short silver sword held at image left in the first user attachment (blue and gold chibi knight), second attachment supplementary. Dark brown leather wrapped short grip with round gold pommel and broad simple curved gold guard, chunky straight silver double-edged blade and faceted pointed tip. Thick near-black outline, warm illustrated gold highlights, clean cel shading. Perfectly horizontal, gold pommel left, blade point right, straight weapon axis exactly at the vertical center of a square transparent canvas. Full item spanning most of width, enough side margin, genuine transparent background. No hand, no people, no text or other objects. Nontechnical stylized game asset.
-3. Create only one stylized fantasy game inventory icon of the brown leather cord sling held at image right by the blue chibi soldier in the first user attachment. Second user image supplies leather detail. Rotate its hanging shape counterclockwise so the two loose braided tan-brown cords (including the loop) are on the left and the single rounded chestnut leather pouch with ochre edge seam and gold-toned crescent interior highlight is on the right. Arrange cords along a horizontal axis that starts left at vertical center with pouch centered on right. Cords and pouch constitute one item. Draw in the same black-outlined bold cel-shaded cartoon game style as the blue knight, square genuinely transparent background. No stone, hand, person, posts, fork, lettering, cast shadow, or diagrams. Nontechnical game icon.
+장비 두 장의 왼쪽 끝은 캔버스 가장자리에서 12 px 안쪽에 배치했습니다. 크기, 투명 여부, 생성 프롬프트는 [result-israel.md](/home/user/poki-game/teams/2-디자인/gpt-art/round7/result-israel.md)에 기록했습니다.
