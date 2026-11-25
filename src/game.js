@@ -160,7 +160,8 @@
   // ---------- 입력 ----------
   const keys = new Set();
   const input = { mx: 0, my: 0, melee: false, ranged: false, mMelee: false, mRanged: false };
-  const mouse = { on: false, x: 0, y: 0 };   // 전장 좌표의 마우스 커서 (마우스로 조준할 때)
+  const mouse = { on: false, x: 0, y: 0, gx: 0, gy: 0 };   // x·y = 조준(가슴 높이) · gx·gy = 커서가 가리키는 바닥 점 (스킬 자리, GDD 0-17)
+  let aim = null;   // 폰 스킬 버튼 끌기 { n, id, b, drag, cancel, t: 바닥 점 } (GDD 0-17)   // 전장 좌표의 마우스 커서 (마우스로 조준할 때)
   const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const held = { melee: new Set(), ranged: new Set() };
   const buf = { melee: 0, ranged: 0 };   // 누른 것을 0.1초 기억 (히트스톱 중 짧은 탭)   // 버튼을 누르고 있는 손가락들
@@ -172,6 +173,14 @@
   const toV = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / U, y: (e.clientY - b.top) / U }; };
   let drag = null;
 
+  function toGround(p) {
+    const fb = fieldBox; let x = (p.x - fb.x) / fb.s, y = (p.y - fb.y) / fb.s;
+    if (use3d) { const q = R3D.unproj(x, y); if (q) { x = q.x; y = q.y; } }
+    return { x, y };
+  }
+  // 테스트용: 바닥 점 → 화면(가상) 좌표 · 마우스 상태
+  G.dbgField = (x, y) => { const fb = fieldBox; if (use3d && R3D.built) { const q = R3D.proj(x, y); return { x: fb.x + q.x * fb.s, y: fb.y + q.y * fb.s }; } return { x: fb.x + x * fb.s, y: fb.y + y * fb.s }; };
+  G.dbgMouse = () => mouse; G.dbgAim = () => aim;
   cv.addEventListener('pointerdown', e => {
     e.preventDefault(); AUDIO.unlock();
     if (e.pointerType !== 'mouse') { G.touchUI = true; mouse.on = false; }
@@ -188,7 +197,8 @@
     for (const k of ['melee', 'ranged', 'skill', 'skill2', 'invuln']) {
       const b = B[k];
       if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.25) ** 2) {
-        if (k === 'skill') useSkill(1); else if (k === 'skill2') useSkill(2); else if (k === 'invuln') useInvuln();
+        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0) aim = { n, id: e.pointerId, b, drag: false, cancel: false, t: null }; }   // 끌어서 자리 고르기 (GDD 0-17)
+        else if (k === 'invuln') useInvuln();
         else if (!touchPress(k, e.timeStamp / 1000)) { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; }
         return;
       }
@@ -203,7 +213,7 @@
   function pressBtn(bit, now) {
     const other = bit === 1 ? 2 : 1, prevDown = MC.down[other]; MC.down[bit] = now;
     if (now - prevDown <= M_SIM) { MC.pend = null; MC.mute |= 3; MC.last[1] = MC.last[2] = MC.down[1] = MC.down[2] = -9; useInvuln(); return; }
-    if (now - MC.last[bit] <= M_DBL) { MC.last[bit] = -9; MC.mute |= bit; if (MC.pend && MC.pend.bit === bit) MC.pend = null; useSkill(bit === 2 ? 1 : 2); return; }
+    if (now - MC.last[bit] <= M_DBL) { MC.last[bit] = -9; MC.mute |= bit; if (MC.pend && MC.pend.bit === bit) MC.pend = null; useSkill(bit === 2 ? 1 : 2, cursorTarget()); return; }
     MC.last[bit] = now; MC.pend = { bit, t: now };
   }
   // 폰 (사용자 "근거리 공격 두번: 스킬 1 원거리 공격 두번: 스킬 2" + "둘 다"): 치기 두 번 = 1번 스킬 · 쏘기 두 번 = 2번 스킬 · 두 버튼 같이 = 무적 (PC와 짝이 반대, GDD)
@@ -214,6 +224,7 @@
     if (now - TC.last[k] <= M_DBL) { TC.last[k] = -9; useSkill(k === 'melee' ? 1 : 2); return true; }
     TC.last[k] = now; return false;
   }
+  const cursorTarget = () => (mouse.on && !G.touchUI ? { x: mouse.gx, y: mouse.gy, pc: true } : null);   // PC: 커서 자리가 곧 조준 (GDD 0-17)
   function mouseHeld() {
     const ok = bit => !!(MC.b & bit) && !(MC.mute & bit) && !(MC.pend && MC.pend.bit === bit);
     input.mMelee = ok(1); input.mRanged = ok(2);
@@ -232,7 +243,8 @@
     mouseHeld();
     const p = toV(e), fb = fieldBox;
     mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
-    if (use3d) { const q = R3D.unproj(mouse.x, mouse.y); if (q) { mouse.x = q.x; mouse.y = q.y - 24; } }   // 3D: 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
+    mouse.gx = mouse.x; mouse.gy = mouse.y;
+    if (use3d) { const q = R3D.unproj(mouse.x, mouse.y); if (q) { mouse.x = q.x; mouse.y = q.y - 24; mouse.gx = q.x; mouse.gy = q.y; } }   // 3D: 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
   }
   cv.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') mouseButtons(e);
@@ -241,6 +253,13 @@
       if (Math.abs(p.y - drag.y0) > 6) drag.moved = true;
       if (drag.moved) G.selScroll = clamp(drag.s0 - (p.y - drag.y0), 0, selMaxScroll());
       return;
+    }
+    if (aim && aim.id === e.pointerId) {   // 스킬 버튼 끌기: 버튼 둘레(취소 원) 밖으로 나가면 조준, 다시 들어오면 취소 상태
+      const inC = Math.hypot(p.x - aim.b.x, p.y - aim.b.y) < aim.b.r + 14;
+      if (!inC) aim.drag = true;
+      const was = aim.cancel; aim.cancel = aim.drag && inC;
+      if (aim.cancel && !was) { try { navigator.vibrate && navigator.vibrate(10); } catch {} }
+      aim.t = toGround(p); return;
     }
     if (joy.id === e.pointerId) {
       let dx = p.x - joy.ox, dy = p.y - joy.oy; const d = Math.hypot(dx, dy), R = 52;
@@ -253,6 +272,7 @@
     if (e.pointerType === 'mouse') { MC.b = e.buttons & 3; MC.mute &= MC.b; mouseHeld(); }
     if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
+    if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel && a.t) useSkill(a.n, a.t); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
   };
   cv.addEventListener('pointerup', e => release(e, true));
@@ -260,7 +280,7 @@
   cv.addEventListener('lostpointercapture', e => release(e, false));
   // 모든 입력 풀기 (광고 앞뒤, 창을 벗어날 때, 화면을 돌릴 때)
   function clearInput() {
-    keys.clear(); drag = null; joy.id = null; joy.x = joy.y = 0;
+    keys.clear(); drag = null; aim = null; joy.id = null; joy.x = joy.y = 0;
     held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = input.mMelee = input.mRanged = false; input.mx = input.my = 0;
   }
   window.addEventListener('orientationchange', clearInput);
@@ -281,7 +301,7 @@
     const ok = e.code === 'Enter' || e.code === 'Space';
     // 한 번 누른 키가 다음 화면까지 이어서 눌리지 않게 화면마다 하나만 처리해요
     if (G.scene === 'play') {   // [제안] L = 1번 스킬 · ; = 2번 스킬 · Space = 무적 (ESC·P = 일시정지)
-      if (!G.paused) { if (e.code === 'KeyL') useSkill(1); if (e.code === 'Semicolon') useSkill(2); if (e.code === 'Space') useInvuln(); }
+      if (!G.paused) { if (e.code === 'KeyL') useSkill(1, cursorTarget()); if (e.code === 'Semicolon') useSkill(2, cursorTarget()); if (e.code === 'Space') useInvuln(); }
       if (e.code === 'KeyJ') buf.melee = 0.1; if (e.code === 'KeyK') buf.ranged = 0.1;
     }
     else if (G.scene === 'title') { if (ok) action('start'); }
@@ -565,25 +585,30 @@
   const SKILL_FN = {
     dash(o) {
       const m = o.mod, h = G.hero, f = FIELD.floor;
-      if (m.k === 'blink') {   // 네덜란드 2: 달리지 않고 순간이동하며 사이 줄을 베어요
-        const x1 = clamp(h.x + o.dx * SKB.DASH_DIST, f.x0 + 12, f.x1 - 12), y1 = clamp(h.y + o.dy * SKB.DASH_DIST, f.y0 + 22, f.y1);
+      if (m.k === 'blink') {   // 네덜란드 2: 그 자리로 순간이동하며 사이 줄을 베어요
+        const x1 = o.tx, y1 = o.ty;
         hitSeg(h.x, h.y, x1, y1, 22, o.dmg * m.mul); sfx('blink', h.x, h.y, .5, { x1, y1 }); h.x = x1; h.y = y1; h.skillT = Math.max(h.skillT, .2); AUDIO.play('swing');
         return;
       }
       if (m.k === 'dashInv') h.skillT = Math.max(h.skillT, m.inv);   // 룩셈부르크 1: 돌진 무적 1초
-      let dur = SKB.DASH_TIME, dist = SKB.DASH_DIST;
-      if (m.k === 'long') dur *= 2, dist *= 2;          // 리투아니아 1: 가장 먼 거리(2배)
+      // 그 자리까지 달려요 (GDD 0-17, 거리 제한 없음). 빠르기는 예전 그대로 (260을 0.35초에)
+      let ex = o.tx, ey = o.ty, L = Math.hypot(ex - h.x, ey - h.y);
+      if (L < 30) { ex = h.x + o.dx * 30; ey = h.y + o.dy * 30; L = 30; }
+      if (m.k === 'long') { ex = clamp(h.x + (ex - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ey - h.y) * 2, f.y0 + 22, f.y1); L = Math.hypot(ex - h.x, ey - h.y); }   // 리투아니아 1: 목표 너머로 같은 거리만큼 더 (벽에서 멈춤)
+      let dur = Math.max(.12, L / (SKB.DASH_DIST / SKB.DASH_TIME));
       if (m.k === 'seal') dur *= .65;                   // 핀란드 1: 가장 빠른 돌진
-      if (m.k === 'leap') dur = .5;                     // 멕시코 1: 높이 뛰어 정한 자리로
-      h.dash = { t: 0, dx: o.dx, dy: o.dy, a0: o.ang, base: o.dmg, dmg: o.dmg * (m.mul || 1), hit: new Set(), gT: 0, pT: 0, mod: m, k: m.k, x0: h.x, y0: h.y, path: [[h.x, h.y]], dur, sp: dist / dur, carry: [], seeds: 0, inv: 0, look: heroLookNow() };
+      if (m.k === 'leap') dur = .4 + L / 1600;          // 멕시코 1: 높이 뛰어 그 자리로
+      h.dash = { t: 0, dx: o.dx, dy: o.dy, a0: o.ang, base: o.dmg, dmg: o.dmg * (m.mul || 1), hit: new Set(), gT: 0, pT: 0, mod: m, k: m.k, x0: h.x, y0: h.y, sx: h.x, sy: h.y, ex, ey, L, tx: o.tx, ty: o.ty, path: [[h.x, h.y]], dur, carry: [], seeds: 0, inv: 0, look: heroLookNow() };
     },
     area(o) {
-      const m = o.mod, h = G.hero, R = SKB.AREA_R, f = FIELD.floor;
+      const m = o.mod, HERO = G.hero, R = SKB.AREA_R, f = FIELD.floor;
+      // 그 자리를 중심으로 터져요 (GDD 0-17). 장수에서 뻗는 모양(사자의 포효·팔랑크스·균열)과 장수 둘레(튀르키예 1 예외)·움직이는 회전베기는 장수 자리에서
+      const h = ['orbit', 'spinMove', 'fear', 'phalanx', 'crack'].includes(m.k) ? HERO : { x: o.tx, y: o.ty };
       const near3 = m.k === 'chain3' ? G.aliens.filter(a => !a.dead && !a.entering && Math.hypot(a.x - h.x, a.y - h.y) < 340).sort((p, q) => Math.hypot(p.x - h.x, p.y - h.y) - Math.hypot(q.x - h.x, q.y - h.y)).slice(0, 3) : [];
       if (m.k === 'pull') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { each: (a, nx, ny) => { a.kb = { x: -nx * 320, y: -ny * 320 }; a.stun = .25; } }); sfx('pull', h.x, h.y, .6); }   // 아일랜드 1: 끌어당기기
       else if (m.k === 'grow') {   // 덴마크 2: 맞힌 수만큼 원이 커져 한 번 더
         const r1 = R * .75, n = hitCircle(h.x, h.y, r1, o.dmg * m.mul1), r2 = r1 * (1 + .15 * n);
-        sfx('grow', h.x, h.y, .75, { r1, r2 }); after(.25, () => hitCircle(G.hero.x, G.hero.y, r2, o.dmg * m.mul2));
+        sfx('grow', h.x, h.y, .75, { r1, r2 }); after(.25, () => hitCircle(h.x, h.y, r2, o.dmg * m.mul2));
       }
       else if (m.k === 'twoRings') {   // 오스트리아 2: 안쪽 원 → 0.3초 뒤 바깥 원
         const r1 = R * .55, hx = h.x, hy = h.y; hitCircle(hx, hy, r1, o.dmg * m.mul); sfx('twoRings', hx, hy, .8, { r1, r2: R });
@@ -591,19 +616,19 @@
       }
       else if (m.k === 'cone') { hitCircle(h.x, h.y, R * 2, o.dmg * m.mul, { test: (a, ex, ey) => Math.abs(Math.atan2(Math.sin(Math.atan2(ey, ex) - o.ang), Math.cos(Math.atan2(ey, ex) - o.ang))) < Math.PI / 3 }); sfx('cone', h.x, h.y, .45, { a: o.ang }); }   // 프랑스 1: 앞 120° 부채꼴, 두 배 멀리
       else if (m.k === 'spinMove') {   // 스페인 2: 빙글 돌며 보는 방향으로 움직여요
-        const sk = new Set(), dm = o.dmg * m.mul; let t = 0, x = h.x, y = h.y;
-        ent({ k: 'spin', update(dt) { t += dt; x += o.dx * 230 * dt; y += o.dy * 230 * dt * .8; const fl = FIELD.floor; x = clamp(x, fl.x0 + 20, fl.x1 - 20); y = clamp(y, fl.y0 + 20, fl.y1);
-          hitCircle(x, y, 54, dm, { skip: sk }); this.x = x; this.y = y; this.t = t; return t < .65; }, x, y, t: 0,
-          draw(at) { at(this.x, this.y, () => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - this.t / .65 * .5; ctx.strokeStyle = SKW; ctx.lineWidth = 3; gEll(this.x, this.y - 14, 34, this.t * 20, this.t * 20 + 4.2); ctx.stroke(); ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; gEll(this.x, this.y, 54); ctx.stroke(); ctx.restore(); }); } });
+        const sk = new Set(), dm = o.dmg * m.mul, x0 = h.x, y0 = h.y, T = Math.max(.65, Math.hypot(o.tx - x0, o.ty - y0) / 230); let t = 0, x = h.x, y = h.y;   // 돌면서 그 자리까지
+        ent({ k: 'spin', update(dt) { t += dt; const q = Math.min(1, t / T); x = x0 + (o.tx - x0) * q; y = y0 + (o.ty - y0) * q;
+          hitCircle(x, y, 54, dm, { skip: sk }); this.x = x; this.y = y; this.t = t; return t < T; }, x, y, t: 0,
+          draw(at) { at(this.x, this.y, () => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - this.t / T * .5; ctx.strokeStyle = SKW; ctx.lineWidth = 3; gEll(this.x, this.y - 14, 34, this.t * 20, this.t * 20 + 4.2); ctx.stroke(); ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; gEll(this.x, this.y, 54); ctx.stroke(); ctx.restore(); }); } });
       }
       else if (m.k === 'widen') {   // 체코 2: 사슬이 늘어나며 세 바퀴, 갈수록 넓게
-        [50, 95, 140].forEach((r, i) => after(i * .25 + .001, () => { hitCircle(G.hero.x, G.hero.y, r, o.dmg * m.mul); sfx('ringOut', G.hero.x, G.hero.y, .35, { r }); }));
+        [50, 95, 140].forEach((r, i) => after(i * .25 + .001, () => { hitCircle(h.x, h.y, r, o.dmg * m.mul); sfx('ringOut', h.x, h.y, .35, { r }); }));
       }
       else if (m.k === 'chain3' && near3.length) {   // 일본 2: 가까운 3마리에게 차례로 순간이동하며 베기
-        const pts = [[h.x, h.y]]; h.skillT = Math.max(h.skillT, .45);
+        const pts = [[HERO.x, HERO.y]]; HERO.skillT = Math.max(HERO.skillT, .45);
         near3.forEach((a, i) => after(i * .12 + .001, () => { if (a.dead) return; const H = G.hero, ex = a.x - H.x, ey = a.y - H.y, d = Math.hypot(ex, ey) || 1;
           H.x = clamp(a.x - ex / d * 22, f.x0 + 12, f.x1 - 12); H.y = clamp(a.y - ey / d * 18, f.y0 + 22, f.y1); damage(a, o.dmg * m.mul, ex / d, ey / d, true, { finisher: true }); pts.push([a.x, a.y]); AUDIO.play('impSlash'); }));
-        sfx('chain', h.x, h.y, .75, { pts });
+        sfx('chain', HERO.x, HERO.y, .75, { pts });
       }
       else if (m.k === 'gust') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { dx: o.dx, dy: o.dy, each: a => { a.kb = { x: o.dx * 620, y: o.dy * 520 }; a.stun = .3; } }); sfx('gust', h.x, h.y, .6, { a: o.ang }); }   // 포르투갈 1: 보는 방향으로 날려요
       else if (m.k === 'pole') {   // 폴란드 2: 아주 긴 창 한 자루가 한 바퀴 (멀리, 가늘게)
@@ -616,7 +641,8 @@
       }
       else if (m.k === 'crack') {   // 슬로바키아 1: 앞으로 뻗는 지그재그 균열 (체코 충격파 = 둥근 물결과 다르게)
         const pts = [[h.x, h.y]], sk = new Set();
-        for (let i = 1; i <= 8; i++) { const s = i * 30, w = i === 8 ? 0 : (i % 2 ? 14 : -14); pts.push([clamp(h.x + o.dx * s - o.dy * w, f.x0, f.x1), clamp(h.y + o.dy * s * .85 + o.dx * w, f.y0 + 6, f.y1)]); }
+        const CL = Math.max(240, Math.hypot(o.tx - h.x, o.ty - h.y)) / 8;   // 장수 → 그 자리까지 (짧으면 240)
+        for (let i = 1; i <= 8; i++) { const s = i * CL, w = i === 8 ? 0 : (i % 2 ? 14 : -14); pts.push([clamp(h.x + o.dx * s - o.dy * w, f.x0, f.x1), clamp(h.y + o.dy * s * .85 + o.dx * w, f.y0 + 6, f.y1)]); }
         pts.forEach((p, i) => i && after(i * .035, () => hitSeg(pts[i - 1][0], pts[i - 1][1], p[0], p[1], 20, o.dmg * m.mul, sk)));
         sfx('crackLine', h.x, h.y, .8, { pts }); AUDIO.play('impSmash');
       }
@@ -638,23 +664,23 @@
         sfx('phalanx', h.x, h.y, .5, { a: o.ang, L, W });
       }
       else if (m.k === 'wings') {   // 멕시코 2: 왼쪽 먼저, 0.2초 뒤 오른쪽
-        const wing = side => { const H = G.hero; hitCircle(H.x, H.y, R * 1.1, o.dmg * m.mul, { test: (a, ex, ey) => { const u = Math.atan2(ey, ex) - o.ang, q = Math.atan2(Math.sin(u), Math.cos(u)); return side < 0 ? q <= .15 && q > -Math.PI * .8 : q >= -.15 && q < Math.PI * .8; } }); sfx('wing', H.x, H.y, .35, { a: o.ang, side }); AUDIO.play('impSlash'); };
+        const wing = side => { const H = h; hitCircle(H.x, H.y, R * 1.1, o.dmg * m.mul, { test: (a, ex, ey) => { const u = Math.atan2(ey, ex) - o.ang, q = Math.atan2(Math.sin(u), Math.cos(u)); return side < 0 ? q <= .15 && q > -Math.PI * .8 : q >= -.15 && q < Math.PI * .8; } }); sfx('wing', H.x, H.y, .35, { a: o.ang, side }); AUDIO.play('impSlash'); };
         wing(-1); after(.2, () => wing(1));
       }
       else if (m.k === 'blast') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { each: (a, nx, ny) => { a.kb = { x: nx * 640, y: ny * 640 }; a.stun = .3; } }); sfx('blast', h.x, h.y, .55); }   // 독일 1: 사방으로 멀리
       else { hitCircle(h.x, h.y, R, o.dmg * (m.mul || 1)); sfx('area', h.x, h.y, .5); }
       G.hitstop = Math.max(G.hitstop || 0, .05);
     },
-    barrage(o) { const m = o.mod;
+    barrage(o) { const m = o.mod;   // 그 자리를 향해 쏴요 (GDD 0-17)
       if (m.k === 'javelin3') {   // 리투아니아 2: 하늘로 던진 창이 앞 일직선 세 곳에 차례로
-        const h = G.hero, f = FIELD.floor; [90, 170, 250].forEach((s2, i) => { const x = clamp(h.x + o.dx * s2, f.x0 + 10, f.x1 - 10), y = clamp(h.y + o.dy * s2 * .85, f.y0 + 10, f.y1);
+        const h = G.hero, f = FIELD.floor; [1 / 3, 2 / 3, 1].forEach((s2, i) => { const x = clamp(h.x + (o.tx - h.x) * s2, f.x0 + 10, f.x1 - 10), y = clamp(h.y + (o.ty - h.y) * s2, f.y0 + 10, f.y1);   // 장수 → 그 자리 일직선 세 곳, 마지막이 그 자리
           sfx('javFall', x, y, .3 + i * .22, { d: .3 + i * .22 }); after(.3 + i * .22, () => { hitCircle(x, y, 38, o.dmg * m.mul); sfx('ringOut', x, y, .3, { r: 38 }); AUDIO.play('impact'); }); });
         h.atkT = .2; return;
       }
-      G.hero.barrage = { t: 0, n: 0, N: m.k === 'boomer' || m.k === 'stick' || m.k === 'ricochet' ? 1 : m.n || SKB.BARRAGE_N, base: o.dmg, dmg: o.dmg / (m.div || SKB.BARRAGE_DIV), mod: m }; },
+      G.hero.barrage = { t: 0, n: 0, N: m.k === 'boomer' || m.k === 'stick' || m.k === 'ricochet' ? 1 : m.n || SKB.BARRAGE_N, base: o.dmg, dmg: o.dmg / (m.div || SKB.BARRAGE_DIV), mod: m, ang: o.ang, tx: o.tx, ty: o.ty }; },
     zone(o) {
       const h = G.hero, f = FIELD.floor, m = o.mod;
-      G.zones.push({ x: clamp(h.x + o.dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + o.dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK / 2,   // 0.25·0.75 … 2.75초 = 3초에 6번 (balance.md, QA M1)
+      G.zones.push({ x: clamp(o.tx, f.x0 + 40, f.x1 - 40), y: clamp(o.ty, f.y0 + 30, f.y1 - 10), t: 0,   // 그 자리에 (GDD 0-17) tick: SKB.ZONE_TICK / 2,   // 0.25·0.75 … 2.75초 = 3초에 6번 (balance.md, QA M1)
        
         base: o.dmg, dmg: o.dmg / (m.div || SKB.ZONE_DIV), mod: m, k: m.k, rings: [], nextRing: .15,
         arrows: o.n === 1 && G.country.ranged === 'arrow', slow: o.n === 2 && G.country.key === 'finland' });   // 한국 화살비 · 핀란드 눈 함정(느리게)
@@ -662,13 +688,22 @@
       if (m.k === 'vortex') { const z = G.zones[G.zones.length - 1]; z.t = -.35; z.tick += .35; z.x0 = h.x; z.y0 = h.y; }   // 칠레 2: 검은 바람이 날아가 떨어진 자리에
     },
   };
-  function useSkill(n = 1) {
-    const r = G.run, h = G.hero;
+  // 끌지 않고 쓸 때의 자리: 전장에서 가장 가까운 외계인, 없으면 바라보는 방향 앞 120 (GDD 0-17)
+  function autoTarget() {
+    const h = G.hero; let best = null, bd = 1e9;
+    for (const a of G.aliens) { if (a.dead || a.entering) continue; const d = Math.hypot(a.x - h.x, a.y - h.y); if (d < bd) { bd = d; best = a; } }
+    return best ? { x: best.x, y: best.y } : { x: h.x + h.dir.x * 120, y: h.y + h.dir.y * 120 * .8 };
+  }
+  function useSkill(n = 1, target) {
+    const r = G.run, h = G.hero, f = FIELD.floor;
     if (!r || sLeft(n) <= 0 || h.dead || h.dash || h.barrage) return;
     r.skillsLeft[BAL.SKILL_SHARED ? 1 : n]--;
-    const sk = skillOf(G.country, n), dmg = SKB.DMG * r.st.F;
-    const ang = Math.atan2(h.dir.y, h.dir.x);
-    SKILL_FN[sk.type]({ sk, n, dmg, ang, dx: Math.cos(ang), dy: Math.sin(ang), mod: sk.mod || {} });
+    const sk = skillOf(G.country, n), dmg = SKB.DMG * r.st.F, m = sk.mod || {};
+    const tg = target || autoTarget(), tx = clamp(tg.x, f.x0 + 12, f.x1 - 12), ty = clamp(tg.y, f.y0 + 22, f.y1);   // 전장 밖이면 가장자리에 붙여요
+    let ang = Math.atan2(ty - h.y, tx - h.x); if (Math.hypot(tx - h.x, ty - h.y) < 4) ang = Math.atan2(h.dir.y, h.dir.x);
+    if (m.k !== 'orbit') h.dir = { x: Math.cos(ang), y: Math.sin(ang) };   // 고른 쪽을 바라봐요 (튀르키예 1은 예외)
+    SKILL_FN[sk.type]({ sk, n, dmg, ang, dx: Math.cos(ang), dy: Math.sin(ang), tx, ty, mod: m });
+    if (tg.pc && m.k !== 'orbit') sfx('aimFlash', tx, ty, .35, { r: aimR(sk), type: sk.type });   // PC: 쓰는 순간만 커서 자리에 목표 원
     // 외침: 그 나라에서 유명한 말 (번역 안 함) + 스킬 이름(설정 언어)
     G.msgs = G.msgs.filter(m => !m.shout);
     G.msgs.push({ text: sk.shout, sub: t_((n === 2 ? 'skill2.name.' : 'skill.name.') + String(G.country.rank).padStart(2, '0')), t: n === 2 ? 1.6 : 1.2, life0: n === 2 ? 1.6 : 1.2, shout: true, rtl: G.country.lang === 'he' });   // 2번 외침은 길어서 1.6초
@@ -683,12 +718,15 @@
     if (h.dash) {   // 돌진: 0.35초에 260 · 길 위 외계인 1번씩
       const d = h.dash, m = d.mod;
       d.t += dt; d.gT -= dt;
-      let dx = d.dx, dy = d.dy;
-      if (d.k === 'curve') { const a = d.a0 - .9 + 1.8 * Math.min(1, d.t / d.dur); dx = Math.cos(a); dy = Math.sin(a); }   // 튀르키예 2: 둥글게 휘어지며
-      if (d.k === 'zigzag') { const seg = Math.min(2, Math.floor(d.t / d.dur * 3)), a = d.a0 + (seg === 1 ? .8 : -.8); dx = Math.cos(a); dy = Math.sin(a); }   // 아일랜드 2: 두 번 꺾기
+      // 시작 → 끝 사이를 시간 비율로 (끝은 언제나 그 자리). 지그재그·곡선은 옆으로 비껴 가다 끝에서 만나요
+      const q = Math.min(1, d.t / d.dur), sq = d.k === 'accel' ? .5 * q + .5 * q * q : q;   // 폴란드 1: 달릴수록 빨라져요 (평균 1)
+      const ux = (d.ex - d.sx) / (d.L || 1), uy = (d.ey - d.sy) / (d.L || 1);
+      const off = d.k === 'zigzag' ? 46 * (q < 1 / 3 ? q * 3 : q < 2 / 3 ? 1 - (q - 1 / 3) * 6 : -1 + (q - 2 / 3) * 3)   // 아일랜드 2: 두 번 꺾기
+        : d.k === 'curve' ? Math.sin(Math.PI * q) * Math.min(160, d.L * .3) : 0;   // 튀르키예 2: 둥글게 휘어지며
       const px = h.x, py = h.y;
-      const spK = d.k === 'accel' ? .5 + d.t / d.dur : 1;   // 폴란드 1: 달릴수록 빨라져요 (평균 1)
-      h.x = clamp(h.x + dx * d.sp * spK * dt, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y + dy * d.sp * spK * dt, f.y0 + 22, f.y1);
+      h.x = clamp(d.sx + (d.ex - d.sx) * sq - uy * off, f.x0 + 12, f.x1 - 12); h.y = clamp(d.sy + (d.ey - d.sy) * sq + ux * off * .8, f.y0 + 22, f.y1);
+      let dx = h.x - px, dy = h.y - py; { const l = Math.hypot(dx, dy); if (l > .01) { dx /= l; dy /= l; } else { dx = ux; dy = uy; } }
+      d.dx = dx; d.dy = dy;
       h.moving = true; h.walkT += dt; d.path.push([h.x, h.y]);
       const offs = d.k === 'clones' ? [0, 30, -30] : [0];   // 스웨덴 1: 은빛 분신 2명이 양옆에서
       if (d.gT <= 0) { d.gT = .045; const g = heroLookNow(); for (const o of offs) G.fx.push({ kind: 'ghost', x: h.x - dy * o, y: h.y + dx * o * .8, cell: g.cell, flip: g.flip, folder: g.folder, t: 0, life: o ? .5 : .4, clone: !!o }); }
@@ -705,7 +743,7 @@
       for (const [i, a] of d.carry.entries()) if (!a.dead) { a.x = h.x + dx * (30 + i * 10); a.y = h.y + dy * (30 + i * 10) * .8; a.stun = .2; a.kb = { x: 0, y: 0 }; }
       if (d.k === 'seeds' && d.seeds < 3 && d.t >= d.dur * (.2 + d.seeds * .3)) { d.seeds++; seedEnt(h.x, h.y, d.base * m.seed); }   // 뉴질랜드 2: 씨앗 3개
       if (d.k === 'prints') { d.pT += Math.hypot(h.x - px, h.y - py); if (d.pT > 22) { d.pT = 0; G.marks.push({ x: h.x, y: h.y, a: Math.atan2(dy, dx), t: 0, life: 2, tick: .5, dmg: d.base / m.div }); } }   // 오스트리아 1: 말발굽 자국
-      if (d.t >= d.dur && d.k === 'returnDash' && !d.back) { d.back = true; d.t = 0; d.dx = -d.dx; d.dy = -d.dy; d.hit = new Set(); }   // 이스라엘 2: 베고 원래 자리로
+      if (d.t >= d.dur && d.k === 'returnDash' && !d.back) { d.back = true; d.t = 0; d.sx = h.x; d.sy = h.y; d.ex = d.x0; d.ey = d.y0; d.L = Math.hypot(d.ex - d.sx, d.ey - d.sy); d.hit = new Set(); }   // 이스라엘 2: 원래 자리로   // 이스라엘 2: 베고 원래 자리로
       else if (d.t >= d.dur) {
         if (d.k === 'wallSlam') for (const a of d.carry) {   // 벽에 부딪히면 더 아파요
           if (a.dead) continue;
@@ -732,9 +770,9 @@
       const b = h.barrage, m = b.mod; b.t += dt;
       const BT = m.time || SKB.BARRAGE_TIME;
       while (b.n < b.N && b.t >= b.n * BT / b.N) {
-        const a = Math.atan2(h.dir.y, h.dir.x) + (b.N > 1 ? ((b.n % 3) - 1) * .06 : 0), dx = Math.cos(a), dy = Math.sin(a);
+        const a = b.ang + (b.N > 1 ? ((b.n % 3) - 1) * .06 : 0), dx = Math.cos(a), dy = Math.sin(a);
         if (m.k === 'arcs8') {   // 헝가리 1: 둘레 사방으로 빠르게 여덟 번 베기
-          const q = Math.atan2(h.dir.y, h.dir.x) + b.n * Math.PI / 4;
+          const q = b.ang + b.n * Math.PI / 4;
           hitCircle(h.x, h.y, 78, b.dmg, { test: (al, ex, ey) => { const u = Math.atan2(ey, ex) - q; return Math.abs(Math.atan2(Math.sin(u), Math.cos(u))) < Math.PI / 6; } });
           sfx('arc8', h.x, h.y, .25, { a: q }); h.atkT = .1; b.n++; AUDIO.play('swing'); continue;
         }
@@ -745,7 +783,7 @@
         else if (m.k === 'lastHit') { const last = b.n === b.N - 1; kind = last ? 'star' : 'streak'; dmg = last ? b.base * m.last : b.base / m.div; }   // 네덜란드 1: 마지막 3배
         else if (m.k === 'boomer') { kind = 'boomerang'; extra.hits = new Set(); extra.big = 1.1; dmg = b.base * m.out; extra.dmgBack = b.base * m.back; sp = TEMP.SHOT_SPEED; }   // 호주 1: 부메랑 5개 부채꼴 (기획 2026-11-25), 하나당 가고 오며
         else if (m.k === 'stick') { kind = 'axe'; dmg = b.base * m.mul; extra.stick = b.base / m.div; extra.life = .45; sp = TEMP.SHOT_SPEED * .9; }   // 캐나다 1: 바닥에 박혀 2초
-        else if (m.k === 'lob') { kind = 'sling'; extra.lob = dmg; dmg = 0; extra.life = .5; sp = 300; extra.noHit = true; }   // 이스라엘 1: 포물선으로 떨어진 자리
+        else if (m.k === 'lob') { kind = 'sling'; extra.lob = dmg; dmg = 0; sp = 300; extra.life = clamp(Math.hypot(b.tx - h.x, b.ty - h.y) / sp, .12, 2.5); extra.noHit = true; }   // 그 자리에 떨어져요   // 이스라엘 1: 포물선으로 떨어진 자리
         else if (m.k === 'splash') { kind = 'streak'; extra.onHit = a2 => { hitCircle(a2.x, a2.y, 46, b.base / m.sdiv, { skip: new Set([a2]), heavy: false, main: false }); sfx('drops', a2.x, a2.y, .35, { a }); }; }   // 포르투갈 2: 옆으로 튀는 물방울
         else if (m.k === 'ricochet') { kind = 'axe'; dmg = b.base * m.mul; extra.bounces = m.n; extra.chain = new Set(); extra.onHit = ricochet; sp = TEMP.SHOT_SPEED; }   // 슬로바키아 2
         else if (kind === 'boomerang') extra.hits = new Set();
@@ -809,9 +847,58 @@
   // ---- 스킬 이펙트 (코드로 그림, 흰 + 은 #C9CED6 / 옅은 금 #E8D9A8) ----
   const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
   const gEll = (x, y, r, a0 = 0, a1 = Math.PI * 2) => { ctx.beginPath(); ctx.ellipse(x, y, r, r * GK(), 0, a0, a1); };
+  // 목표 원 크기 = 실제 범위 (style-guide "조준 표시")
+  function aimR(sk) {
+    const k = (sk.mod || {}).k;
+    if (sk.type === 'zone') return k === 'corners' ? SKB.ZONE_D / 2 * 1.1 : SKB.ZONE_D / 2;
+    if (sk.type === 'area') return k === 'cone' ? SKB.AREA_R * 2 : k === 'wings' ? SKB.AREA_R * 1.1 : k === 'roar' ? SKB.AREA_R * 1.1 : k === 'widen' ? 140 : k === 'chain3' ? 30 : SKB.AREA_R;
+    if (k === 'javelin3') return 26;
+    if (k === 'lob') return 30;
+    return 20;
+  }
+  // 폰 끌기 조준 표시 (바닥 층, 캐릭터 아래)
+  function drawAim(at) {
+    if (!aim || !aim.drag || !aim.t || G.scene !== 'play') return;
+    const h = G.hero, sk = skillOf(G.country, aim.n), k = (sk.mod || {}).k, f = FIELD.floor;
+    const tx = clamp(aim.t.x, f.x0 + 12, f.x1 - 12), ty = clamp(aim.t.y, f.y0 + 22, f.y1), R = aimR(sk), ang = Math.atan2(ty - h.y, tx - h.x);
+    const dash = (a, b, off) => { ctx.setLineDash([a, b]); ctx.lineDashOffset = off; };
+    at(h.x, h.y, () => {
+      ctx.save(); ctx.globalAlpha = aim.cancel ? .35 : 1; ctx.lineCap = 'round';
+      const link = () => { ctx.strokeStyle = 'rgba(201,206,214,.85)'; ctx.lineWidth = 2; dash(4, 8, -G.t * 60); ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]); };
+      const ring = (x, y, r, solid, fillA) => { if (fillA) { ctx.fillStyle = `rgba(255,255,255,${fillA})`; gEll(x, y, r); ctx.fill(); } ctx.strokeStyle = solid ? SKW : SKS; ctx.lineWidth = 2; if (!solid) dash(10, 6, -G.t * Math.PI * r * .5); gEll(x, y, r); ctx.stroke(); ctx.setLineDash([]); };
+      if (k === 'orbit') { ring(h.x, h.y, 62, true, .06); ctx.restore(); return; }   // 튀르키예 1: 자리 지정 없음
+      if (sk.type === 'zone') { link(); ring(tx, ty, R, false, .06); ctx.strokeStyle = SKG; ctx.lineWidth = 1.5; gEll(tx, ty, R * .7); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'fear') { link(); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * GK(), 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'phalanx') { const L = 180, W = 46, c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -W], [L, -W], [L, W], [0, W]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + (s2 * u + c * v) * g]);
+        ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'crack') { link(); ring(tx, ty, 20, true, 0); }
+      else if (sk.type === 'area' && k === 'cone') { link(); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.ellipse(tx, ty, R, R * GK(), 0, ang - Math.PI / 3, ang + Math.PI / 3); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      else if (sk.type === 'area') { link(); ring(tx, ty, R, true, .1); ring(tx, ty, R + 8, false, 0); }
+      else if (sk.type === 'dash') {   // 몸 폭 30 띠 + 흐르는 › 3개 + 도착 원
+        let ex = tx, ey = ty; if (k === 'long') { ex = clamp(h.x + (tx - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ty - h.y) * 2, f.y0 + 22, f.y1); }
+        const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + (s2 * u + c * v) * g]);
+          ctx.globalAlpha = (aim.cancel ? .35 : 1) * a; ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40); for (const [i, j] of [[0, 1], [3, 2]]) { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); } ctx.setLineDash([]); return L; };
+        if (k === 'long') band(ex, ey, .35);   // 리투아니아 1: 목표 너머까지 옅게
+        const L = band(tx, ty, 1);
+        ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const u = ((G.t * 120 + i * L / 3) % Math.max(1, L)), x = h.x + Math.cos(ang) * u, y = h.y + Math.sin(ang) * u * GK() / .35 * .35;
+          ctx.beginPath(); ctx.moveTo(x - Math.cos(ang - .6) * 7, y - Math.sin(ang - .6) * 7 * .6); ctx.lineTo(x, y); ctx.lineTo(x - Math.cos(ang + .6) * 7, y - Math.sin(ang + .6) * 7 * .6); ctx.stroke(); }
+        ring(tx, ty, 20, true, 0);
+      }
+      else if (k === 'javelin3') { link(); [1 / 3, 2 / 3, 1].forEach((q, i) => { const on = Math.floor(G.t * 3) % 3 === i; ctx.globalAlpha = (aim.cancel ? .35 : 1) * (on || i === 2 ? 1 : .5); ring(h.x + (tx - h.x) * q, h.y + (ty - h.y) * q, 26, i === 2, on ? .12 : .04); }); }
+      else if (k === 'lob') { link(); ring(tx, ty, 30, true, .06); }
+      else {   // 연사(쏘기): ±12° 부채꼴 + 목표 십자 원
+        const L = Math.hypot(tx - h.x, ty - h.y) + 30, sp = 12 * Math.PI / 180; ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40);
+        ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(ang - sp) * L, h.y + Math.sin(ang - sp) * L); ctx.lineTo(h.x + Math.cos(ang + sp) * L, h.y + Math.sin(ang + sp) * L); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+        ring(tx, ty, 20, true, 0); ctx.strokeStyle = SKW; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 26, ty); ctx.lineTo(tx + 26, ty); ctx.moveTo(tx, ty - 26 * GK()); ctx.lineTo(tx, ty + 26 * GK()); ctx.stroke();
+      }
+      ctx.restore();
+    });
+  }
   function drawSkills(at) {
     const h = G.hero;
     if (!h) return;
+    drawAim(at);
     for (const mk of G.marks) at(mk.x, mk.y, () => {   // 말발굽 자국 (U자)
       ctx.save(); ctx.globalAlpha = .6 * (1 - mk.t / mk.life); ctx.strokeStyle = SKG; ctx.lineWidth = 2; ctx.translate(mk.x, mk.y); ctx.scale(1, GK() * 1.6); ctx.rotate(mk.a + Math.PI / 2);
       ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI); ctx.stroke(); ctx.restore();
@@ -898,7 +985,7 @@
         const p = d.path, fade = 1 - d.t / d.dur * .5;
         // 지나간 길: 흰 잔상 선 (지그재그면 꺾인 번개 모양)
         if (d.k === 'leap') {   // 포물선 점선 + 착지 원
-          const f = FIELD.floor, x1 = clamp(d.x0 + d.dx * SKB.DASH_DIST, f.x0 + 12, f.x1 - 12), y1 = clamp(d.y0 + d.dy * SKB.DASH_DIST, f.y0 + 22, f.y1);
+          const x1 = d.ex, y1 = d.ey;
           ctx.globalAlpha = .8; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.setLineDash([5, 6]); ctx.beginPath();
           for (let i = 0; i <= 20; i++) { const q = i / 20; ctx.lineTo(d.x0 + (x1 - d.x0) * q, d.y0 + (y1 - d.y0) * q - 24 - Math.sin(Math.PI * q) * 70); } ctx.stroke(); ctx.setLineDash([]);
           ctx.strokeStyle = SKG; ctx.lineWidth = 2.5; gEll(x1, y1, 40 + 30 * Math.min(1, d.t / d.dur)); ctx.stroke(); ctx.restore(); return;
@@ -979,6 +1066,10 @@
     }
     if (e.type === 'reflect') {   // 막은 힘을 둘레로 되돌림: 금빛 고리
       ctx.globalAlpha = 1 - k; ctx.strokeStyle = SKG; ctx.lineWidth = 5 * (1 - k) + 1; gEll(e.x, e.y, 30 + 100 * k); ctx.stroke(); return done();
+    }
+    if (e.type === 'aimFlash') {   // PC: 커서 자리에 목표 원이 1.25배 → 1배로 줄며 0.35초 동안 사라져요 (움직임 줄이기면 깜빡임만)
+      const sc = reduceMotion ? 1 : 1.25 - .25 * Math.min(1, k * 2); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = reduceMotion ? (Math.floor(k * 4) % 2 ? 0 : .9) : 1 - k;
+      ctx.strokeStyle = SKW; ctx.lineWidth = 2; gEll(e.x, e.y, e.r * sc); ctx.stroke(); ctx.strokeStyle = SKS; ctx.setLineDash([10, 6]); gEll(e.x, e.y, (e.r + 8) * sc); ctx.stroke(); ctx.setLineDash([]); return done();
     }
     if (e.type === 'mane') {   // 룩셈부르크 2: 앞 반원에 퍼지는 금빛 갈기 물결 3겹
       for (let j = 0; j < 3; j++) { const q = clamp((k - j * .15) / .7, 0, 1); if (q <= 0) continue; ctx.globalAlpha = (1 - q) * .9; ctx.strokeStyle = j === 1 ? SKW : SKG; ctx.lineWidth = 3;
@@ -1981,15 +2072,23 @@
     UI.circ(jx, jy, 62, null, 'rgba(255,255,255,.35)', 1.5);
     UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
     const btn = (b, ic, on) => { UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3); UI.I[ic](b.x, b.y, b.r * 1.05, COL.fg); };
-    btn(B.melee, 'sword', input.melee); btn(B.ranged, 'arrow', input.ranged);
+    const dim = aim && aim.drag ? .35 : 1;   // 끄는 동안 다른 버튼은 35%
+    ctx.globalAlpha = dim; btn(B.melee, 'sword', input.melee); btn(B.ranged, 'arrow', input.ranged); ctx.globalAlpha = 1;
     const h = G.hero, r = G.run, badge = (b, n) => { UI.circ(b.x + b.r * .72, b.y - b.r * .72, 10, COL.gold); UI.txt(String(n), b.x + b.r * .72, b.y - b.r * .72, 12, COL.icon, 'center', 800); };
     const imgBtn = (b, im, on, fallback, label) => {
       UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3);
       if (im && im.naturalWidth) ctx.drawImage(im, b.x - b.r * .82, b.y - b.r * .82, b.r * 1.64, b.r * 1.64); else UI.I[fallback](b.x, b.y, b.r * 1.05, COL.fg);
       if (label) UI.txt(label, b.x - b.r * .7, b.y + b.r * .7, 11, COL.fg, 'center', 800);
     };
-    for (const [n, b] of [[1, B.skill], [2, B.skill2]]) { ctx.globalAlpha = sLeft(n) > 0 ? 1 : .4; imgBtn(b, UI.img['skill/icon-' + skillOf(G.country, n).type], false, 'bolt', String(n)); ctx.globalAlpha = 1; }
-    ctx.globalAlpha = r.invuln > 0 ? 1 : .4; imgBtn(B.invuln, null, h.skillT > 0, 'shield'); ctx.globalAlpha = 1;
+    for (const [n, b] of [[1, B.skill], [2, B.skill2]]) { const me = aim && aim.drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (aim && aim.drag && !me ? dim : 1); imgBtn(b, UI.img['skill/icon-' + skillOf(G.country, n).type], false, 'bolt', String(n)); if (me) UI.circ(b.x, b.y, b.r, null, '#E8D9A8', 3); ctx.globalAlpha = 1; }
+    ctx.globalAlpha = (r.invuln > 0 ? 1 : .4) * dim; imgBtn(B.invuln, null, h.skillT > 0, 'shield'); ctx.globalAlpha = 1;
+    if (aim && aim.drag) {   // 취소 원: 버튼 둘레 (반지름 + 14) · 들어오면 밝아져요
+      const b = aim.b, cr = b.r + 14, on = aim.cancel;
+      ctx.save(); ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : 'rgba(15,17,22,.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, cr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = on ? 3 : 2; if (!on) ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(b.x - 9, b.y - 9); ctx.lineTo(b.x + 9, b.y + 9); ctx.moveTo(b.x + 9, b.y - 9); ctx.lineTo(b.x - 9, b.y + 9); ctx.stroke(); ctx.restore();
+      UI.txt(t_('x.cancel'), b.x, b.y - cr - 9, 12, '#FFFFFF', 'center', 800);
+    }
     badge(B.skill, sLeft(1)); badge(B.skill2, sLeft(2)); badge(B.invuln, r.invuln);
   }
 

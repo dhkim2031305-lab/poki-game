@@ -40,7 +40,7 @@
       'x.clear': 'Clear!', 'x.fail': 'Mission over', 'x.roundClear': 'Round {n} clear',
       'x.nextRound': 'Next round', 'x.here': 'Right here', 'x.resume': 'Resume', 'x.exit': 'Quit', 'x.quit': 'Quit',
       'x.sound': 'Sound', 'x.keys': 'WASD move · Click/J strike · Right-click/K ranged · Right ×2/L skill 1 · Left ×2/; skill 2 · Both/Space invincible · ESC pause',
-      'x.loading': 'Loading…', 'x.rotate': '',
+      'x.loading': 'Loading…', 'x.rotate': '', 'x.cancel': 'Cancel',
     },
     ko: {
       'title': '강한 놈만 살아남는 세상',
@@ -79,7 +79,7 @@
       'x.clear': '클리어!', 'x.fail': '작전 종료', 'x.roundClear': '라운드 {n} 클리어',
       'x.nextRound': '다음 라운드', 'x.here': '그 자리에서', 'x.resume': '계속', 'x.exit': '나가기', 'x.quit': '종료',
       'x.sound': '소리', 'x.keys': 'WASD 이동 · 클릭/J 치기 · 우클릭/K 쏘기 · 우클릭 두 번/L 스킬1 · 클릭 두 번/; 스킬2 · 양쪽 동시/Space 무적 · ESC 일시정지',
-      'x.loading': '불러오는 중…', 'x.rotate': '',
+      'x.loading': '불러오는 중…', 'x.rotate': '', 'x.cancel': '취소',
     },
   };
 
