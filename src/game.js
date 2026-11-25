@@ -167,8 +167,23 @@
   const buf = { melee: 0, ranged: 0 };   // 누른 것을 0.1초 기억 (히트스톱 중 짧은 탭)   // 버튼을 누르고 있는 손가락들
   // 폰 오른쪽 (GDD 0-18, 디자인 e2f8c4d): 큰 원 중심 (VW−130, VH−130) 반지름 56 · 화살표 66×66은 원 테두리에서 4 띄워 바깥으로 (중심까지 56 + 4 + 33)
   const STICK_R = 56, ARROW = 66;
+  // 안전 영역 (아이폰 가로의 둥근 모서리·홈 막대, QA M15): env(safe-area-inset-*)를 읽고, 0이면 최소 12px [제안]. 테스트: ?safe=왼,위,오른,아래 (CSS px)
+  const SAFE_MIN = 12;
+  const safeProbe = (() => { try { const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(d); return d; } catch { return null; } })();
+  const safeTest = (/[?&]safe=([\d.,]+)/.exec(location.search) || [])[1];
+  let safeC = null, safeAt = -1;
+  function safeArea() {   // 가상 좌표(VW·VH) 단위로 돌려줘요 (0.5초마다 다시 읽어요)
+    const now = performance.now(); if (safeC && now - safeAt < 500 && safeC.U === U) return safeC;
+    let l = 0, t = 0, rr = 0, b = 0;
+    if (safeTest) [l, t, rr, b] = safeTest.split(',').map(Number);
+    else if (safeProbe) { const cs = getComputedStyle(safeProbe); l = parseFloat(cs.paddingLeft) || 0; t = parseFloat(cs.paddingTop) || 0; rr = parseFloat(cs.paddingRight) || 0; b = parseFloat(cs.paddingBottom) || 0; }
+    const m = v => Math.max(v || 0, SAFE_MIN) / U;
+    safeAt = now; return (safeC = { l: m(l), t: m(t), r: m(rr), b: m(b), U });
+  }
+  G.safeArea = safeArea;   // 테스트용
   const btnPos = () => {
-    const cx = VW - 130, cy = VH - 130, d = STICK_R + 4 + ARROW / 2, r = ARROW / 2;
+    // 오른쪽 무리: 스킬2 취소 원(화살표 중심 + 33 + 14)과 아래 무적 화살표가 안전 영역 안에 들어오게 (QA M14·M15)
+    const S = safeArea(), d = STICK_R + 4 + ARROW / 2, r = ARROW / 2, cx = VW - S.r - (d + r + 14), cy = VH - S.b - (d + r);
     return {
       stick: { x: cx, y: cy, r: STICK_R },
       melee: { x: cx - d, y: cy, r, a: Math.PI },
@@ -2051,7 +2066,7 @@
   // 위 표시: HP · 돈 · 라운드 · 남은 외계인 · 일시정지
   function drawHUD() {
     const r = G.run, h = G.hero, c = G.country;
-    const x0 = Math.max(VW * .08, fieldBox.x + 12);
+    const x0 = Math.max(VW * .08, fieldBox.x + 12, safeArea().l + 8);   // 안전 영역 안 (QA M15)
     UI.rr(x0 - 8, VH * .04, 236, 64, 10, 'rgba(10,11,15,.55)');
     const low = h.hp / h.maxHp <= .25;
     UI.I.heart(x0 + 8, VH * .09, 18 * (low && !reduceMotion ? 1 + Math.abs(Math.sin(G.t * 6)) * .15 : 1), low ? COL.red : COL.hp);
@@ -2082,13 +2097,13 @@
     UI.txt(`${r.round}/6`, cx + 62, VH * .09, 12, COL.fg, 'center', 700);
     UI.I.alien(cx - 46, VH * .17 + 1, 18, '#CA57E5');
     UI.txt(t_('ui.04', { n: Math.max(0, remaining()) }), cx + 6, VH * .17 + 1, 14, COL.fg, 'center', 700, 120);
-    if (G.scene === 'play' && G.touchUI) UI.btnSub('pause', VW * .93, VH * .1, 44, 'pause');   // 폰만 (PC는 ESC) — 마우스로 치다가 잘못 눌리지 않게
+    if (G.scene === 'play' && G.touchUI) { const SA = safeArea(); UI.btnSub('pause', Math.min(VW * .93, VW - SA.r - 26), Math.max(VH * .1, SA.t + 26), 44, 'pause'); }   // 폰만 (PC는 ESC) — 마우스로 치다가 잘못 눌리지 않게
   }
 
   function drawControls() {
     const B = btnPos();
     // 조이스틱: 왼쪽 절반 아무 데나 누르면 그 자리에 생겨요
-    const jx = joy.id != null ? joy.ox : VW * .15, jy = joy.id != null ? joy.oy : VH * .72;
+    const SA = safeArea(), jx = joy.id != null ? joy.ox : Math.max(VW * .15, SA.l + 70), jy = joy.id != null ? joy.oy : Math.min(VH * .72, VH - SA.b - 70);   // 안전 영역 안 (QA M15)
     UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(0,0,0,.45)', 4);
     UI.circ(jx, jy, 62, null, 'rgba(255,255,255,.35)', 1.5);
     UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
