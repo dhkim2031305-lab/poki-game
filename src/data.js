@@ -139,6 +139,16 @@
     australia: [{ k: 'boomer', out: .4, back: .4 }, { k: 'cross', div: 4 }],
     germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
     sweden: [{ k: 'clones', mul: .7 }, { k: 'counter', mul: .8 }],
+    canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'omni', time: 1.5 }],
+    finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 6 }],
+    france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
+    italy: [{ k: 'walkGuard' }, { k: 'stepThrust', div: 5 }],
+    korea: [{ k: 'sky', div: 3 }, { k: 'spread3', div: 6 }],
+    spain: [{ k: 'focus', first: 1.6, rest: .3 }, { k: 'spinMove', mul: .8 }],
+    czechia: [{ k: 'half', div: 8 }, { k: 'widen', mul: .35 }],
+    israel: [{ k: 'lob', div: 4 }, { k: 'returnDash', mul: .4 }],
+    lithuania: [{ k: 'long', mul: .7 }, { k: 'root' }],
+    newzealand: [{ k: 'speedZone', div: 8 }, { k: 'seeds', mul: .4, seed: .2 }],
   };
   COUNTRIES.forEach(c => { const m = SKILL_MOD[c.key]; if (m) { c.skill.mod = m[0]; c.skill2.mod = m[1]; } });
 
