@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
       const h = G.hero; let best = null, bd = 1e9;
       for (const a of G.aliens) { const d = Math.hypot(a.x - h.x, a.y - h.y); if (d < bd) { bd = d; best = a; } }
       const it = G.items[0];
-      return { scene: 'play', round: G.run.round, money: G.run.money, hp: h.hp, max: h.maxHp, hx: h.x, hy: h.y, ax: best && best.x, ay: best && best.y, d: bd, ix: it && it.x, iy: it && it.y, left: G.run.wave.n + 1 - G.run.killsRound, skills: G.run.skills };
+      return { scene: 'play', round: G.run.round, money: G.run.money, hp: h.hp, max: h.maxHp, hx: h.x, hy: h.y, ax: best && best.x, ay: best && best.y, d: bd, ix: it && it.x, iy: it && it.y, left: G.run.wave.n + 1 - G.run.killsRound, skills: G.run.skillsLeft ? G.run.skillsLeft[1] : 0 };
     });
     if (s.round !== lastRound) { log.push(`R${s.round} money=${(+s.money).toFixed(2)} t=${((Date.now() - t0) / 1000).toFixed(0)}s`); lastRound = s.round; }
     if (s.scene === 'play') {

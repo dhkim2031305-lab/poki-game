@@ -42,6 +42,15 @@
     if (!mip) { t.generateMipmaps = false; t.minFilter = T.LinearFilter; }
     return (texCache[key] = t);
   }
+  // 칸 시트의 한 칸: 같은 그림을 쓰는 복제 텍스처(칸마다 offset만 달라요)
+  R.cellTex = (name, variant, n, i) => {
+    const key = name + '|' + (variant || '') + '#' + i;
+    if (texCache[key]) return texCache[key];
+    const base = R.tex(name, variant); if (!base) return null;
+    const t = base.clone(); t.repeat.set(1 / n, 1); t.offset.set(i / n, 0); t.needsUpdate = true;
+    t.userData.aspect = base.image.width / n / base.image.height;
+    return (texCache[key] = t);
+  };
   R.tex = (name, variant) => {
     const key = name + '|' + (variant || '');
     if (texCache[key]) return texCache[key];
@@ -49,7 +58,7 @@
     if (!variant) return texOf(im, key);
     // 맞음 번쩍임(흰) · 몸 색 외곽선 — 처음 한 번만 만들어 둬요
     const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
-    const x = c.getContext('2d'), k = im.naturalHeight / 48;
+    const x = c.getContext('2d'), k = im.naturalHeight / 48 * (im.naturalWidth > im.naturalHeight * 4 ? .8 : 1);
     if (variant === 'lit') { litPaint(x, im, c.width, c.height); return texOf(c, key); }
     if (variant === 'white') x.filter = 'brightness(2.4)';
     else x.filter = `drop-shadow(0 0 ${1.5 * k}px ${variant}) drop-shadow(0 0 ${0.5 * k}px ${variant})`;
@@ -216,7 +225,7 @@
   // tex 판을 발(x, y)에 세워요. hgt = 게임 단위 키, mo = UI.sprite와 같은 움직임(ox·oy·rot·sx·sy·flip·alpha)
   R.sprite = (tex, x, y, hgt, mo = {}, o = {}) => {
     if (!tex || !R.built) return;
-    const s = getSprite(), m = s.m, img = tex.image, asp = o.aspect || img.width / img.height;
+    const s = getSprite(), m = s.m, img = tex.image, asp = o.aspect || tex.userData.aspect || img.width / img.height;
     s.g.position.set(x, 0, y);
     if (o.upright != null) s.g.rotation.set(-o.upright * Math.PI / 180, 0, 0);   // 카메라보다 덜 눕혀 세워요 (원근이 판에 걸려 입체감)
     else s.g.quaternion.copy(camera.quaternion);

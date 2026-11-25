@@ -88,7 +88,7 @@
   function loadAssets() {
     const list = [];
     COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'flag/' + c.iso); });
-    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death',
+    list.push('alien/grunt-dir', 'alien/shooter-dir', 'alien/boss-dir', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death',
       '3d/floor', '3d/wall', '3d/wall-top', '3d/door-arch', '3d/pillar', 'skill/icon-dash', 'skill/icon-area', 'skill/icon-barrage', 'skill/icon-guard', 'skill/icon-zone'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
     Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
     return loadList(list, k => { G.load = k; });
@@ -629,7 +629,7 @@
       a.dead = true; G.run.kills++; G.run.killsRound++;
       // 처치 (리뷰 10): 몸이 0.08초 동안 0.65배로 접히며 사라진 뒤 파편 6개 + 처치 잔광
       const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
-      G.fx.push({ kind: 'corpse', img: 'alien/alien-' + a.type, x: a.x, y: a.y, hgt, flip: a.vx < 0, t: 0, life: .08 });
+      { const L = alienLook(a); G.fx.push({ kind: 'corpse', img: L.name, cell: L.cell ? L.cell.i : null, x: a.x, y: a.y, hgt: L.hgt, flip: L.mo.flip, t: 0, life: .08 }); }
       shardBurst(a.x, a.y - 20, Math.atan2(ny, nx), alienCol(a), 6, o.finisher ? 1.3 : 1.1, .07, 20);
       G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), h0: a.type === 'boss' ? 60 : 22, size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: -.07, life: 0.2 });
       later(() => AUDIO.play('kill'), 30);
@@ -743,7 +743,7 @@
       let chase = a.stun > 0 ? .15 : 1;   // 넉백 첫 0.04초는 쫓아오기 15%
       for (const z of G.zones) if (z.slow && Math.hypot(a.x - z.x, a.y - z.y) < SKB.ZONE_D / 2) chase *= .5;   // 핀란드 눈 함정: 느리게
       a.x += mx * a.speed * dt * chase; a.y += my * a.speed * dt * chase; if (chase > .2) a.vx = mx;
-      { const ml = Math.hypot(mx, my) || 1, kk = Math.min(1, dt * 8); a.fx = (a.fx || 0) + (mx / ml - (a.fx || 0)) * kk; a.fy = (a.fy || 0) + (my / ml - (a.fy || 0)) * kk; a.step = (a.step || 0) + dt * a.speed / 9; }   // 보는 방향(부드럽게)·걸음
+      { const ml = Math.hypot(mx, my) || 1, kk = Math.min(1, dt * 8); a.fx = (a.fx || 0) + (mx / ml - (a.fx || 0)) * kk; a.fy = (a.fy || 0) + (my / ml - (a.fy || 0)) * kk; a.step = (a.step || 0) + dt * a.speed / 9; if (chase > .2 && (mx || my)) a.walkT = (a.walkT || 0) + dt; }   // 보는 방향(부드럽게)·걸음
       if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-18 * dt); a.kb.x *= k; a.kb.y *= k; }
       if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
       if (d < a.r + h.r) hurt(a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG, a.x, a.y);
@@ -1061,7 +1061,7 @@
       if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
       else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }   // 번쩍임 끄면 처치 잔광 없이 파편만
       else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
-      else if (e.kind === 'corpse') { const q = Math.min(1, k); UI.sprite(e.img, e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }); }
+      else if (e.kind === 'corpse') { const q = Math.min(1, k), mo = { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }; if (e.cell != null) UI.cellSprite(e.img, 15, e.cell, e.x, e.y + 2, e.hgt, mo); else UI.sprite(e.img, e.x, e.y + 2, e.hgt, mo); }
       else if (e.kind === 'groundRing') { ctx.save(); ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
       else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }   // 번쩍임 끄면 외곽선·파편으로만
@@ -1136,11 +1136,11 @@
     for (const a of G.aliens) {
       const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || 'lit';
       delete mo.white; delete mo.edge;
-      R3D.sprite(R3D.tex(L.name, v), a.x, a.y + 2, L.hgt * 1.04, mo, { upright: 40 });   // 카메라를 똑바로 보는 판(56° 기움)보다 16° 덜 눕혀 원근이 판에 걸리게 — 키는 1.04배로 보정
+      R3D.sprite(L.cell ? R3D.cellTex(L.name, v, 15, L.cell.i) : R3D.tex(L.name, v), a.x, a.y + 2, L.hgt * 1.04, mo, { upright: 40 });   // 카메라를 똑바로 보는 판(56° 기움)보다 16° 덜 눕혀 원근이 판에 걸리게 — 키는 1.04배로 보정
       R3D.blob(a.x, a.y, a.r * 1.3 * (1 - L.hop * .03), .78);
     }
     // 처치 직후 접히는 몸
-    for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
+    for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(e.cell != null ? R3D.cellTex(e.img, 'lit', 15, e.cell) : R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
     for (const s of G.shots) R3D.blob(s.x, s.y, 7, .3);
     for (const s of G.eshots) R3D.blob(s.x, s.y, 5, .28);
     R3D.render((fb.x + sx) * U, (fb.y + sy) * U, FIELD.W * fb.s * U, FIELD.H * fb.s * U);
@@ -1182,7 +1182,8 @@
   const perspective = y => { const f = FIELD.floor; return .86 + .26 * clamp((y - f.y0) / (f.y1 - f.y0), 0, 1); };   // 먼 쪽 0.86배 ~ 가까운 쪽 1.12배
   function castAlien(a) {
     const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
-    UI.sprite('alien/alien-' + a.type, a.x, a.y + 2, hgt, { flip: a.vx < 0, shadow: a.entering ? .15 : .3 });
+    const L = alienLook(a), mo = { flip: L.mo.flip, shadow: a.entering ? .15 : .3 };
+    if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, mo);
   }
   function castHero() {
     const h = G.hero, c = G.country; if (!h || (h.dead && G.scene !== 'ending')) return;
@@ -1365,29 +1366,42 @@
   function drawAlien(a) {
     const L = alienLook(a);
     softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - L.hop * .03), a.r * .5, .5); softShadow(a.x, a.y, a.r * .7, a.r * .25, .4);
-    UI.sprite(L.name, a.x, a.y + 2, L.hgt, L.mo);
-    if (a.type === 'boss') bossBar(a, L.hgt);
+    if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, L.mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, L.mo);
+    if (a.type === 'boss') bossBar(a, 140);
   }
   const bossBar = (a, hgt) => { const w = 90; UI.rr(a.x - w / 2, a.y - hgt - 12, w, 6, 3, 'rgba(0,0,0,.6)'); UI.rr(a.x - w / 2, a.y - hgt - 12, w * Math.max(0, a.hp / a.max), 6, 3, COL.green); };   // 보스 체력
   // 외계인 모양: 그림 이름·키·움직임 (2D·3D가 같이 써요)
+  // 외계인 8방향 (11차 그림 alien/<종류>-dir: 15칸 = 방향 5 × 서기·A·B, 왼쪽은 뒤집기 · 걸을 때 서기→A→서기→B)
+  // 칸 높이: 예전 정면 그림과 보이는 키가 같게 (그림 속 키 ≈ 칸 × 0.8)
+  const ALIEN_CELL = { grunt: 55, shooter: 56, boss: 183 }, ALIEN_FPS = { grunt: 10, shooter: 8, boss: 5 };
+  function alienCell(a) {
+    let fx = a.fx || 0, fy = a.fy || 0;
+    if (Math.hypot(fx, fy) < .3) { fx = G.hero.x - a.x; fy = G.hero.y - a.y; }   // 멈춰 있으면 장수 쪽
+    const o = ((Math.round(Math.atan2(fy, fx) / (Math.PI / 4)) % 8) + 8) % 8, [dir, flip] = OCT[o];
+    const moving = !reduceMotion && (a.walkT || 0) > 0 && !a.jump && a.speed > 0, ph = moving ? Math.floor(a.walkT * ALIEN_FPS[a.type]) % 4 : 0;
+    return { i: dir * 3 + (ph === 1 ? 1 : ph === 3 ? 2 : 0), flip };
+  }
   function alienLook(a) {
-    const t = G.t, name = 'alien/alien-' + a.type, hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
+    const t = G.t, sheet = 'alien/' + a.type + '-dir', im = UI.img[sheet], hasDir = !!(im && im.naturalWidth);
+    const name = hasDir ? sheet : 'alien/alien-' + a.type, hgt = hasDir ? ALIEN_CELL[a.type] : a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
     const hop = a.hitT > 0 && !reduceMotion ? Math.sin(Math.PI * (1 - a.hitT / .1)) * 5 : 0;   // 맞으면 살짝 떠올랐다 떨어져요
-    let mo = { flip: a.vx < 0 };
-    if (!reduceMotion) {
-      if (a.type === 'grunt') { const p = Math.sin(t * 14 + a.seed); mo.sy = 1 + p * .08; mo.sx = 1 - p * .05; mo.rot = Math.sin(t * 7 + a.seed) * .08; }
-      else if (a.type === 'shooter') { const p = Math.abs(Math.sin(t * 9 + a.seed)); mo.oy = -p * 3; mo.ox = a.recoil > 0 ? (a.vx < 0 ? 3 : -3) : 0; }
-      else { mo.sy = 1 + Math.sin(t * 2) * .025; }
+    const cell = hasDir ? alienCell(a) : null;
+    let mo = { flip: cell ? cell.flip : a.vx < 0 };
+    if (!reduceMotion) {   // 꿈틀거림은 그림이 걸어서 ±3%로 줄였어요 (디자인팀)
+      if (a.type === 'grunt') { const p = Math.sin(t * 14 + a.seed); mo.sy = 1 + p * .03; mo.sx = 1 - p * .02; }
+      else if (a.type === 'shooter') { mo.ox = a.recoil > 0 ? (mo.flip ? 3 : -3) : 0; }
+      else { mo.sy = 1 + Math.sin(t * 2) * .015; }
     }
     // 가는 방향으로 몸 돌리기 (8방향 그림 오기 전 코드 흉내): 위·아래로 가면 몸 폭을 줄여 돌아선 느낌, 위로 가면(등) 조금 어둡게,
     // 가는 쪽으로 기울기 + 걸음마다 좌우 흔들림·위아래 튀기 · 넉백 방향으로 몸이 젖혀져요
     if (!reduceMotion && !a.entering) {
       const fx = a.fx || 0, fy = a.fy || 0, st = a.step || 0;
-      mo.sx = (mo.sx || 1) * (1 - .14 * Math.abs(fy));
-      mo.rot = (mo.rot || 0) + fx * .1 + Math.sin(st) * .06;
-      mo.oy = (mo.oy || 0) - Math.abs(Math.sin(st)) * (a.type === 'boss' ? 4 : 2.5);
-      if (fy < -.35) mo.tint = .8 + .2 * (1 + fy);
-      const kb = a.kb ? a.kb.x : 0; if (Math.abs(kb) > 15) mo.rot += clamp(kb / 700, -.28, .28);
+      if (!cell) {   // 8방향 그림이 없을 때만 코드로 몸 돌리기 흉내
+        mo.sx = (mo.sx || 1) * (1 - .14 * Math.abs(fy)); if (fy < -.35) mo.tint = .8 + .2 * (1 + fy);
+        mo.oy = (mo.oy || 0) - Math.abs(Math.sin(st)) * (a.type === 'boss' ? 4 : 2.5); mo.rot = (mo.rot || 0) + Math.sin(st) * .06;
+      }
+      mo.rot = (mo.rot || 0) + fx * .05;                                         // 가는 쪽으로 살짝 기울기
+      const kb = a.kb ? a.kb.x : 0; if (Math.abs(kb) > 15) mo.rot += clamp(kb / 700, -.28, .28);   // 넉백 방향으로 젖힘
     }
     if (a.jump) {   // 점프: 웅크리며 떨기 → 공중에서 늘어나며 떠오름
       if (a.jump.ph === 'crouch') { const q = Math.min(1, a.jump.t / a.jumpCfg.crouch); mo.sy = 1 - .22 * q; mo.sx = 1 + .12 * q; mo.rot = 0; mo.ox = reduceMotion ? 0 : Math.sin(t * 70) * 1.6 * q; mo.oy = 0; }
@@ -1401,7 +1415,7 @@
     else if (a.edgeT > 0) mo.edge = alienCol(a);   // 몸 색 외곽선 (번쩍임을 꺼도 보여요)
     if (a.entering) mo.alpha = .85;
     if (hop) mo.oy = (mo.oy || 0) - hop;
-    return { name, hgt, mo, hop };
+    return { name, hgt, mo, hop, cell };
   }
 
   // 위 표시: HP · 돈 · 라운드 · 남은 외계인 · 일시정지

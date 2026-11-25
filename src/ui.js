@@ -135,6 +135,18 @@
     else if (mo.edge) x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`;   // 피격 뒤 몸 색 외곽선
     x.drawImage(im, -w / 2, -h, w, h); x.restore();
   };
+  // 칸 시트 한 칸 (외계인 8방향 11차: 15칸 = 방향 5 × 서기·A·B) · h = 칸 높이, 발 = 칸 아래에서 칸 높이 × 0.03125
+  UI.cellSprite = (name, n, cell, cx, footY, h, mo = {}) => {
+    const im = UI.img[name]; if (!im || !im.naturalWidth) return false;
+    const x = UI.x, cw = im.naturalWidth / n, ch = im.naturalHeight, w = h * cw / ch;
+    x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.shadow) { x.transform(1, 0, -0.55, -0.3, 0, 0); x.filter = 'brightness(0)'; x.globalAlpha = mo.shadow; } if (mo.rot) x.rotate(mo.rot);
+    x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null && !mo.shadow) x.globalAlpha = mo.alpha;
+    if (mo.shadow) {}
+    else if (mo.white) x.filter = 'brightness(2.4)';
+    else if (mo.edge) x.filter = `drop-shadow(0 0 1.5px ${mo.edge}) drop-shadow(0 0 0.5px ${mo.edge})`;
+    x.drawImage(im, cell * cw, 0, cw, ch, -w / 2, -h * (1 - 0.03125), w, h); x.restore();
+    return true;
+  };
   UI.flag = (iso, px, py, w, h) => { UI.draw('flag/' + iso, px, py, w, h); UI.x.strokeStyle = 'rgba(0,0,0,.5)'; UI.x.lineWidth = 1; UI.x.strokeRect(px, py, w, h); };
   UI.money = (c, m) => c.sym + (Math.max(0, m)).toFixed(1);
   UI.stars = t => { const x = UI.x; for (let i = 0; i < 70; i++) { const sx = (i * 137.5 + t * (6 + i % 5 * 3)) % UI.VW, sy = (i * 71.3) % UI.VH; x.globalAlpha = .25 + (i % 4) * .15; UI.circ(sx, sy, i % 7 ? 1 : 1.6, '#fff'); } x.globalAlpha = 1; };
