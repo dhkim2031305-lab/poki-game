@@ -4,8 +4,8 @@
 /* 레이아웃: 위에서 아래로 화면 시안(폰 가로 844×390)을 한 장씩, 아래에 색 표와 소리 판 */
 :root{
   color-scheme: dark;
-  --page:#0A1120; --panel:#121D31; --line:#22324F;
-  --fg:#F4F7FB; --muted:#8FA3BF; --gold:#FFD166; --amber:#F4B860;
+  --page:#0F1116; --panel:#18191F; --line:#34302A;
+  --fg:#F2E3C6; --muted:#B1A599; --gold:#D9AE4F; --amber:#F4B860;
   --font: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR","Noto Sans",sans-serif;
 }
 html,body{background:var(--page);color:var(--fg)}
@@ -18,7 +18,7 @@ section h2{font-size:18px;margin:0 0 4px;display:flex;align-items:baseline;gap:1
 section h2 small{font-size:12px;color:var(--muted);font-weight:400}
 section > p{margin:0 0 12px;color:var(--muted);max-width:70ch}
 .phone{background:#05080F;border:1px solid var(--line);border-radius:28px;padding:10px 14px;max-width:100%}
-.phone canvas{display:block;width:100%;height:auto;aspect-ratio:844/390;border-radius:16px;background:#0E1726}
+.phone canvas{display:block;width:100%;height:auto;aspect-ratio:844/390;border-radius:16px;background:#151820}
 .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .row .phone{padding:6px 8px;border-radius:18px}
 .row figcaption{font-size:13px;color:var(--muted);margin-top:6px;text-align:center}
@@ -40,8 +40,8 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 
 <div class="wrap">
 <header>
-  <h1>화면 시안 v1 · 폰 가로 844×390</h1>
-  <p><span class="tag">배치 참고용</span><b>그림(장수·외계인·아이템·배경)은 GPT가 새로 그려요.</b> 이 페이지는 화면 배치와 소리 확인용이에요. 확정된 GDD(2026-11-24)를 기준으로 그린 시안이에요. 실제 게임처럼 캔버스에 도형으로만 그렸고, 이미지 파일은 없어요. 예시 나라는 대한민국이에요. 나라 순서와 시작 돈은 기획팀 <code>balance.md</code>의 값(OECD 2024)이에요. 능력치는 balance.md에 [제안]으로 올라온 공식으로 계산했어요. <b>v3</b>: 30개국 목록을 반영했어요. 아이템은 4종(구급상자 뺌)이고, 돈은 그 나라 통화 기호로 보여 줘요(한국 ₩, 표시 방법은 [제안]). 이어하기는 쓰러진 자리에서 바로 해요.</p>
+  <h1>화면 시안 v5 · 폰 가로 844×390</h1>
+  <p><span class="tag">일러스트 기반</span>사용자가 확정한 GPT 장수 그림 30명을 넣었어요. UI 색은 그림에서 뽑은 금빛·양피지색·철색에 맞췄어요. 예시 나라는 대한민국이고, 숫자는 기획팀 <code>balance.md</code>의 값이에요(감소량 D=7.5 [제안], 아래 절반은 파산). <b>외계인과 전장 바닥은 3차 그림이 올 때까지 자리만 표시했어요.</b> 장수도 전투용 작은 그림(3차)이 오면 바꿔요.</p>
 </header>
 
 <section>
@@ -73,10 +73,11 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 </section>
 
 <section>
-  <h2>5. 결과 화면 <small>왼쪽: 실패(이어하기 광고 있음) · 오른쪽: 클리어</small></h2>
+  <h2>5. 결과 화면 <small>실패(이어하기 광고) · 클리어 · 파산</small></h2>
   <div class="row" style="grid-template-columns:repeat(2,minmax(0,1fr))">
     <figure style="margin:0"><div class="phone"><canvas id="c-fail" width="1688" height="780"></canvas></div><figcaption>실패 · 초록 버튼은 보상형 광고 이어하기예요. 쓰러진 자리에서 바로 이어 해요. 한 번만 나오고 web에서는 숨겨요</figcaption></figure>
     <figure style="margin:0"><div class="phone"><canvas id="c-clear" width="1688" height="780"></canvas></div><figcaption>6라운드 클리어 · 이어하기 버튼 없음</figcaption></figure>
+    <figure style="margin:0"><div class="phone"><canvas id="c-bankrupt" width="1688" height="780"></canvas></div><figcaption>파산 (아래 절반 나라) · HP가 0이 된 게 아니라서 이어하기 버튼이 없어요 [제안]</figcaption></figure>
   </div>
 </section>
 
@@ -113,11 +114,15 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 </div>
 
 <script>
-const C={bg:'#0E1726',grid:'#18263F',edge:'#2B4166',side:'#070C16',fg:'#F4F7FB',muted:'#8FA3BF',panel:'rgba(21,34,56,.92)',
- gold:'#FFD166',shot:'#FFE08A',purple:'#B14DFF',green:'#7CFF4F',pink:'#FF4FD8',red:'#FF5A5F',amber:'#F4B860',
- btn2:'#24365A',ad:'#3DDC97',hp:'#3DDC97'};
+const C={bg:'#151820',grid:'#1F2430',edge:'#4A3F2E',side:'#0A0B0F',fg:'#F2E3C6',muted:'#B1A599',panel:'rgba(24,22,24,.94)',frame:'#8C6B32',
+ gold:'#D9AE4F',glow:'#FFD166',shot:'#FFE08A',purple:'#B14DFF',green:'#7CFF4F',pink:'#FF4FD8',red:'#FF5A5F',amber:'#F4B860',
+ btn2:'#2C2A30',ad:'#3DDC97',hp:'#3DDC97'};
 const KR=['#FFFFFF','#CD2E3A','#0047A0'];
-const CUR='₩'; /* 고른 나라 통화 기호 [제안] */
+const CUR='₩';
+const NAMES=['luxembourg','ireland','switzerland','usa','netherlands','denmark','austria','australia','germany','sweden','canada','finland','france','italy','korea','spain','czechia','israel','lithuania','newzealand','japan','portugal','poland','hungary','slovakia','greece','turkiye','chile','mexico','colombia'];
+const IMG={};let loaded=0;function img(n){return IMG[n];}
+[...NAMES,'korea-lg'].forEach(n=>{const im=new Image();im.onload=()=>{IMG[n]=im;if(++loaded===NAMES.length+1)drawSelect();};im.src='img/'+n+'.webp';});
+function sprite(x,n,cx,footY,h){const im=IMG[n];if(!im)return;const w=im.width*h/im.height;x.drawImage(im,cx-w/2,footY-h,w,h);} /* 고른 나라 통화 기호 [제안] */
 const FONT='system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif';
 const W=844,H=390,AX=(W-693)/2,AW=693;
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -167,17 +172,15 @@ function alienA(x,px,py,r,t=0){x.save();x.translate(px,py);x.rotate(t*.6);x.begi
 function alienB(x,px,py,r,ang=0){x.save();x.translate(px,py);x.rotate(ang);x.beginPath();x.moveTo(r,0);x.lineTo(-r*.8,-r*.85);x.lineTo(-r*.8,r*.85);x.closePath();x.fillStyle=C.green;x.shadowColor=C.green;x.shadowBlur=10;x.fill();x.shadowBlur=0;circ(x,-r*.15,-r*.28,r*.2,C.purple);circ(x,-r*.15,r*.28,r*.2,C.purple);x.restore();}
 
 /* 장수: 원 + 국기 색 띠 + 금빛 반짝임(돈 비율) */
-function hero(x,px,py,ang,money,cols=KR,t=0){
-  const r=17,glow=.25+.65*money;
-  const pulse=reduce?1:1+Math.sin(t*3)*.06;
-  const g=x.createRadialGradient(px,py,r*.8,px,py,r*(1.6+money*1.4)*pulse);
+function hero(x,px,py,ang,money,cols=KR,t=0,n='korea',h=64){
+  const glow=.25+.65*money,pulse=reduce?1:1+Math.sin(t*3)*.06,foot=py+h*.45;
+  const rad=(18+money*26)*pulse;
+  const g=x.createRadialGradient(px,foot,4,px,foot,rad*1.6);
   g.addColorStop(0,`rgba(255,209,102,${glow})`);g.addColorStop(1,'rgba(255,209,102,0)');
-  x.fillStyle=g;x.beginPath();x.arc(px,py,r*(1.6+money*1.4)*pulse,0,Math.PI*2);x.fill();
-  x.save();x.beginPath();x.arc(px,py,r,0,Math.PI*2);x.clip();
-  const n=cols.length;for(let i=0;i<n;i++){x.fillStyle=cols[i];x.fillRect(px-r+i*2*r/n,py-r,2*r/n+1,2*r);}
-  x.restore();
-  circ(x,px,py,r,null,C.fg,2.5);
-  x.save();x.translate(px,py);x.rotate(ang);x.beginPath();x.moveTo(r+9,0);x.lineTo(r+1,-6);x.lineTo(r+1,6);x.closePath();x.fillStyle=C.fg;x.fill();x.restore();
+  x.fillStyle=g;x.beginPath();x.ellipse(px,foot,rad*1.6,rad*.6,0,0,Math.PI*2);x.fill();
+  x.fillStyle='rgba(0,0,0,.45)';x.beginPath();x.ellipse(px,foot,h*.22,h*.07,0,0,Math.PI*2);x.fill();
+  x.strokeStyle=C.glow;x.lineWidth=2.5;x.beginPath();x.ellipse(px,foot,h*.32,h*.11,0,ang-.35,ang+.35);x.stroke();
+  sprite(x,n,px,foot,h);
 }
 
 /* 시안용 단순 국기 */
@@ -245,7 +248,7 @@ function bar(x,px,py,w,h,v,col=C.gold,lost=0){rr(x,px,py,w,h,h/2,C.btn2);if(lost
 /* ===== 1. 시작 ===== */
 function drawTitle(t){const x=ctxOf('c-title');x.fillStyle=C.bg;x.fillRect(0,0,W,H);stars(x,t);
   alienA(x,(120+t*30)%(W+80)-40,96,16,t);alienB(x,W-((200+t*45)%(W+80))+40,300,12,Math.PI);alienA(x,(560+t*22)%(W+80)-40,330,12,-t);
-  hero(x,W/2,H*.5-4,-Math.PI/2,1,KR,t);
+  [['germany',.1],['usa',.24],['japan',.76],['france',.9]].forEach(([n,u])=>sprite(x,n,W*u,H*.98,170));
   x.save();x.shadowColor='rgba(255,209,102,.6)';x.shadowBlur=18;txt(x,'GAME TITLE',W/2,H*.27,40,C.fg,'center',800);x.restore();
   txt(x,'제목 미정 · 기획 확인 필요',W/2,H*.27+32,12,C.amber,'center',500);
   btnMain(x,W/2,H*.7,44,'play');
@@ -259,19 +262,19 @@ function drawSelect(){const x=ctxOf('c-select');x.fillStyle=C.bg;x.fillRect(0,0,
   const gx=W*.06,gy=H*.2,cw=76,ch=64,gap=10;
   x.save();x.beginPath();x.rect(gx-4,gy-4,5*(cw+gap)+4,H-gy);x.clip();
   ORDER.forEach((c,i)=>{const col=i%5,row=Math.floor(i/5),px=gx+col*(cw+gap),py=gy+row*(ch+gap);
-    rr(x,px,py,cw,ch,10,'#152238',c==='kr'?C.gold:'#22324F',c==='kr'?3:1);
-    drawFlag(x,c,px+14,py+9,48,32);txt(x,'#'+(i+1),px+cw/2,py+ch-11,11,C.muted,'center',600);});
+    rr(x,px,py,cw,ch,10,'#1E1C1F',c==='kr'?C.gold:C.frame,c==='kr'?3:1);
+    x.save();x.beginPath();x.roundRect(px+2,py+2,cw-4,ch-18,8);x.clip();const im=IMG[NAMES[i]];if(im){const hh=ch*1.9,ww=im.width*hh/im.height;x.drawImage(im,px+cw/2-ww/2,py+4,ww,hh);}x.restore();drawFlag(x,c,px+5,py+ch-14,14,10);txt(x,'#'+(i+1),px+cw/2+6,py+ch-9,11,C.muted,'center',600);});
   x.restore();
   const sb=x.createLinearGradient(0,H-50,0,H);sb.addColorStop(0,'rgba(14,23,38,0)');sb.addColorStop(1,C.bg);x.fillStyle=sb;x.fillRect(gx-4,H-50,5*(cw+gap),50);
-  rr(x,gx+5*(cw+gap)+2,gy,4,H*.7,2,'#22324F');rr(x,gx+5*(cw+gap)+2,gy,4,H*.3,2,C.muted);
-  const px=W*.62,pw=W*.32;rr(x,px,H*.06,pw,H*.88,16,C.panel,'#22324F',1);
-  const cx=px+pw/2;drawFlag(x,'kr',cx-48,H*.1,96,64);
-  txt(x,'대한민국',cx,H*.36,22,C.fg);
-  I.coin(x,cx-62,H*.45,18);txt(x,'#15  ·  38.8',cx+6,H*.45,16,C.gold,'center',700);
+  rr(x,gx+5*(cw+gap)+2,gy,4,H*.7,2,C.frame);rr(x,gx+5*(cw+gap)+2,gy,4,H*.3,2,C.muted);
+  const px=W*.62,pw=W*.32;rr(x,px,H*.06,pw,H*.88,16,C.panel,C.frame,1);
+  const cx=px+pw/2;sprite(x,'korea-lg',cx,H*.33,108);
+  drawFlag(x,'kr',cx-66,H*.37-8,22,15);txt(x,'대한민국',cx+12,H*.37,22,C.fg);
+  txt(x,'₩38.8  ·  #15',cx,H*.46,17,C.gold,'center',700);
   const stats=[['heart',C.red,.63,'63'],['sword',C.fg,.63,'6.3'],['speed',C.fg,.82,'180'],['bolt',C.gold,.82,'7.3s']];
   stats.forEach(([ic,col,v,n],i)=>{const yy=H*.54+i*24;I[ic](x,px+26,yy,18,col);bar(x,px+44,yy-4,120,8,v);txt(x,n,px+pw-18,yy,13,C.fg,'right',600);});
   txt(x,'1인당 GDP(PPP) · OECD 2024',cx,H*.8,11,C.muted,'center',400);
-  rr(x,cx-80,H*.84,160,40,12,C.gold);I.play(x,cx,H*.84+20,26,C.bg);
+  rr(x,cx-80,H*.84,160,40,12,C.gold);I.play(x,cx,H*.84+20,26,'#1A1410');
   rr(x,200,H*.11-11,170,22,11,'rgba(244,184,96,.15)');txt(x,'능력치 = balance [제안]',285,H*.11,11,C.amber,'center',600);
 }
 
@@ -286,11 +289,11 @@ function drawPlay(t){const x=ctxOf('c-play');field(x,t);
   for(let i=0;i<4;i++){const q=(t*2+i*.3)%1;if(!target)break;const tx=hx+(target.px-hx)*q,ty=hy+(target.py-hy)*q;x.save();x.shadowColor=C.gold;x.shadowBlur=8;circ(x,tx,ty,4,C.shot);x.restore();}
   [[0.3,.2],[0.65,.75]].forEach(([u,v],i)=>{const px=AX+AW*u+Math.sin(t+i)*20,py=H*v;x.save();x.translate(px,py);x.rotate(Math.PI/4);x.fillStyle=C.pink;x.fillRect(-4,-4,8,8);x.restore();});
   itemToken(x,AX+AW*.25,H*.62,30,'shield',t,.7,false);itemToken(x,AX+AW*.78,H*.36,30,'coin',t,.22,true);
-  const ang=target?Math.atan2(target.py-hy,target.px-hx):0;hero(x,hx,hy,ang,.338,KR,t);auraRage(x,hx,hy,t);
+  const ang=target?Math.atan2(target.py-hy,target.px-hx):0;hero(x,hx,hy,ang,.238,KR,t);
   const pp=reduce?0:((t*1.2)%1);for(let i=0;i<10;i++){const a=i*.63,rad=6+pp*30;x.globalAlpha=1-pp;circ(x,W*.62+Math.cos(a)*rad,H*.3+Math.sin(a)*rad,2.5,C.purple);}x.globalAlpha=1;
   /* HUD */
-  I.heart(x,W*.08,H*.09,18,C.red);bar(x,W*.08+16,H*.09-7,150,14,.8,C.hp);txt(x,'48/60',W*.08+174,H*.09,12,C.fg,'left',600);
-  I.coin(x,W*.08,H*.18,16);txt(x,'33.8',W*.08+16,H*.18,17,C.gold,'left',700);effectChip(x,W*.08+4,H*.28,'rage',.65,'5.2');
+  I.heart(x,W*.08,H*.09,18,C.red);bar(x,W*.08+16,H*.09-7,150,14,.8,C.hp);txt(x,'43/54',W*.08+174,H*.09,12,C.fg,'left',600);
+  txt(x,'₩23.8',W*.08-8,H*.18,17,C.gold,'left',700);effectChip(x,W*.08+4,H*.28,'rage',.65,'5.2');
   for(let i=0;i<6;i++){const dx=W/2-45+i*18;if(i<2)circ(x,dx,H*.08,5,C.gold);else if(i==2)circ(x,dx,H*.08,5,null,C.fg,2);else circ(x,dx,H*.08,5,C.btn2);}
   txt(x,'3/6',W/2+68,H*.08,13,C.fg,'left',700);
   alienA(x,W/2-14,H*.165,7,0);txt(x,'× 9',W/2+4,H*.165,13,C.muted,'left',600);
@@ -303,19 +306,19 @@ function drawPlay(t){const x=ctxOf('c-play');field(x,t);
   const cd=.6;x.beginPath();x.moveTo(sxp,syp);x.arc(sxp,syp,34,-Math.PI/2+Math.PI*2*(1-cd),-Math.PI/2+Math.PI*2);x.closePath();x.fillStyle='rgba(7,12,22,.6)';x.fill();
   txt(x,'3.7',sxp,syp+1,14,C.fg,'center',700);
   txt(x,'PC: WASD 이동 · J 공격 · K 스킬',W/2,H*.93,12,C.muted,'center',500);
-  rr(x,AX+8,H-30,150,20,10,'rgba(244,184,96,.15)');txt(x,'공격 원거리 = 임시',AX+83,H-20,11,C.amber,'center',600);
+  rr(x,AX+8,H-30,250,20,10,'rgba(244,184,96,.15)');txt(x,'외계인·바닥 = 3차 그림 대기 · 공격 임시',AX+133,H-20,11,C.amber,'center',600);
 }
 
 /* ===== 4. 라운드 사이 ===== */
-function drawRound(t){const x=ctxOf('c-round');field(x,0);hero(x,W/2-200,H/2+60,0,.363,KR,t);
+function drawRound(t){const x=ctxOf('c-round');field(x,0);hero(x,W/2-250,H/2+40,0,.313,KR,t,'korea',90);
   x.fillStyle='rgba(7,12,22,.45)';x.fillRect(0,0,W,H);
-  const pw=360,ph=230,px=W/2-pw/2,py=H/2-ph/2;rr(x,px,py,pw,ph,16,C.panel,'#22324F',1);
+  const pw=360,ph=230,px=W/2-pw/2,py=H/2-ph/2;rr(x,px,py,pw,ph,16,C.panel,C.frame,1);
   I.check(x,px+70,py+34,24,C.hp);txt(x,'라운드 2 클리어',W/2+12,py+34,22,C.fg);
   const cyc=reduce?1:Math.min(1,(t%4)/2.2);
-  const m=(36.3-2.5*cyc).toFixed(1);
-  I.coin(x,W/2-92,py+80,22);txt(x,'36.3 → '+m,W/2-6,py+80,20,C.gold);txt(x,'−2.5',W/2+100,py+80,18,C.amber);
+  const m=(31.3-7.5*cyc).toFixed(1);
+  txt(x,'₩31.3 → ₩'+m,W/2-2,py+80,20,C.gold);txt(x,'−7.5',W/2+120,py+80,18,C.amber);
   for(let i=0;i<4;i++){const q=(cyc*1.6-i*.15);if(q<=0||q>=1)continue;x.globalAlpha=1-q;I.coin(x,W/2-92+q*60*(i%2?1:-1),py+80-q*50,14);}x.globalAlpha=1;
-  const st=[['heart',C.red,.62,.60,'62 → 60'],['sword',C.fg,.62,.60,'6.2 → 6.0'],['speed',C.fg,.81,.80,'178 → 176'],['bolt',C.gold,.81,.80,'7.4 → 7.5s']];
+  const st=[['heart',C.red,.59,.54,'59 → 54'],['sword',C.fg,.59,.54,'5.9 → 5.4'],['speed',C.fg,.79,.77,'175 → 170'],['bolt',C.gold,.79,.77,'7.6 → 7.8s']];
   st.forEach(([ic,col,a,b,lbl],i)=>{const yy=py+118+i*22;I[ic](x,px+40,yy,16,col);const v=a+(b-a)*cyc;bar(x,px+58,yy-4,140,8,v,C.gold,(a-v)>0?Math.min(a-v,(a-b)*(1-Math.max(0,cyc-.7)/.3)):0);txt(x,lbl,px+pw-30,yy,13,C.fg,'right',600);});
   for(let i=0;i<6;i++){const dx=W/2-45+i*18,yy=py+ph-18;if(i<2)circ(x,dx,yy,5,C.gold);else if(i==2)circ(x,dx,yy,5,(Math.floor(t*3)%2)?C.fg:C.btn2,C.fg,2);else circ(x,dx,yy,5,C.btn2);}
 }
@@ -324,6 +327,7 @@ function drawRound(t){const x=ctxOf('c-round');field(x,0);hero(x,W/2-200,H/2+60,
 function drawResult(id,win,t){const x=ctxOf(id);field(x,0);if(win){stars(x,t*3);}
   x.fillStyle='rgba(7,12,22,.55)';x.fillRect(0,0,W,H);
   if(win){for(let i=0;i<40;i++){const q=((t*.4+i*.137)%1);x.globalAlpha=1-q;circ(x,(i*97)%W,H*(1-q),2.5,i%3?C.gold:KR[i%3]);}x.globalAlpha=1;}
+  hero(x,W*.15,H*.62,-Math.PI/2,win?.9:.25,KR,t,'korea-lg',190);
   if(win)I.trophy(x,W/2,H*.17,56,C.gold);else I.flagW(x,W/2,H*.17,52,C.fg);
   txt(x,win?'클리어!':'작전 종료',W/2,H*.33,28,C.fg);
   drawFlag(x,'kr',W/2-60,H*.42,36,24);txt(x,'대한민국',W/2+16,H*.42+12,16,C.fg,'center',600);
@@ -361,7 +365,7 @@ function drawItems(t){const c=document.getElementById('c-items');const x=c.getCo
   x.fillStyle=C.bg;x.fillRect(0,0,W,280);
   const L=[['rage','분노','공격력 크게 오름 · 8초'],['shield','방패','무적 · 5초'],['bomb','폭탄','화면 안 외계인 피해 40'],['coin','금화','돈 +5 · 그 나라 돈 모양']];
   L.forEach(([k,n,e],i)=>{const px=W*(.125+i*.25);itemToken(x,px,58,56,k,t);txt(x,n,px,112,14,C.fg,'center',700);txt(x,e,px,130,11,C.muted,'center',500);});
-  x.strokeStyle='#22324F';x.lineWidth=1;x.beginPath();x.moveTo(30,150);x.lineTo(W-30,150);x.stroke();
+  x.strokeStyle=C.frame;x.lineWidth=1;x.beginPath();x.moveTo(30,150);x.lineTo(W-30,150);x.stroke();
   const y2=200;
   itemToken(x,W*.1,y2,40,'shield',t,.7);txt(x,'바닥 · 남은 10초 고리',W*.1,256,11,C.muted,'center',500);
   itemToken(x,W*.3,y2,40,'coin',t,.2,true);txt(x,'3초 전부터 깜빡임',W*.3,256,11,C.muted,'center',500);
@@ -370,15 +374,24 @@ function drawItems(t){const c=document.getElementById('c-items');const x=c.getCo
   hero(x,W*.9,y2,-Math.PI/2,.388,KR,t);auraShield(x,W*.9,y2,t);txt(x,'방패 중',W*.9,256,11,C.muted,'center',500);
 }
 
+function drawBankrupt(t){const x=ctxOf('c-bankrupt');field(x,0);x.fillStyle='rgba(7,8,12,.6)';x.fillRect(0,0,W,H);
+  hero(x,W*.15,H*.62,-Math.PI/2,.05,KR,t,'spain',190);
+  circ(x,W/2,H*.17,26,null,C.gold,3);x.strokeStyle=C.gold;x.lineWidth=3;x.beginPath();x.moveTo(W/2-18,H*.17-18);x.lineTo(W/2+18,H*.17+18);x.stroke();txt(x,'€',W/2,H*.17,22,C.gold);
+  txt(x,'Bancarrota',W/2,H*.33,28,C.fg);txt(x,'(파산 · 그 나라 언어로)',W/2,H*.33+22,11,C.muted,'center',500);
+  drawFlag(x,'es',W/2-62,H*.45,36,24);txt(x,'España',W/2+14,H*.45+12,16,C.fg,'center',600);
+  for(let i=0;i<6;i++)circ(x,W/2-110+i*16,H*.6,5,i<5?C.gold:C.btn2);txt(x,'€0',W/2+20,H*.6,15,C.amber,'left',700);
+  btnSub(x,W*.4,H*.82,28,'globe');btnMain(x,W*.6,H*.82,36,'retry');
+}
+
 /* ===== 6. 반짝임 비교 ===== */
 function drawGlow(t){const c=document.getElementById('c-glow');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);
   x.fillStyle=C.bg;x.fillRect(0,0,W,230);
-  [[1,'돈 100 · 룩셈부르크 시작'],[.388,'돈 38.8 · 한국 시작'],[.146,'돈 14.6 · 콜롬비아 시작'],[.021,'돈 2.1 · 콜롬비아 6라운드']].forEach(([m,l],i)=>{const px=W*(.14+i*.24);
-    hero(x,px,100,-Math.PI/2,m,KR,t);txt(x,l,px,180,13,C.muted,'center',600);txt(x,'반짝임 '+Math.round((.25+.65*m)*100)+'%',px,200,11,C.gold,'center',500);});
+  [[1,'100 · 룩셈부르크 시작'],[.388,'38.8 · 한국 시작'],[.146,'14.6 · 콜롬비아 시작'],[.013,'1.3 · 한국 6라운드']].forEach(([m,l],i)=>{const px=W*(.14+i*.24);
+    hero(x,px,96,-Math.PI/2,m,KR,t,'korea',110);txt(x,l,px,180,13,C.muted,'center',600);txt(x,'반짝임 '+Math.round((.25+.65*m)*100)+'%',px,200,11,C.gold,'center',500);});
 }
 
 /* 색상 표 */
-const PAL=[['배경','#0E1726','전장 바닥'],['바닥 격자','#18263F','64px 간격'],['전장 경계','#2B4166','2px 벽'],['장수 몸','국기 색','흰 테두리 #F4F7FB'],['장수 반짝임(돈)','#FFD166','투명도 0.25~0.9'],['우리 공격','#FFE08A','금빛 원'],['외계인 A','#B14DFF','육각형'],['외계인 B','#7CFF4F','삼각형'],['외계인 공격','#FF4FD8','분홍 마름모'],['위험','#FF5A5F','맞을 때 · HP 25% 이하'],['돈 감소 숫자','#F4B860','빨강 대신 호박색'],['HP 막대','#3DDC97','보상형 버튼과 같은 초록'],['글자','#F4F7FB',''],['보조 글자','#8FA3BF','출처·연도'],['보조 버튼','#24365A',''],['아이템 · 분노','#FF7A3D','불꽃'],['아이템 · 방패','#5BC8FF','방패 · 장수 둘레 막'],['아이템 · 폭탄','#C9D3E3','검은 폭탄 + 불똥'],['아이템 · 금화','#FFD166','돈 아이콘과 같음']];
+const PAL=[['배경(화면 밖)','#0F1116','그림 모음 배경과 같은 어두운 철색'],['전장 바닥(임시)','#151820','3차 그림 room.png가 오면 바뀜'],['패널','#18161A','투명도 0.94 · 테두리 #8C6B32'],['패널 테두리(낡은 금)','#8C6B32','그림의 금장식 그림자색'],['주 버튼(금)','#D9AE4F','그림의 금장식 밝은 색 · 아이콘 #1A1410'],['보조 버튼','#2C2A30','철색'],['글자(양피지)','#F2E3C6','그림의 밝은 천·양피지색'],['보조 글자','#B1A599','그림의 강철 밝은 색'],['장수 금빛(돈)','#FFD166','발밑 빛 · 투명도 0.25~0.9'],['HP 막대','#3DDC97',''],['위험','#FF5A5F','맞을 때 · HP 25% 이하'],['돈 감소 숫자','#F4B860','빨강 대신 호박색'],['외계인 A(임시)','#B14DFF','따뜻한 그림과 반대인 형광색'],['외계인 B(임시)','#7CFF4F',''],['외계인 공격','#FF4FD8','']];
 document.getElementById('palette').innerHTML=PAL.map(([a,b,c])=>`<tr><td>${a}</td><td>${b.startsWith('#')?`<span class="sw" style="background:${b}"></span><code>${b}</code>`:b}</td><td>${c}</td></tr>`).join('');
 
 /* 소리 (sound.draft.md 그대로) */
@@ -410,6 +423,6 @@ const sw=document.getElementById('sounds');SND.forEach(([l,f])=>{const b=documen
 
 /* 그리기 */
 drawSelect();
-function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawGlow(t);drawItems(t);if(!reduce)requestAnimationFrame(frame);}
+function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawGlow(t);drawItems(t);if(!reduce)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
