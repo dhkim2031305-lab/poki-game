@@ -45,6 +45,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 </header>
 
 <section>
+  <h2>검기 시안 <small>사용자 "검기 모션그래픽 잘 만들어보자" · 흰·은·옅은 금 한 계열</small></h2>
+  <p>칼이 지나간 자리에 남는 빛(검기)을 세 가지로 만들었어요. <b>A 궤적형</b>: 칼끝을 따라 끝이 가늘어지는 초승달 빛이 휘어지며 남고 사라져요. <b>B 날아가는 검기</b>: 휘두른 초승달 빛이 앞으로 날아가 외계인을 베고 지나가요. <b>C 3연격</b>: 베기 → 반대로 베기 → 마무리 십자 베기로 이어져요. 셋 다 맞는 순간 0.05초 멈춤과 베인 자국 선이 들어가요.</p>
+  <div class="phone"><canvas id="c-geom" width="1688" height="840" style="aspect-ratio:844/420"></canvas></div>
+</section>
+
+<section>
   <h2>0. 1차 게임 모션·효과 전/후 <small>사용자 "모션이 안 이쁜 게 많다" · 왼쪽 = 지금 게임, 오른쪽 = 고친 안</small></h2>
   <p>개발팀 1차 게임을 직접 돌려 보고 어색한 곳 5가지를 골랐어요. ① 치기: 칼자국이 몸에서 떨어진 큰 초승달로 보여요 → 손 높이에서 몸 크기에 맞게 휘두르고, 몸이 앞으로 살짝 나가며, 맞는 순간 0.05초 멈춰요. ② 쏘기: 칼 나라도 작은 화살·선이 날아가요 → <b>든 무기가 돌며 날아가요</b>(사용자 결정). ③ 화살·총탄이 너무 가늘어요 → 키웠어요. ④ 걷기: 장수가 작고 어두운 바닥에 묻혀요 → 키 60→72px, 테두리 빛, 발걸음 먼지. ⑤ 외계인 처치: 그냥 사라져요 → 하얗게 번쩍, 쪼그라들며 파편.</p>
   <div class="phone"><canvas id="c-ba" width="1688" height="1300" style="aspect-ratio:844/650"></canvas></div>
@@ -554,6 +560,46 @@ function drawBA(t){const c=document.getElementById('c-ba');const x=c.getContext(
     x.restore();}});
 }
 
+/* ===== 검기 ===== */
+function crescent(x,cx,cy,R,a0,a1,th,alpha,warm){ // 끝이 가는 초승달: 바깥 호 R, 안쪽 호는 중심을 밀어 두께 th
+  if(a1<a0)[a0,a1]=[a1,a0];const mid=(a0+a1)/2,ox=Math.cos(mid)*th*.9,oy=Math.sin(mid)*th*.9;
+  x.save();x.globalCompositeOperation='lighter';x.globalAlpha=alpha;
+  const g=x.createRadialGradient(cx,cy,R-th*1.2,cx,cy,R+2);g.addColorStop(0,'rgba(201,206,214,0)');g.addColorStop(.55,warm?'rgba(232,217,168,.55)':'rgba(201,206,214,.55)');g.addColorStop(.85,'rgba(255,255,255,.95)');g.addColorStop(1,'rgba(255,255,255,0)');
+  x.shadowColor=warm?'rgba(232,217,168,.9)':'rgba(220,226,235,.9)';x.shadowBlur=14;x.fillStyle=g;x.beginPath();x.arc(cx,cy,R,a0,a1);x.arc(cx-ox,cy-oy,R-th*.2,a1,a0,true);x.closePath();x.fill();x.shadowBlur=0;
+  x.globalAlpha=alpha*.9;x.strokeStyle='#FFFFFF';x.lineWidth=1.6;x.beginPath();x.arc(cx,cy,R-1,a0+(a1-a0)*.15,a1);x.stroke();x.restore();}
+function slashMark(x,px,py,ang,q){if(q<0||q>1)return;x.save();x.globalCompositeOperation='lighter';x.globalAlpha=1-q;x.strokeStyle='#FFFFFF';x.lineWidth=3*(1-q)+.5;const L=26+q*10;x.beginPath();x.moveTo(px-Math.cos(ang)*L,py-Math.sin(ang)*L);x.lineTo(px+Math.cos(ang)*L,py+Math.sin(ang)*L);x.stroke();
+  for(let i=0;i<5;i++){const a=ang+Math.PI/2+(i-2)*.35,d=q*18;circ(x,px+Math.cos(a)*d,py+Math.sin(a)*d,1.6*(1-q),SKG);}x.restore();}
+function sparks(x,cx,cy,R,a,q,n=5){x.save();x.globalCompositeOperation='lighter';for(let i=0;i<n;i++){const aa=a+(i-n/2)*.12,d=R+q*20+i*2;x.globalAlpha=(1-q)*.8;circ(x,cx+Math.cos(aa)*d,cy+Math.sin(aa)*d,1.5,i%2?SKG:'#fff');}x.restore();}
+const eout=p=>1-Math.pow(1-p,4);
+function geomCell(x,ox,w,label,sub,t,mode){const H2=420;rr(x,ox+6,8,w-12,H2-16,12,'#151820',C.frame,1);if(IMG.room){x.save();x.beginPath();x.roundRect(ox+7,9,w-14,H2-18,12);x.clip();x.globalAlpha=.45;x.drawImage(IMG.room,ox-250,-120,950,560);x.restore();}
+  txt(x,label,ox+w/2,32,15,C.fg,'center',700);txt(x,sub,ox+w/2,52,10,C.muted,'center',500);
+  const P=mode==='C'?2.0:1.5,p=(t%P)/P,hx=ox+70,fy=300,hh=110,cy=fy-hh*.5,ax=ox+w-80;
+  x.save();x.beginPath();x.rect(ox+7,60,w-14,H2-70);x.clip();
+  x.fillStyle='rgba(0,0,0,.45)';x.beginPath();x.ellipse(hx,fy,26,8,0,0,Math.PI*2);x.fill();x.beginPath();x.ellipse(ax,fy,30,9,0,0,Math.PI*2);x.fill();
+  let hitAt=.18,frame=0,lunge=0;
+  if(mode==='A'){const sw=Math.min(1,p/.16);frame=p<.05?5:p<.3?6:0;lunge=p<.3?Math.sin(Math.min(1,p/.3)*Math.PI)*8:0;
+    const a0=-2.1,aEnd=1.1,head=a0+(aEnd-a0)*eout(sw);const fade=p<.16?1:Math.max(0,1-(p-.16)/.28);
+    if(fade>0){for(let k=0;k<6;k++){const lag=k*.18;const tail=Math.max(a0,head-1.6-lag*.2);crescent(x,hx+18+lunge,cy,hh*.62-k*1.5,tail,head-lag*.05,17-k*2.2,fade*(1-k*.15),k%2);}sparks(x,hx+18+lunge,cy,hh*.62,head,1-fade);}
+    hitAt=.12;}
+  if(mode==='B'){frame=p<.05?5:p<.3?6:0;lunge=p<.25?Math.sin(Math.min(1,p/.25)*Math.PI)*6:0;
+    const sw=Math.min(1,p/.12);if(p<.2){crescent(x,hx+18,cy,hh*.55,-1.6,-1.6+2.8*eout(sw),9,1-Math.max(0,(p-.12)/.08),0);}
+    const q=(p-.1)/.32;if(q>=0&&q<=1.15){const qx=hx+30+(ax-hx-10)*Math.min(1,q),sc=.8+q*.35,al=q<1?1:Math.max(0,1-(q-1)/.15);
+      for(let k=3;k>=0;k--){crescent(x,qx-k*14,cy,hh*.42*sc,-1.25,1.25,19*sc,al*(k?.18*(4-k):1),k===0);}
+      x.save();x.globalCompositeOperation='lighter';x.globalAlpha=al*.5;x.strokeStyle=SKS;x.lineWidth=1.2;for(const d of[-26,-8,10,28]){x.beginPath();x.moveTo(qx-70,cy+d);x.lineTo(qx-20,cy+d*.9);x.stroke();}x.restore();}
+    hitAt=.42;}
+  if(mode==='C'){const segs=[[0,.18,-2.1,1.0,0],[.22,.40,1.4,-1.9,1],[.48,.70,-2.6,.9,0]];frame=0;
+    segs.forEach(([s0,s1,a0,a1,warm],i)=>{if(p>=s0&&p<s1+.2){const sw=Math.min(1,(p-s0)/(s1-s0)*1.6),head=a0+(a1-a0)*eout(sw),fade=p<s1?1:1-(p-s1)/.2;frame=p<s1?6:frame;
+      for(let k=0;k<4;k++){const tail=a0<a1?Math.max(a0,head-1.3):Math.min(a0,head+1.3);crescent(x,hx+20+i*4,cy+(i===2?-6:0),hh*(.58+i*.06)-k*1.5,tail,head,15-k*2.4,fade*(1-k*.2),warm);}}});
+    if(p>.68&&p<.9){const q=(p-.68)/.22;x.save();x.globalCompositeOperation='lighter';x.globalAlpha=1-q;x.strokeStyle='#fff';x.lineWidth=4*(1-q)+1;const L=40+q*20;
+      for(const a of[.75,-.75]){x.beginPath();x.moveTo(ax-Math.cos(a)*L,cy-Math.sin(a)*L);x.lineTo(ax+Math.cos(a)*L,cy+Math.sin(a)*L);x.stroke();}x.restore();}
+    hitAt=.1;}
+  frameSprite(x,'korea',frame,hx+lunge,fy,hh,{});
+  const hits=mode==='C'?[.12,.34,.7]:[hitAt];let flash=0,push=0;hits.forEach(h=>{const q=(p-h)/.3;if(q>=0&&q<1){flash=Math.max(flash,q<.25?1:0);push=Math.max(push,(1-q)*10);slashMark(x,ax-4,cy+6,mode==='C'&&h===.34?-.7:.7,q);}});
+  sprite(x,'alien-grunt',ax+push,fy,74,{bright:flash?2.6:1,flip:true});
+  x.restore();}
+function drawGeom(t){const c=document.getElementById('c-geom');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);x.fillStyle=C.bg;x.fillRect(0,0,W,420);
+  const w=W/3;geomCell(x,0,w,'A 궤적형','칼끝을 따라 남는 초승달 빛',t,'A');geomCell(x,w,w,'B 날아가는 검기','초승달 빛이 앞으로 날아가 벰',t,'B');geomCell(x,2*w,w,'C 3연격','베기 → 반대 베기 → 십자 마무리',t,'C');}
+
 /* ===== 스킬 5유형 ===== */
 const SKW='#FFFFFF',SKS='#C9CED6',SKG='#E8D9A8';
 const SKICON={
@@ -697,6 +743,6 @@ const sw=document.getElementById('sounds');SND.forEach(([l,f])=>{const b=documen
 
 /* 그리기 */
 drawSelect();
-function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);drawAll30(t);drawBA(t);drawSkill(t);if(!reduce)requestAnimationFrame(frame);}
+function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);drawAll30(t);drawBA(t);drawSkill(t);drawGeom(t);if(!reduce)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
