@@ -1457,17 +1457,18 @@
     // 정보 패널
     const c = COUNTRIES[G.sel], st = stats(c.money), px = VW * .63, pw = VW * .31, cx = px + pw / 2;
     UI.panel(px, VH * .05, pw, VH * .9);
-    ctx.save(); ctx.globalAlpha = .9; ctx.fillStyle = `rgba(255,209,102,${.15 + .5 * c.money / 100})`; ctx.beginPath(); ctx.ellipse(cx, VH * .05 + 118, 34, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.globalAlpha = .9; ctx.fillStyle = 'rgba(255,209,102,.4)'; ctx.beginPath(); ctx.ellipse(cx, VH * .05 + 118, 34, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     UI.hero(c.key, cx, VH * .05 + 118, 108, { sy: reduceMotion ? 1 : 1 + Math.sin(G.t * 2.2) * .015 });
     UI.flag(c.iso, cx - 70, VH * .05 + 130, 22, 15);
     UI.txt(c.native, cx + 12, VH * .05 + 138, 20, COL.fg, 'center', 800, pw - 70);
-    UI.txt(`${UI.money(c, c.money)} · #${c.rank}`, cx, VH * .05 + 162, 17, COL.gold, 'center', 800);
-    const bars = [['heart', st.hp, st.F, COL.red], ['sword', st.melee.toFixed(1), st.F, COL.fg], ['speed', Math.round(st.speed), st.S, COL.fg], ['bolt', BAL.SKILL_PER_RUN, 1, COL.glow]];
+    UI.txt(`??? · #${c.rank}`, cx, VH * .05 + 162, 17, COL.gold, 'center', 800);   // 시작 돈 가림 (GDD 0-13)
+    // 능력치는 숫자·막대 모두 "???" (GDD 0-13 사용자 "그냥??? 이렇게 해버려") · 스킬 횟수는 모든 나라 같은 규칙이라 그대로
+    const bars = [['heart', '???', 0, COL.red], ['sword', '???', 0, COL.fg], ['speed', '???', 0, COL.fg], ['bolt', BAL.SKILL_PER_RUN, 1, COL.glow]];
     bars.forEach(([ic, v, f, icc], i) => {
       const y = VH * .05 + 186 + i * 17;
       UI.I[ic](px + 22, y, 14, icc); UI.bar(px + 36, y - 4, pw - 84, 8, f, COL.glow); UI.txt(String(v), px + pw - 14, y, 11, COL.fg, 'right', 700);
     });
-    UI.txt(t_('ui.08'), cx, VH * .05 + 260, 10.5, COL.muted, 'center', 600, pw - 16);
+    UI.txt('???', cx, VH * .05 + 260, 10.5, COL.muted, 'center', 600, pw - 16);   // 출처 가림 (GDD 0-13)
     UI.btnWide('confirm', cx, VH * .95 - 32, Math.min(160, pw - 20), 44, 'play', t_('ui.01'), 'main');
   }
 
@@ -2031,10 +2032,9 @@
     UI.I.coin(x + 108, y + 94, 22, c.sym);
     UI.txt(`${UI.money(c, p.old)} → ${UI.money(c, m)}`, x + 124, y + 94, 16, COL.gold, 'left', 800);
     UI.txt(`−${BAL.D}`, x + w - 20, y + 94, 16, COL.amber, 'right', 800);
-    const s0 = stats(p.old), s1 = stats(m);
-    [['heart', s1.F, s0.F, COL.red], ['sword', s1.F, s0.F, COL.fg], ['speed', s1.S, s0.S, COL.fg], ['bolt', 1, 1, COL.glow]].forEach(([ic, v, pv, icc], i) => {
+    [['heart', COL.red], ['sword', COL.fg], ['speed', COL.fg]].forEach(([ic, icc], i) => {   // 능력치 "???" (GDD 0-13)
       const by = y + 122 + i * 17;
-      UI.I[ic](x + 112, by, 13, icc); UI.bar(x + 126, by - 4, 140, 8, v, COL.glow, pv);
+      UI.I[ic](x + 112, by, 13, icc); UI.txt('???', x + 128, by, 12, COL.muted, 'left', 700);
     });
     for (let i = 0; i < 6; i++) {
       const dx = VW / 2 - 45 + i * 18, dy = y + hh - 16;
@@ -2092,8 +2092,7 @@
     const btns = [['quit', 'back', t_('x.quit'), 'sub'], ['restart', 'retry', t_('ui.05'), 'main']];
     if (adId) btns.push([adId, 'video', t_('ui.06'), 'ad']);
     const x0 = cx - (btns.length * bw + (btns.length - 1) * gap) / 2 + bw / 2 + (btns.length === 3 ? 30 : 0);
-    btns.forEach(([id, ic, label, kind], i) => UI.btnWide(id, x0 + i * (bw + gap), by, bw, bh, ic, label, kind));
-    UI.txt(t_('ui.08'), cx, VH * .96, 10.5, COL.muted, 'center', 600);
+    btns.forEach(([id, ic, label, kind], i) => UI.btnWide(id, x0 + i * (bw + gap), by, bw, bh, ic, label, kind));   // 출처 줄은 뺐어요 (GDD 0-13)
   }
 
   // ---------- 루프 ----------
