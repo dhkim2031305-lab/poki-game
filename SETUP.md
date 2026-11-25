@@ -9,7 +9,7 @@
 - 2D 한 손 아케이드라 엔진이 필요 없고, 웹게임 유저는 폰 비중이 높아 **첫 로딩 용량이 작을수록 유리**해요.
 - AI(Claude·GPT)가 코드 전부를 직접 수정할 수 있어 반복 작업이 빨라요.
 - 사이트마다 광고 SDK가 달라서, **게임은 공통 함수(`Platform`)만 부르고** 빌드할 때 사이트별 SDK를 끼워 넣어요.
-- 현재 업로드 ZIP 크기: 사이트별 **약 4KB** (SDK는 각 사이트 CDN에서 불러와서 포함 안 됨).
+- 현재 업로드 ZIP 크기: 사이트별 **약 1016KB** (그림 에셋 포함, 2026-11-25). SDK는 각 사이트 CDN에서 불러와서 포함 안 됨.
 
 ## 2. 지원 사이트
 
@@ -41,8 +41,12 @@ poki-game/
 ├── src/                    ← 공통 게임 본체 (모든 사이트 같은 코드)
 │   ├── index.html          ← 진입점. <!-- PLATFORM_SDK --> 자리에 사이트별 SDK가 들어가요
 │   ├── style.css           ← 전체화면 캔버스, 스크롤/확대/길게누르기 방지
-│   ├── assets/             ← 이미지·소리 (디자인팀)
-│   └── game.js             ← 게임 로직 (지금은 테스트용 점프 게임). window.Platform만 사용
+│   ├── assets/             ← 이미지 (디자인팀): hero/ sheet/ alien/ item/ flag/ room.webp
+│   ├── data.js             ← balance.md 수치 (30개국·통화 배율·외계인 표) + 개발팀 임시 값(TEMP)
+│   ├── i18n.js             ← texts.md 문구 (1차: 한국어·영어, 없는 언어는 영어)
+│   ├── audio.js            ← sound.md 효과음 (Web Audio, 파일 0KB)
+│   ├── ui.js               ← 그리기 도구·아이콘 (디자인 시안 함수 재사용)
+│   └── game.js             ← 게임 본체: 규칙·입력·화면·광고. window.Platform만 사용
 ├── platforms/              ← 사이트별 어댑터. 빌드 때 선택된 것이 platform.js가 돼요
 │   ├── poki.js
 │   ├── crazygames.js
@@ -122,7 +126,7 @@ npm run build -- poki web      # 여러 개
 
 ## 9. 다음 할 일
 
-- [ ] 실제 게임 기획 확정 후 `src/game.js` 교체 (어댑터·빌드는 그대로 재사용)
+- [x] 실제 게임 기획 확정 후 `src/game.js` 교체 (2026-11-25 1차)
 - [ ] 올릴 사이트 확정 → 각 개발자 계정 만들기, 독점 조건 확인
 - [ ] GameDistribution 쓰면 gameId 발급 후 `platforms.config.json`에 입력
 - [ ] 에셋(이미지·소리) 추가 시 로딩 화면 + `loadingFinished` 위치 조정
@@ -162,3 +166,9 @@ npm run build -- poki web      # 여러 개
 - 출시팀 신설 (`teams/5-출시/`, 에이전트 `releaser`): 사이트별 요구사항, 스토어 자료, 업로드 기록
 - 세션은 팀 단위 5개, 파트는 팀 세션 안에서 처리
 - GitHub 비공개 저장소 `dhkim2031305-lab/poki-game` 연결, `main` 브랜치에 업로드. 팀별 세션 5개는 이 저장소에서 시작
+
+### 2026-11-25 (개발팀 1차)
+- `src/game.js`를 실제 게임으로 교체하고 `data.js`·`i18n.js`·`audio.js`·`ui.js`로 나눔. `index.html`이 순서대로 불러요 (platform → data → i18n → audio → ui → game)
+- 개발 서버(`tools/server.js`)에 `.webp` 형식 추가 (전엔 일반 파일로 나가서 이미지가 깨질 수 있었어요)
+- 실행 점검 스크립트: `teams/3-개발/test/` (Playwright, 사용법은 그 폴더 README)
+- 화면: 가상 해상도 844×390 기준으로 그리고, 전장은 16:9(693×390)로 가운데 고정. 넓은 화면은 양옆을 어둡게 채워요
