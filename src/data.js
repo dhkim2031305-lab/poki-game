@@ -136,7 +136,7 @@
     netherlands: [{ k: 'lastHit', div: 8, last: .4, n: 5 }, { k: 'blink', mul: .9 }],
     denmark: [{ k: 'advance', mul: .5 }, { k: 'grow', mul1: .6, mul2: .4 }],
     austria: [{ k: 'prints', mul: .7, div: 8 }, { k: 'twoRings', mul: .5 }],
-    australia: [{ k: 'boomer', out: .4, back: .4 }, { k: 'cross', div: 4 }],
+    australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 4 }],
     germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
     sweden: [{ k: 'clones', mul: .7 }, { k: 'counter', mul: .8 }],
     canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'omni', time: 1.5 }],

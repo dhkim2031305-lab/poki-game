@@ -648,13 +648,14 @@
         if (m.k === 'pierce') { kind = 'lance'; extra.hits = new Set(); }                                      // 스위스 2: 꿰뚫기
         else if (m.k === 'bounce') { kind = 'beam'; extra.bounce = 1; }                                        // 미국 1: 벽에 한 번 튕김
         else if (m.k === 'lastHit') { const last = b.n === b.N - 1; kind = last ? 'star' : 'streak'; dmg = last ? b.base * m.last : b.base / m.div; }   // 네덜란드 1: 마지막 3배
-        else if (m.k === 'boomer') { kind = 'boomerang'; extra.hits = new Set(); extra.big = 1.8; dmg = b.base * m.out; extra.dmgBack = b.base * m.back; sp = TEMP.SHOT_SPEED; }   // 호주 1: 큰 부메랑 하나, 가고 오며
+        else if (m.k === 'boomer') { kind = 'boomerang'; extra.hits = new Set(); extra.big = 1.1; dmg = b.base * m.out; extra.dmgBack = b.base * m.back; sp = TEMP.SHOT_SPEED; }   // 호주 1: 부메랑 5개 부채꼴 (기획 2026-11-25), 하나당 가고 오며
         else if (m.k === 'stick') { kind = 'axe'; dmg = b.base * m.mul; extra.stick = b.base / m.div; extra.life = .45; sp = TEMP.SHOT_SPEED * .9; }   // 캐나다 1: 바닥에 박혀 2초
         else if (m.k === 'lob') { kind = 'sling'; extra.lob = dmg; dmg = 0; extra.life = .5; sp = 300; extra.noHit = true; }   // 이스라엘 1: 포물선으로 떨어진 자리
         else if (kind === 'boomerang') extra.hits = new Set();
         if (m.k === 'stepThrust') { const fl = FIELD.floor; h.x = clamp(h.x + dx * 12, fl.x0 + 12, fl.x1 - 12); h.y = clamp(h.y + dy * 10, fl.y0 + 22, fl.y1); kind = 'streak'; }   // 이탈리아 2: 찌를 때마다 한 걸음
-        const angs = m.k === 'spread3' ? [a - .26, a, a + .26] : [a];   // 한국 2: 세 갈래
-        for (const q of angs) G.shots.push(Object.assign({ kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra));
+        const angs = m.k === 'spread3' ? [a - .26, a, a + .26] : m.k === 'boomer' ? [-2, -1, 0, 1, 2].map(i => a + i * m.fan) : [a];   // 한국 2: 세 갈래 · 호주 1: 다섯 갈래
+        if (m.k === 'boomer') extra.hits = null;   // 부메랑마다 따로 (아래에서 새로)
+        for (const q of angs) G.shots.push(Object.assign({ kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null));
         G.fx.push({ kind: 'skill', type: 'barrage', x: h.x + dx * 26, y: h.y - 24 + dy * 10, h0: 24 - dy * 10, a, t: 0, life: .22 });
         h.rangedT = .2; h.aimShot = a; h.atkT = .12; b.n++;
         AUDIO.play('attack');
