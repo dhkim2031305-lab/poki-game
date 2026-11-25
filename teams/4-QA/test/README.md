@@ -1,0 +1,19 @@
+# QA 실행 검사 스크립트 (헤드리스 크롬 · Playwright)
+
+먼저 `npm run dev`(8080)를 켜요. `sdk.js`만 빌드한 ZIP을 풀어 다른 포트(예: `python3 -m http.server 8090`)로 띄워요. OUT은 캡처를 넣을 폴더예요.
+이 서버는 GPU가 없어 3D가 초당 4~5장이에요. 입력 타이밍 검사는 `?render=2d`로 해요.
+
+| 파일 | 하는 일 | 예 |
+|---|---|---|
+| `skills60.js` | 30개국 × 스킬 1·2번 실행 → 외계인별 피해(80×F 배수)·제어 시간·무적·남은 횟수 | `node skills60.js OUT 8080 [0,16]` (나라 번호 0~29) |
+| `boss-control.js` | 제어 스킬(핀란드1·리투아니아2·칠레1·콜롬비아1)이 보스에 0.3초 멈춤만 거는지 | `node boss-control.js` |
+| `hero-effects.js` | 이탈리아1·캐나다2·뉴질랜드1 이동, 체코1 피해 절반, 프랑스2 벽 충돌 | `node hero-effects.js` |
+| `controls.js` | PC 더블클릭·좌우 동시·L ; Space 횟수, 폰 버튼 크기·두 번 누르기 | `node controls.js OUT 8080 2d` |
+| `ranged.js` | 30개국 원거리 탄 종류·부메랑 돌아옴 캡처 | `node ranged.js OUT` |
+| `economy.js` | 라운드를 강제로 깨며 돈·파산 시점 | `node economy.js OUT 8080 0 10` |
+| `shout-edge.js` | 외침 말풍선이 화면 끝에서 잘리는지 캡처 | `node shout-edge.js OUT` |
+| `ios.js` | WebGL 없음 → 2D, `?debug=1`, 한 파일 빌드 바깥 요청 | `node ios.js OUT /절대경로/dist/single.html` |
+| `sdk.js` | 빌드 ZIP + 가짜 SDK: 호출 순서, 광고 중 무음·입력 막힘, SDK 막힘 | `node sdk.js OUT poki 8090 [block]` |
+| `misc.js` | 기록 저장·저장소 막힘·페이지 스크롤 | `node misc.js` |
+| `recheck.js` | 능력치 ???·무적 시간·1위 보정 다시 보기 | `node recheck.js OUT` |
+| `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
