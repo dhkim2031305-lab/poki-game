@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오른쪽 큰 원 화살표</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:900px}
+h2{font-size:16px;margin:18px 0 8px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.card{background:var(--card);border-radius:12px;padding:10px;max-width:100%}
+.card h3{font-size:13px;margin:0 0 6px;color:var(--sub);font-weight:600}
+canvas{display:block;border-radius:6px;max-width:100%;height:auto}
+table{border-collapse:collapse;margin:6px 0 10px}td,th{border:1px solid #3a3d4f;padding:4px 10px;text-align:left}
+</style></head><body>
+<h1>오른쪽: 큰 원 + 화살표 4개 (사용자 안)</h1>
+<p>가운데 손잡이를 밀면 그 방향으로 쏘기가 계속 나가요. 원 테두리 밖으로 튀어나온 화살표 4개가 각각 치기 · 무적 · 스킬1 · 스킬2예요. 실제 화면 픽셀 크기(1배)로 그렸어요. 노란 점선은 오른손 엄지가 편하게 닿는 범위, 빨간 박스는 HUD 자리예요.</p>
+<table><tr><th>방향</th><th>동작</th><th>쓰는 법</th><th>이유</th></tr>
+<tr><td>← 왼쪽</td><td>치기</td><td>톡 = 가까운 적 쪽 · 끌기 = 끈 방향</td><td>가장 자주 눌러요. 엄지가 안쪽으로 펴는 자리라 제일 편해요</td></tr>
+<tr><td>↑ 위</td><td>스킬1 (5)</td><td>끌어서 조준 → 놓으면 그 자리</td><td>위에서 전장 쪽으로 끌기 쉬워요</td></tr>
+<tr><td>↓ 아래</td><td>스킬2 (5)</td><td>끌어서 조준 → 놓으면 그 자리</td><td>엄지를 굽히면 닿아요. 끌어 올려 쓰면 돼요</td></tr>
+<tr><td>→ 오른쪽</td><td>무적 (2)</td><td>톡 누르면 바로</td><td>엄지 뿌리 바로 옆이라 급할 때 펴지 않고 눌러요</td></tr></table>
+<p><b style="color:#eef0f6">헷갈림 막기:</b> 처음 닿은 자리로만 정해요. 원 안에서 시작하면 쏘기 손잡이, 화살표에서 시작하면 그 동작이고, 끄는 도중에는 바뀌지 않아요. 화살표는 원 밖으로 튀어나온 진한 판이고 손잡이는 옅은 원이라 모양부터 달라요.</p>
+<div class="row" id="R"></div>
+<script>
+const SCREENS=[[568,320,'idle'],[667,375,'idle'],[844,390,'idle'],[844,390,'drag']];
+// 게임 좌표(844×390 기준). 큰 원 중심 = (VW-130, VH-130)
+const C={dx:130,dy:130,R:56,knob:26,arm:66,gap:4};
+const ARROWS=[{k:'치기',ang:180,icon:'sword'},{k:'스킬1',ang:270,icon:'1',n:5},{k:'스킬2',ang:90,icon:'2',n:5},{k:'무적',ang:0,icon:'shield',n:2}];
+const WH='#FFFFFF',SV='#C9CED6',GD='#E8D9A8';
+function icon(x,t,cx,cy,s){x.fillStyle='#fff';x.strokeStyle='#fff';
+ if(t==='shield'){const k=s*.42;x.beginPath();x.moveTo(cx,cy-k);x.lineTo(cx+k*.85,cy-k*.6);x.quadraticCurveTo(cx+k*.8,cy+k*.5,cx,cy+k);x.quadraticCurveTo(cx-k*.8,cy+k*.5,cx-k*.85,cy-k*.6);x.closePath();x.fill()}
+ else if(t==='sword'){const k=s*.42;x.lineWidth=Math.max(2,s*.07);x.beginPath();x.moveTo(cx-k,cy+k);x.lineTo(cx+k,cy-k);x.stroke();x.beginPath();x.moveTo(cx-k*.7,cy+k*.15);x.lineTo(cx-k*.15,cy+k*.7);x.stroke()}
+ else{x.font=`bold ${Math.round(s*.5)}px system-ui`;x.textAlign='center';x.textBaseline='middle';x.fillText(t,cx,cy+1);x.textBaseline='alphabetic'}}
+SCREENS.forEach(([w,h,mode])=>{
+ const U=Math.min(w/844,h/390),VW=w/U,VH=h/U;
+ const d=document.createElement('div');d.className='card';d.innerHTML=`<h3>${w}×${h} (배율 ${U.toFixed(2)})${mode==='drag'?' · 스킬1을 위 화살표에서 끄는 중':''}</h3><canvas width="${w}" height="${h}" style="width:${w}px"></canvas>`;
+ document.getElementById('R').appendChild(d);const x=d.querySelector('canvas').getContext('2d');
+ x.fillStyle='#2b2a33';x.fillRect(0,0,w,h);x.strokeStyle='rgba(255,255,255,.04)';for(let i=0;i<w;i+=32){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke()}for(let j=0;j<h;j+=32){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke()}
+ x.strokeStyle='rgba(255,90,90,.8)';x.setLineDash([4,3]);x.lineWidth=1;
+ for(const [l,t,ww,hh,n] of [[2,4,26,30,'HP·돈'],[40,3,20,18,'라운드'],[89,3,9,15,'‖']]){x.strokeRect(l/100*w,t/100*h,ww/100*w,hh/100*h);x.fillStyle='rgba(255,90,90,.9)';x.font='10px system-ui';x.textAlign='left';x.fillText(n,l/100*w+3,t/100*h+12)}
+ x.setLineDash([]);
+ // 왼쪽 이동
+ const lx=VW*.15*U,ly=VH*.72*U;x.fillStyle='rgba(255,255,255,.15)';x.beginPath();x.arc(lx,ly,64*U,0,7);x.fill();x.fillStyle='rgba(255,255,255,.5)';x.beginPath();x.arc(lx,ly,28*U,0,7);x.fill();
+ x.fillStyle='#cfd3dc';x.font='11px system-ui';x.textAlign='center';x.fillText('이동',lx,ly+64*U+13);
+ const hx=VW*.42*U,hy=VH*.62*U;x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(hx,hy,10,4,0,0,7);x.fill();x.fillStyle='#8a5a3c';x.fillRect(hx-6,hy-20,12,17);x.fillStyle='#d9b38c';x.beginPath();x.arc(hx,hy-25,6,0,7);x.fill();
+ // 엄지 범위
+ const tr=Math.min(h*.75,290);x.strokeStyle='rgba(255,214,102,.75)';x.setLineDash([6,5]);x.lineWidth=1.5;x.beginPath();x.arc(w+4,h+14,tr,Math.PI,Math.PI*1.5);x.stroke();x.setLineDash([]);
+ const cx=(VW-C.dx)*U,cy=(VH-C.dy)*U,R=C.R*U;
+ // 끄는 중: 조준 표시 (0-17 범위형)
+ if(mode==='drag'){const tx=VW*.62*U,ty=VH*.35*U;x.save();x.translate(tx,ty);x.scale(1,.6);x.fillStyle='rgba(255,255,255,.1)';x.beginPath();x.arc(0,0,70*U,0,7);x.fill();x.strokeStyle=WH;x.lineWidth=2;x.stroke();x.setLineDash([10,6]);x.strokeStyle=SV;x.beginPath();x.arc(0,0,78*U,0,7);x.stroke();x.restore();
+  x.setLineDash([4,8]);x.strokeStyle='rgba(201,206,214,.85)';x.lineWidth=2;x.beginPath();x.moveTo(hx,hy);x.lineTo(tx,ty);x.stroke();x.setLineDash([]);
+  x.fillStyle='rgba(255,255,255,.18)';x.beginPath();x.arc(tx+10,ty+14,16,0,7);x.fill();}
+ // 큰 원
+ x.globalAlpha=mode==='drag'?.35:1;
+ x.fillStyle='rgba(255,255,255,.12)';x.beginPath();x.arc(cx,cy,R,0,7);x.fill();x.strokeStyle='rgba(255,255,255,.35)';x.lineWidth=1.5;x.stroke();
+ x.fillStyle='rgba(255,255,255,.5)';x.beginPath();x.arc(cx+14*U,cy-8*U,C.knob*U,0,7);x.fill();
+ x.globalAlpha=1;
+ // 화살표 4개 (원 밖으로 튀어나온 진한 판, 바깥쪽 끝이 뾰족)
+ let ok=true;const sizes=[];
+ for(const a of ARROWS){const t=a.ang*Math.PI/180,rr=C.R+C.gap+C.arm/2,ax=cx+Math.cos(t)*rr*U,ay=cy+Math.sin(t)*rr*U,s=C.arm*U;
+  sizes.push(`${a.k} ${s.toFixed(1)}px`);if(s<44)ok=false;
+  const active=mode==='drag'&&a.k==='스킬1';x.globalAlpha=mode==='drag'&&!active?.35:1;
+  x.save();x.translate(ax,ay);x.rotate(t);const hs=s/2;
+  x.beginPath();x.moveTo(-hs,-hs+6*U);x.quadraticCurveTo(-hs,-hs,-hs+6*U,-hs);x.lineTo(hs*.35,-hs);x.lineTo(hs,0);x.lineTo(hs*.35,hs);x.lineTo(-hs+6*U,hs);x.quadraticCurveTo(-hs,hs,-hs,hs-6*U);x.closePath();
+  x.fillStyle='rgba(20,22,34,.82)';x.fill();x.strokeStyle=active?GD:a.k==='치기'?GD:'rgba(255,255,255,.7)';x.lineWidth=active?3:2;x.stroke();x.restore();
+  icon(x,a.icon,ax-Math.cos(t)*s*.06,ay-Math.sin(t)*s*.06,s);
+  if(a.n){const bx=ax+s*.32,by=ay-s*.36;x.fillStyle='#D9AE4F';x.beginPath();x.arc(bx,by,8,0,7);x.fill();x.fillStyle='#16171f';x.font='bold 10px system-ui';x.textAlign='center';x.fillText(a.n,bx,by+3.5)}
+  x.globalAlpha=1;
+  if(Math.hypot(ax-(w+4),ay-(h+14))>tr+s*.3)ok=false;
+  if(ay+s/2>h-1||ax+s/2>w-1||ay-s/2<0)ok=false;
+  if(active){x.fillStyle='rgba(10,12,20,.5)';x.beginPath();x.arc(ax,ay,s/2+14*U,0,7);x.fill();x.setLineDash([6,5]);x.strokeStyle=WH;x.lineWidth=2;x.stroke();x.setLineDash([]);
+   x.lineWidth=3;x.beginPath();x.moveTo(ax-8,ay-8);x.lineTo(ax+8,ay+8);x.moveTo(ax+8,ay-8);x.lineTo(ax-8,ay+8);x.stroke();
+   x.fillStyle=WH;x.font='bold 12px system-ui';x.textAlign='center';x.fillText('취소',ax,ay-s/2-14*U-5)}
+ }
+ x.textAlign='left';x.fillStyle=ok?'#7ad8a0':'#ff7a7a';x.font='bold 11px system-ui';x.fillText(ok?'✓ 44px 이상 · 엄지 범위 안 · 화면 안':'✗ 확인 필요',8,h-8);
+ d.querySelector('h3').textContent+=' · 화살표 '+sizes[0].split(' ')[1];
+});
+</script></body></html>
