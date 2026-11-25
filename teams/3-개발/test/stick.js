@@ -1,4 +1,4 @@
-// GDD 0-18 폰 오른쪽 큰 원 + 화살표 4개: 손잡이 쏘기 · ← 치기(톡·누르기·끌기) · ↑↓ 스킬 끌기·취소 · → 무적 1.5초 · 화살표 누르는 동안 쏘기 멈춤 · 3가지 화면 캡처 (node stick.js S)
+// GDD 0-18 폰 오른쪽 큰 원 + 화살표 4개 (← 치기 · ↑ 스킬1 · → 스킬2 · ↓ 무적): 손잡이 쏘기 · 치기(톡·누르기·끌기) · 스킬 꾹 누르기·끌기·취소 · 무적 1.5초 · 화살표 누르는 동안 쏘기 멈춤 · 3가지 화면 캡처 (node stick.js S)
 const { chromium } = require('playwright');
 (async () => { const [S] = process.argv.slice(2); const b = await chromium.launch(); const out = [];
   const open = async (w, h) => { const p = await (await b.newContext({ viewport: { width: w, height: h }, hasTouch: true, isMobile: true })).newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.errs = errs;
@@ -23,13 +23,20 @@ const { chromium } = require('playwright');
   // ← 끌기: 아래로 끌면 아래 방향 치기
   await T(p, 'pointerdown', 3, 'melee'); await T(p, 'pointermove', 3, 'melee', 0, 40); await p.waitForTimeout(250); out.push('← 아래로 끌기 → 장수 방향 ' + await p.evaluate(() => `${G.hero.dir.x.toFixed(2)},${G.hero.dir.y.toFixed(2)}`)); await T(p, 'pointerup', 3, 'melee', 0, 40);
   // → 무적
-  await p.waitForTimeout(300); await T(p, 'pointerdown', 4, 'invuln'); await T(p, 'pointerup', 4, 'invuln'); await p.waitForTimeout(50); out.push('→ 무적 톡 → skillT ' + await p.evaluate(() => G.hero.skillT.toFixed(2) + ' 남은 ' + G.run.invuln));
+  await p.waitForTimeout(300); await T(p, 'pointerdown', 4, 'invuln'); await T(p, 'pointerup', 4, 'invuln'); await p.waitForTimeout(50); out.push('↓ 무적 톡 → skillT ' + await p.evaluate(() => G.hero.skillT.toFixed(2) + ' 남은 ' + G.run.invuln));
   // ↑ 스킬1 끌기 → 조준 캡처 → 놓기
   await p.waitForTimeout(1600); await T(p, 'pointerdown', 5, 'skill'); await T(p, 'pointermove', 5, 'skill', -300, -40); await T(p, 'pointermove', 5, 'skill', -420, -60); await p.waitForTimeout(120); await p.screenshot({ path: `${S}/shots/stick-aim.png` });
   await T(p, 'pointerup', 5, 'skill', -420, -60); await p.waitForTimeout(200); out.push('↑ 끌어 놓기 → 남은 ' + await p.evaluate(() => G.run.skillsLeft.slice(1).join(',')));
   // ↓ 스킬2 끌었다 되돌아와 취소
   await p.waitForTimeout(1500); await T(p, 'pointerdown', 6, 'skill2'); await T(p, 'pointermove', 6, 'skill2', -300, 0); await T(p, 'pointermove', 6, 'skill2', 4, 4); await p.waitForTimeout(100); await p.screenshot({ path: `${S}/shots/stick-cancel.png` });
-  await T(p, 'pointerup', 6, 'skill2', 4, 4); await p.waitForTimeout(200); out.push('↓ 되돌아와 놓기(취소) → 남은 ' + await p.evaluate(() => G.run.skillsLeft.slice(1).join(',')));
+  await T(p, 'pointerup', 6, 'skill2', 4, 4); await p.waitForTimeout(200); out.push('→ 스킬2 끌었다 되돌아와 놓기(취소) → 남은 ' + await p.evaluate(() => G.run.skillsLeft.slice(1).join(',')));
   // ↓ 톡 → 가까운 외계인
-  await T(p, 'pointerdown', 7, 'skill2'); await T(p, 'pointerup', 7, 'skill2'); await p.waitForTimeout(200); out.push('↓ 톡 → 남은 ' + await p.evaluate(() => G.run.skillsLeft.slice(1).join(',')));
+  await T(p, 'pointerdown', 7, 'skill2'); await T(p, 'pointerup', 7, 'skill2'); await p.waitForTimeout(200); out.push('→ 스킬2 톡 → 남은 ' + await p.evaluate(() => G.run.skillsLeft.slice(1).join(',')));
+  // ↑ 꾹 누르기(0.3초, 안 움직임) → 조준 모드 켜짐 → 그대로 놓으면 가까운 외계인
+  await p.waitForTimeout(1500); await T(p, 'pointerdown', 8, 'skill'); await p.waitForTimeout(300); const on = await p.evaluate(() => !!(G.dbgAim() && G.dbgAim().drag));
+  await T(p, 'pointerup', 8, 'skill'); await p.waitForTimeout(200); out.push(`↑ 꾹 0.3초 → 조준 모드 ${on ? '켜짐' : '안 켜짐'} → 그대로 놓기 → 남은 ` + await p.evaluate(() => G.run.skillsLeft.slice(1).join(',')));
+  // ↑ 꾹 누른 뒤 왼쪽 위로 40px만 움직이기 → 조준점은 장수에서 ×3 만큼
+  await p.waitForTimeout(1500); await T(p, 'pointerdown', 9, 'skill'); await p.waitForTimeout(250); await T(p, 'pointermove', 9, 'skill', -40, 0); await p.waitForTimeout(50);
+  const ap = await p.evaluate(() => { const a = G.dbgAim(); return a && a.t ? `장수 ${Math.round(G.hero.x)},${Math.round(G.hero.y)} → 조준 ${Math.round(a.t.x)},${Math.round(a.t.y)}` : '없음'; });
+  await p.screenshot({ path: `${S}/shots/stick-hold.png` }); await T(p, 'pointerup', 9, 'skill', -40, 0); out.push('↑ 꾹 + 왼쪽 40px → ' + ap);
   console.log(out.join('\n') + '\nerrors: ' + (p.errs.join('|') || 'none')); await b.close(); })();

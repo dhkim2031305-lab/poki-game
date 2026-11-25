@@ -173,8 +173,9 @@
       stick: { x: cx, y: cy, r: STICK_R },
       melee: { x: cx - d, y: cy, r, a: Math.PI },
       skill: { x: cx, y: cy - d, r, a: -Math.PI / 2 },
-      skill2: { x: cx, y: cy + d, r, a: Math.PI / 2 },
-      invuln: { x: cx + d, y: cy, r, a: 0 },
+      skill2: { x: cx + d, y: cy, r, a: 0 },
+      invuln: { x: cx, y: cy + d, r, a: Math.PI / 2 },
+      // 배치 (사용자 2026-11-25 "무적은 아래로"): ← 치기 · ↑ 스킬1 · → 스킬2 · ↓ 무적
     };
   };
   const rstick = { id: null, x: 0, y: 0 };   // 오른쪽 손잡이 (−1..1)
@@ -190,6 +191,9 @@
     return { x, y };
   }
   // 테스트용: 바닥 점 → 화면(가상) 좌표 · 마우스 상태
+  // 스킬 조준 (사용자 "스킬은 버튼 꾹 누르면 원하는 방향으로"): 장수 화면 자리 + 손가락이 움직인 만큼 × 3 → 바닥 점. 엄지를 조금만 움직여도 전장 대부분에 닿아요 [제안 3배]
+  const AIM_GAIN = 3, AIM_HOLD = .2;
+  const aimPoint = a => { const h = G.hero, hs = G.dbgField(h.x, h.y); return toGround({ x: hs.x + a.dp.x * AIM_GAIN, y: hs.y + a.dp.y * AIM_GAIN }); };
   G.dbgField = (x, y) => { const fb = fieldBox; if (use3d && R3D.built) { const q = R3D.proj(x, y); return { x: fb.x + q.x * fb.s, y: fb.y + q.y * fb.s }; } return { x: fb.x + x * fb.s, y: fb.y + y * fb.s }; };
   G.dbgMouse = () => mouse; G.dbgAim = () => aim;
   cv.addEventListener('pointerdown', e => {
@@ -209,7 +213,7 @@
     for (const k of ['melee', 'skill', 'skill2', 'invuln']) {
       const b = B[k];
       if (Math.abs(p.x - b.x) < b.r + 4 && Math.abs(p.y - b.y) < b.r + 4) {
-        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0 && !aim) aim = { n, id: e.pointerId, b, drag: false, cancel: false, t: null }; }   // 끌어서 자리 고르기 (GDD 0-17)
+        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0 && !aim) aim = { n, id: e.pointerId, b, drag: false, cancel: false, left: false, t: null, t0: e.timeStamp / 1000, p0: { x: p.x, y: p.y }, dp: { x: 0, y: 0 } }; }   // 끌어서 자리 고르기 (GDD 0-17)
         else if (k === 'invuln') useInvuln();
         else if (mArrow.id == null) { mArrow.id = e.pointerId; mArrow.x0 = p.x; mArrow.y0 = p.y; mArrow.dir = null; held.melee.add(e.pointerId); input.melee = true; buf.melee = 0.1; }
         return;
@@ -266,10 +270,11 @@
     if (mArrow.id === e.pointerId) { const dx = p.x - mArrow.x0, dy = p.y - mArrow.y0, l = Math.hypot(dx, dy); mArrow.dir = l > 14 ? { x: dx / l, y: dy / l } : null; return; }   // ← 치기를 끌면 끈 방향
     if (aim && aim.id === e.pointerId) {   // 스킬 버튼 끌기: 버튼 둘레(취소 원) 밖으로 나가면 조준, 다시 들어오면 취소 상태
       const inC = Math.hypot(p.x - aim.b.x, p.y - aim.b.y) < aim.b.r + 14;
-      if (!inC) aim.drag = true;
-      const was = aim.cancel; aim.cancel = aim.drag && inC;
+      if (!inC) { aim.left = true; aim.drag = true; }
+      aim.dp = { x: p.x - aim.p0.x, y: p.y - aim.p0.y };
+      const was = aim.cancel; aim.cancel = aim.left && inC;   // 한 번 나갔다가 버튼 위로 돌아오면 취소
       if (aim.cancel && !was) { try { navigator.vibrate && navigator.vibrate(10); } catch {} }
-      aim.t = toGround(p); return;
+      aim.t = aimPoint(aim); return;
     }
     if (joy.id === e.pointerId) {
       let dx = p.x - joy.ox, dy = p.y - joy.oy; const d = Math.hypot(dx, dy), R = 52;
@@ -284,7 +289,7 @@
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
     if (rstick.id === e.pointerId) { rstick.id = null; rstick.x = rstick.y = 0; }
     if (mArrow.id === e.pointerId) { mArrow.id = null; mArrow.dir = null; }
-    if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel && a.t) useSkill(a.n, a.t); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
+    if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel) useSkill(a.n, Math.hypot(a.dp.x, a.dp.y) > 10 ? a.t : undefined); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
   };
   cv.addEventListener('pointerup', e => release(e, true));
@@ -1240,6 +1245,7 @@
       if (!h.swing.hit && h.swing.t >= SWING.wind + SWING.strike * wp().hitK) { h.swing.hit = true; meleeStrike(); }
       if (h.swing.t >= SWING.wind + SWING.strike + SWING.follow) h.swing = null;
     }
+    if (aim && !aim.drag && performance.now() / 1000 - aim.t0 >= AIM_HOLD) { aim.drag = true; aim.t = aimPoint(aim); }   // 0.2초 꾹 누르면 조준 모드
     const stickOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3 && !arrowHeld();   // 손잡이를 밀면 계속 쏘기, 화살표를 누르는 동안은 멈춤 (GDD 0-18)
     const mel = input.melee || input.mMelee || keys.has('KeyJ') || buf.melee > 0, rng = input.ranged || input.mRanged || keys.has('KeyK') || buf.ranged > 0 || stickOn;
     if (mel && h.meleeCd <= 0) { melee(); buf.melee = 0; } else if (rng && h.rangedCd <= 0) { ranged(); buf.ranged = 0; }

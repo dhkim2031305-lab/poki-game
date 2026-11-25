@@ -31,7 +31,7 @@ const { chromium } = require('playwright');
     await drag([[tx - 100, ty - 40], [tx, ty]]); await ph.waitForTimeout(150); const pre = await ph.evaluate(() => JSON.stringify({ hold: !!G.hold, aim: !!G.dbgAim() })); await ph.screenshot({ path: `${S}/shots/aim-ph-${ci}.png` }); out.push('  찍기 전 ' + pre + ' 찍은 뒤 ' + await ph.evaluate(() => JSON.stringify({ hold: !!G.hold, aim: !!G.dbgAim() })));
     await up(tx, ty); await ph.waitForTimeout(900);
     const r = await ph.evaluate(() => ({ left: G.run.skillsLeft.slice(1).join(','), hx: Math.round(G.hero.x), hy: Math.round(G.hero.y), z: G.zones.map(z => Math.round(z.x) + ',' + Math.round(z.y)).join(' ') }));
-    out.push(`폰 ${tag}: 끌어 놓기(바닥 420,130) → 남은 ${r.left} 장수 ${r.hx},${r.hy} 구역 [${r.z}]`);
+    out.push(`폰 ${tag}: 끌어 놓기(장수 + 손가락 이동 ×3) → 남은 ${r.left} 장수 ${r.hx},${r.hy} 구역 [${r.z}]`);
   }
   await start(ph, 14); const [tx, ty] = await scr(ph, 420, 130); const bp = await ph.evaluate(() => { const cv = document.getElementById('game'), r = cv.getBoundingClientRect(), s = r.width / UI.VW, B = G.btnPos().skill; return [r.left + B.x * s, r.top + B.y * s]; });
   await drag([[tx, ty], [bp[0] + 6, bp[1] + 4]]); await ph.waitForTimeout(150); await ph.screenshot({ path: `${S}/shots/aim-ph-cancel.png` });
