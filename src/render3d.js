@@ -50,11 +50,26 @@
     // 맞음 번쩍임(흰) · 몸 색 외곽선 — 처음 한 번만 만들어 둬요
     const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
     const x = c.getContext('2d'), k = im.naturalHeight / 48;
+    if (variant === 'lit') { litPaint(x, im, c.width, c.height); return texOf(c, key); }
     if (variant === 'white') x.filter = 'brightness(2.4)';
     else x.filter = `drop-shadow(0 0 ${1.5 * k}px ${variant}) drop-shadow(0 0 ${0.5 * k}px ${variant})`;
     x.drawImage(im, 0, 0);
     return texOf(c, key);
   };
+  // 외계인 입체감 (사용자 "몬스터들은 다 2d"): 빛 쪽(왼쪽 위) 가장자리 림 라이트 + 발 쪽 어둡게(접지) — 처음 한 번만 만들어요
+  function litPaint(x, im, w, h) {
+    x.drawImage(im, 0, 0);
+    const k = Math.max(2, Math.round(h / 90));
+    const t = document.createElement('canvas'); t.width = w; t.height = h; const y = t.getContext('2d');
+    y.drawImage(im, 0, 0); y.globalCompositeOperation = 'source-in'; y.fillStyle = '#FFE9C8'; y.fillRect(0, 0, w, h);   // 실루엣
+    y.globalCompositeOperation = 'destination-out'; y.drawImage(im, k, k);                                           // 빛 쪽 가장자리만 남겨요
+    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = .55; x.drawImage(t, 0, 0); x.restore();
+    x.save(); x.globalCompositeOperation = 'source-atop';
+    const g = x.createLinearGradient(0, h, 0, h * .45); g.addColorStop(0, 'rgba(8,6,14,.45)'); g.addColorStop(1, 'rgba(8,6,14,0)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    const s = x.createLinearGradient(0, 0, w, 0); s.addColorStop(0, 'rgba(255,240,220,.06)'); s.addColorStop(1, 'rgba(8,6,14,.22)');   // 오른쪽(빛 반대) 살짝 어둡게
+    x.fillStyle = s; x.fillRect(0, 0, w, h); x.restore();
+  }
   function canvasTex(c) { const t = new T.CanvasTexture(c); t.generateMipmaps = false; t.minFilter = T.LinearFilter; return t; }
   function gradTex(stops, w = 64, h = 64, radial = true) {
     const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
@@ -202,12 +217,15 @@
   R.sprite = (tex, x, y, hgt, mo = {}, o = {}) => {
     if (!tex || !R.built) return;
     const s = getSprite(), m = s.m, img = tex.image, asp = o.aspect || img.width / img.height;
-    s.g.position.set(x, 0, y); s.g.quaternion.copy(camera.quaternion);
+    s.g.position.set(x, 0, y);
+    if (o.upright != null) s.g.rotation.set(-o.upright * Math.PI / 180, 0, 0);   // 카메라보다 덜 눕혀 세워요 (원근이 판에 걸려 입체감)
+    else s.g.quaternion.copy(camera.quaternion);
     m.position.set(mo.ox || 0, -(mo.oy || 0) - (o.below || 0), 0);
     m.rotation.set(0, 0, -(mo.rot || 0));
     m.scale.set(hgt * asp * (mo.sx || 1) * (mo.flip ? -1 : 1), hgt * (mo.sy || 1), 1);
     if (m.material.map !== tex) { m.material.map = tex; m.material.needsUpdate = true; }
     m.material.opacity = mo.alpha != null ? mo.alpha : 1;
+    m.material.color.setScalar(mo.tint != null ? mo.tint : 1);   // 등을 보이면 조금 어둡게
     // 벽 앞(방 안)에 있으면 화면 순서대로 칠하고, 위쪽 벽 너머(들어오는 중)면 벽에 가려져요
     m.material.depthTest = y < WALL.top + 4;
     m.renderOrder = 100 + y;

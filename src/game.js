@@ -102,13 +102,13 @@
   // ---------- 판 · 라운드 ----------
   function newRun(ci) {
     G.country = COUNTRIES[ci];
-    G.run = { round: 1, money: G.country.money, kills: 0, reviveUsed: false, rewardedSeen: false, bankrupts: 0, maxRound: 0 };
+    G.run = { round: 1, money: G.country.money, skillsLeft: BAL.SKILL_PER_RUN, kills: 0, reviveUsed: false, rewardedSeen: false, bankrupts: 0, maxRound: 0 };
     startRound(true);
   }
   function startRound(first) {
     const r = G.run, c = G.country, wave = BAL.WAVES[r.round - 1], st = stats(r.money);
     r.wave = wave; r.st = st; r.roundT = 0; r.spawned = 0; r.spawnT = 0.8; r.killsRound = 0; r.bossSpawned = false;
-    r.itemIdx = 0; r.skills = BAL.SKILL_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
+    r.itemIdx = 0; r.invuln = BAL.INVULN_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
     G.hero = {
       x: FIELD.W / 2, y: FIELD.H / 2 + 30, r: 14, hp: st.hp, maxHp: st.hp, dir: { x: 1, y: 0 }, moving: false, walkT: 0,
       inv: 0, skillT: 0, dash: null, barrage: null, guard: null, meleeCd: 0, rangedCd: 0, atkT: 0, buff: null, dead: false, deadT: 0, hitT: 0,
@@ -161,6 +161,7 @@
   const buf = { melee: 0, ranged: 0 };   // 누른 것을 0.1초 기억 (히트스톱 중 짧은 탭)   // 버튼을 누르고 있는 손가락들
   const btnPos = () => ({
     melee: { x: VW * .87, y: VH * .72, r: 48 }, ranged: { x: VW * .73, y: VH * .84, r: 34 }, skill: { x: VW * .75, y: VH * .56, r: 28 },
+    skill2: { x: VW * .89, y: VH * .43, r: 26 }, invuln: { x: VW * .61, y: VH * .7, r: 26 },   // 2번 스킬 · 무적 (사용자 결정 2026-11-25)
   });
   const toV = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / U, y: (e.clientY - b.top) / U }; };
   let drag = null;
@@ -177,20 +178,41 @@
     if (G.scene !== 'play' || G.paused) return;
     if (e.pointerType === 'mouse') { mouseButtons(e); return; }   // 좌클릭 = 치기, 우클릭 = 쏘기
     const B = btnPos();
-    for (const k of ['melee', 'ranged', 'skill']) {
+    for (const k of ['melee', 'ranged', 'skill', 'skill2', 'invuln']) {
       const b = B[k];
-      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.3) ** 2) { if (k === 'skill') useSkill(); else { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; } return; }
+      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.25) ** 2) {
+        if (k === 'skill') useSkill(1); else if (k === 'skill2') useSkill(2); else if (k === 'invuln') useInvuln();
+        else { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; }
+        return;
+      }
     }
     if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
   });
   // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
+  // 마우스 조작 (사용자 결정 2026-11-25): 좌클릭 치기 · 우클릭 쏘기 · 우클릭 2번 = 1번 스킬 · 좌클릭 2번 = 2번 스킬 · 좌·우 동시 = 무적
+  // [제안] 동시 = 두 버튼 0.08초 안, 두 번 = 같은 버튼 0.25초 안. 첫 클릭은 0.07초만 기다렸다가 나가요(동시 누름이면 치기·쏘기 없이 무적만)
+  const MC = { b: 0, mute: 0, pend: null, last: { 1: -9, 2: -9 } }, M_SIM = .08, M_DBL = .25, M_WAIT = .07;
+  function pressBtn(bit, now) {
+    if (MC.pend && MC.pend.bit !== bit && now - MC.pend.t <= M_SIM) { MC.pend = null; MC.mute |= 3; MC.last[1] = MC.last[2] = -9; useInvuln(); return; }
+    if (now - MC.last[bit] <= M_DBL) { MC.last[bit] = -9; MC.mute |= bit; if (MC.pend && MC.pend.bit === bit) MC.pend = null; useSkill(bit === 2 ? 1 : 2); return; }
+    MC.last[bit] = now; MC.pend = { bit, t: now };
+  }
+  function mouseHeld() {
+    const ok = bit => !!(MC.b & bit) && !(MC.mute & bit) && !(MC.pend && MC.pend.bit === bit);
+    input.mMelee = ok(1); input.mRanged = ok(2);
+  }
+  function mousePending() {   // 기다리던 첫 클릭을 내보내요 (update에서)
+    if (!MC.pend || performance.now() / 1000 - MC.pend.t < M_WAIT) return;
+    buf[MC.pend.bit === 1 ? 'melee' : 'ranged'] = 0.1; MC.pend = null; mouseHeld();
+  }
   function mouseButtons(e) {
     // 브라우저가 커서를 안 움직였는데도 보내는 이동 신호(예: 페이지를 띄울 때 0,0)는 조준으로 치지 않아요
     if (e.type === 'pointermove' && !mouse.on && !e.movementX && !e.movementY && !e.buttons) return;
     const on = G.scene === 'play' && !G.paused;
-    const wasM = input.mMelee, wasR = input.mRanged;
-    input.mMelee = on && !!(e.buttons & 1); input.mRanged = on && !!(e.buttons & 2);
-    if (input.mMelee && !wasM) buf.melee = 0.1; if (input.mRanged && !wasR) buf.ranged = 0.1;
+    const b = on ? e.buttons & 3 : 0, prev = MC.b, now = performance.now() / 1000; MC.b = b;
+    MC.mute &= b;                                     // 손을 떼면 막아 둔 버튼이 풀려요
+    for (const bit of [1, 2]) if (b & bit & ~prev) pressBtn(bit, now);
+    mouseHeld();
     const p = toV(e), fb = fieldBox;
     mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
     if (use3d) { const q = R3D.unproj(mouse.x, mouse.y); if (q) { mouse.x = q.x; mouse.y = q.y - 24; } }   // 3D: 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
@@ -210,7 +232,7 @@
     }
   });
   const release = (e, tap) => {
-    if (e.pointerType === 'mouse') { input.mMelee = !!(e.buttons & 1) && G.scene === 'play'; input.mRanged = !!(e.buttons & 2) && G.scene === 'play'; }
+    if (e.pointerType === 'mouse') { MC.b = e.buttons & 3; MC.mute &= MC.b; mouseHeld(); }
     if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
@@ -227,7 +249,7 @@
   cv.addEventListener('wheel', e => { if (G.scene === 'select') { G.selScroll = clamp(G.selScroll + e.deltaY * .5, 0, selMaxScroll()); e.preventDefault(); } }, { passive: false });
   cv.addEventListener('contextmenu', e => e.preventDefault());
 
-  const GAME_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'Escape', 'Enter'];
+  const GAME_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Escape', 'Enter'];
   window.addEventListener('keydown', e => {
     if (GAME_KEYS.includes(e.code)) e.preventDefault();   // 페이지 스크롤 막기
     if (G.scene === 'ad' || portrait()) return;
@@ -240,7 +262,10 @@
     }
     const ok = e.code === 'Enter' || e.code === 'Space';
     // 한 번 누른 키가 다음 화면까지 이어서 눌리지 않게 화면마다 하나만 처리해요
-    if (G.scene === 'play') { if (!G.paused && e.code === 'KeyL') useSkill(); if (e.code === 'KeyJ') buf.melee = 0.1; if (e.code === 'KeyK') buf.ranged = 0.1; }
+    if (G.scene === 'play') {   // [제안] L = 1번 스킬 · ; = 2번 스킬 · Space = 무적 (ESC·P = 일시정지)
+      if (!G.paused) { if (e.code === 'KeyL') useSkill(1); if (e.code === 'Semicolon') useSkill(2); if (e.code === 'Space') useInvuln(); }
+      if (e.code === 'KeyJ') buf.melee = 0.1; if (e.code === 'KeyK') buf.ranged = 0.1;
+    }
     else if (G.scene === 'title') { if (ok) action('start'); }
     else if (G.scene === 'select') {
       const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -5, ArrowDown: 5, KeyA: -1, KeyD: 1, KeyW: -5, KeyS: 5 }[e.code];
@@ -442,10 +467,22 @@
   const SKB = BAL.SKILL;
   const BARRAGE_SHOT = { beam: 'beam', boomerang: 'boomerang', axe: 'axe', sling: 'sling', bullet: 'bullet', arrow: 'arrow' };   // 쏘는 무기 나라는 그 탄, 칼·창 나라는 빛줄기
   const skillOf = c => c.skill;
-  function useSkill() {
+  // 무적 (좌·우 동시 / Space / 무적 버튼): 0.5초, 라운드마다 2번 — 고유 스킬과 따로 (사용자 결정 2026-11-25)
+  function useInvuln() {
     const r = G.run, h = G.hero;
-    if (!r || r.skills <= 0 || h.dead || h.skillT > 0 || h.dash || h.barrage || h.guard) return;
-    r.skills--; h.skillT = BAL.SKILL_TIME;
+    if (!r || r.invuln <= 0 || h.dead || h.skillT > 0) return;
+    r.invuln--; h.skillT = BAL.SKILL_TIME;
+    G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
+    if (settings.shake) G.shake = Math.max(G.shake, 2);
+    AUDIO.play('revive');
+  }
+  // n = 1: 나라별 고유 스킬 (우클릭 2번 / L / 스킬 버튼) · n = 2: 두 번째 스킬 (좌클릭 2번 / ; ) — 기획팀 설계 중이라 자리만
+  // 횟수: 1번·2번 합쳐 한 판에 5번 (라운드마다 안 채워져요)
+  function useSkill(n = 1) {
+    const r = G.run, h = G.hero;
+    if (n === 2) return;   // TODO: 2번 스킬 내용이 정해지면 (skills.md)
+    if (!r || r.skillsLeft <= 0 || h.dead || h.dash || h.barrage || h.guard) return;
+    r.skillsLeft--;
     const sk = skillOf(G.country), dmg = SKB.DMG * r.st.F;
     const ang = Math.atan2(h.dir.y, h.dir.x), dx = Math.cos(ang), dy = Math.sin(ang), f = FIELD.floor;
     if (sk.type === 'dash') h.dash = { t: 0, dx, dy, dmg, hit: new Set(), gT: 0 };
@@ -584,7 +621,7 @@
   }
   function hurt(dmg, fromX, fromY) {
     const h = G.hero;
-    if (h.dead || h.inv > 0 || h.skillT > 0) return;
+    if (h.dead || h.inv > 0 || h.skillT > 0 || h.dash) return;   // 돌진 중(0.35초)은 안 맞아요 [제안]
     h.hp -= dmg; h.inv = TEMP.HURT_INVULN; h.hitT = 0.15;
     const dx = h.x - fromX, dy = h.y - fromY, d = Math.hypot(dx, dy) || 1;
     h.x += dx / d * 5; h.y += dy / d * 5;
@@ -660,6 +697,7 @@
       for (const b of G.aliens) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, ed = Math.hypot(ex, ey); const mn = a.r + b.r; if (ed > 0 && ed < mn) { mx += ex / ed * .8; my += ey / ed * .8; } }
       const chase = a.stun > 0 ? .15 : 1;   // 넉백 첫 0.04초는 쫓아오기 15%
       a.x += mx * a.speed * dt * chase; a.y += my * a.speed * dt * chase; if (chase === 1) a.vx = mx;
+      { const ml = Math.hypot(mx, my) || 1, kk = Math.min(1, dt * 8); a.fx = (a.fx || 0) + (mx / ml - (a.fx || 0)) * kk; a.fy = (a.fy || 0) + (my / ml - (a.fy || 0)) * kk; a.step = (a.step || 0) + dt * a.speed / 9; }   // 보는 방향(부드럽게)·걸음
       if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-18 * dt); a.kb.x *= k; a.kb.y *= k; }
       if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
       if (d < a.r + h.r) hurt(a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG, a.x, a.y);
@@ -753,6 +791,7 @@
     for (const p of G.parts) { p.t += dt; if (p.t > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } } G.parts = G.parts.filter(p => p.t < p.life);
     if (G.kick) { G.kick.t += dt; if (G.kick.t > .1) G.kick = null; }
     buf.melee = Math.max(0, buf.melee - dt); buf.ranged = Math.max(0, buf.ranged - dt);
+    if (G.scene === 'play' && !G.paused) mousePending();
     for (const e of G.fx) e.t += dt; G.fx = G.fx.filter(e => e.t < e.life);
     if (portrait()) return;                     // 세로: 라운드 패널·엔딩도 멈춰요
     if (G.scene === 'play' && !G.paused) {
@@ -916,7 +955,7 @@
     UI.flag(c.iso, cx - 70, VH * .05 + 130, 22, 15);
     UI.txt(c.native, cx + 12, VH * .05 + 138, 20, COL.fg, 'center', 800, pw - 70);
     UI.txt(`${UI.money(c, c.money)} · #${c.rank}`, cx, VH * .05 + 162, 17, COL.gold, 'center', 800);
-    const bars = [['heart', st.hp, st.F, COL.red], ['sword', st.melee.toFixed(1), st.F, COL.fg], ['speed', Math.round(st.speed), st.S, COL.fg], ['bolt', BAL.SKILL_PER_ROUND, 1, COL.glow]];
+    const bars = [['heart', st.hp, st.F, COL.red], ['sword', st.melee.toFixed(1), st.F, COL.fg], ['speed', Math.round(st.speed), st.S, COL.fg], ['bolt', BAL.SKILL_PER_RUN, 1, COL.glow]];
     bars.forEach(([ic, v, f, icc], i) => {
       const y = VH * .05 + 186 + i * 17;
       UI.I[ic](px + 22, y, 14, icc); UI.bar(px + 36, y - 4, pw - 84, 8, f, COL.glow); UI.txt(String(v), px + pw - 14, y, 11, COL.fg, 'right', 700);
@@ -1048,10 +1087,10 @@
     }
     // 외계인
     for (const a of G.aliens) {
-      const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || '';
+      const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || 'lit';
       delete mo.white; delete mo.edge;
-      R3D.sprite(R3D.tex(L.name, v), a.x, a.y + 2, L.hgt, mo);
-      R3D.blob(a.x, a.y, a.r * 1.25 * (1 - L.hop * .03), .5);
+      R3D.sprite(R3D.tex(L.name, v), a.x, a.y + 2, L.hgt * 1.04, mo, { upright: 40 });   // 카메라를 똑바로 보는 판(56° 기움)보다 16° 덜 눕혀 원근이 판에 걸리게 — 키는 1.04배로 보정
+      R3D.blob(a.x, a.y, a.r * 1.3 * (1 - L.hop * .03), .78);
     }
     // 처치 직후 접히는 몸
     for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
@@ -1292,6 +1331,16 @@
       else if (a.type === 'shooter') { const p = Math.abs(Math.sin(t * 9 + a.seed)); mo.oy = -p * 3; mo.ox = a.recoil > 0 ? (a.vx < 0 ? 3 : -3) : 0; }
       else { mo.sy = 1 + Math.sin(t * 2) * .025; }
     }
+    // 가는 방향으로 몸 돌리기 (8방향 그림 오기 전 코드 흉내): 위·아래로 가면 몸 폭을 줄여 돌아선 느낌, 위로 가면(등) 조금 어둡게,
+    // 가는 쪽으로 기울기 + 걸음마다 좌우 흔들림·위아래 튀기 · 넉백 방향으로 몸이 젖혀져요
+    if (!reduceMotion && !a.entering) {
+      const fx = a.fx || 0, fy = a.fy || 0, st = a.step || 0;
+      mo.sx = (mo.sx || 1) * (1 - .14 * Math.abs(fy));
+      mo.rot = (mo.rot || 0) + fx * .1 + Math.sin(st) * .06;
+      mo.oy = (mo.oy || 0) - Math.abs(Math.sin(st)) * (a.type === 'boss' ? 4 : 2.5);
+      if (fy < -.35) mo.tint = .8 + .2 * (1 + fy);
+      const kb = a.kb ? a.kb.x : 0; if (Math.abs(kb) > 15) mo.rot += clamp(kb / 700, -.28, .28);
+    }
     if (a.hitT > 0) {   // 발 고정, 공격축 0.88배 · 직각 1.08배로 눌렸다가 0.1초에 복원 (기어가기 변형은 잠깐 멈춤)
       const q = a.hitT > .07 ? 1 : a.hitT / .07, along = 1 - .12 * q, across = 1 + .08 * q;
       mo.sx = a.hitAx === 'x' ? along : across; mo.sy = a.hitAx === 'x' ? across : along; mo.rot = 0; mo.ox = 0; mo.oy = 0;
@@ -1313,6 +1362,11 @@
     UI.bar(x0 + 22, VH * .09 - 7, 150, 14, h.hp / h.maxHp, low ? COL.red : COL.hp);
     UI.txt(`${Math.ceil(h.hp)}/${h.maxHp}`, x0 + 178, VH * .09, 12, COL.fg, 'left', 700);
     UI.txt(UI.money(c, r.money), x0, VH * .17 + 2, 18, COL.glow, 'left', 800);
+    // 남은 스킬(한 판 5번) · 무적(라운드마다 2번)
+    { const sy = VH * .17 + 2, im = UI.img['skill/icon-' + c.skill.type];
+      ctx.globalAlpha = r.skillsLeft > 0 ? 1 : .4; if (im && im.naturalWidth) ctx.drawImage(im, x0 + 112, sy - 11, 22, 22); else UI.I.bolt(x0 + 123, sy, 18, COL.gold);
+      UI.txt('×' + r.skillsLeft, x0 + 137, sy, 14, COL.fg, 'left', 800);
+      ctx.globalAlpha = r.invuln > 0 ? 1 : .4; UI.I.shield(x0 + 176, sy, 18, COL.fg); UI.txt('×' + r.invuln, x0 + 188, sy, 14, COL.fg, 'left', 800); ctx.globalAlpha = 1; }
     // 화폐 효과 중
     if (h.buff) {
       const bx = x0 + 16, by = VH * .28 + 4;
@@ -1342,12 +1396,16 @@
     UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
     const btn = (b, ic, on) => { UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3); UI.I[ic](b.x, b.y, b.r * 1.05, COL.fg); };
     btn(B.melee, 'sword', input.melee); btn(B.ranged, 'arrow', input.ranged);
-    ctx.globalAlpha = G.run.skills > 0 ? 1 : .4;
-    { const b = B.skill, on = G.hero.skillT > 0 || G.hero.guard || G.hero.barrage, im = UI.img['skill/icon-' + G.country.skill.type];   // 그 나라 스킬 유형 아이콘
+    const h = G.hero, r = G.run, badge = (b, n) => { UI.circ(b.x + b.r * .72, b.y - b.r * .72, 10, COL.gold); UI.txt(String(n), b.x + b.r * .72, b.y - b.r * .72, 12, COL.icon, 'center', 800); };
+    const imgBtn = (b, im, on, fallback, label) => {
       UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3);
-      if (im && im.naturalWidth) ctx.drawImage(im, b.x - b.r * .82, b.y - b.r * .82, b.r * 1.64, b.r * 1.64); else UI.I.shield(b.x, b.y, b.r * 1.05, COL.fg); }
-    ctx.globalAlpha = 1;
-    UI.circ(B.skill.x + 20, B.skill.y - 20, 10, COL.gold); UI.txt(String(G.run.skills), B.skill.x + 20, B.skill.y - 20, 12, COL.icon, 'center', 800);
+      if (im && im.naturalWidth) ctx.drawImage(im, b.x - b.r * .82, b.y - b.r * .82, b.r * 1.64, b.r * 1.64); else UI.I[fallback](b.x, b.y, b.r * 1.05, COL.fg);
+      if (label) UI.txt(label, b.x - b.r * .7, b.y + b.r * .7, 11, COL.fg, 'center', 800);
+    };
+    ctx.globalAlpha = r.skillsLeft > 0 ? 1 : .4; imgBtn(B.skill, UI.img['skill/icon-' + G.country.skill.type], h.dash || h.guard || h.barrage, 'bolt', '1'); ctx.globalAlpha = 1;
+    ctx.globalAlpha = .35; imgBtn(B.skill2, null, false, 'bolt', '2'); ctx.globalAlpha = 1;   // 2번 스킬: 기획 확정 전 (자리만)
+    ctx.globalAlpha = r.invuln > 0 ? 1 : .4; imgBtn(B.invuln, null, h.skillT > 0, 'shield'); ctx.globalAlpha = 1;
+    badge(B.skill, r.skillsLeft); badge(B.invuln, r.invuln);
   }
 
   // 장수 머리 위 화면 좌표 (2D·3D)

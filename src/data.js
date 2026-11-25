@@ -55,7 +55,9 @@
     // 돈 M → 배율: F = 0.4 + 0.6·M/100 (HP·공격력), S = 0.7 + 0.3·M/100 (이동 속도)
     BASE: { hp: 100, melee: 15, ranged: 8, speed: 220 },
     MELEE_CD: 0.4, RANGED_CD: 0.3,
-    SKILL_TIME: 0.5, SKILL_PER_ROUND: 2,
+    SKILL_TIME: 0.5,              // 무적 0.5초
+    SKILL_PER_RUN: 5,             // 고유 스킬(1번·2번 합쳐) 한 판에 5번 (사용자 "스킬은 모든 라운드에서 총 5번")
+    INVULN_PER_ROUND: 2,          // 무적은 라운드마다 2번 (사용자 "무적스킬은 라운드당 2번")
     REVIVE_INVULN: 2.0,
     // 고유 스킬 유형별 수치 (balance.md 확정, 사용자 "추천대로"): 피해 = 40 × F
     SKILL: { DMG: 40, DASH_DIST: 260, DASH_TIME: 0.35, AREA_R: 140, BARRAGE_TIME: 1.5, BARRAGE_N: 8, BARRAGE_DIV: 4,

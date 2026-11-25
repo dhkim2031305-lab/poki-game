@@ -38,7 +38,7 @@
       // ↓ texts.md에 없는 글자 [개발팀 임시 · 기획팀에 추가 요청]
       'x.clear': 'Clear!', 'x.fail': 'Mission over', 'x.roundClear': 'Round {n} clear',
       'x.nextRound': 'Next round', 'x.here': 'Right here', 'x.resume': 'Resume', 'x.exit': 'Quit', 'x.quit': 'Quit',
-      'x.sound': 'Sound', 'x.keys': 'WASD move · Click/J strike · Right-click/K throw · L skill · ESC pause',
+      'x.sound': 'Sound', 'x.keys': 'WASD move · Click/J strike · Right-click/K throw · Right ×2/L skill 1 · Left ×2/; skill 2 · Both/Space guard · ESC pause',
       'x.loading': 'Loading…', 'x.rotate': '',
     },
     ko: {
@@ -76,7 +76,7 @@
       'skill.name.01': '사자 문장 돌격', 'skill.name.02': '회오리 도끼', 'skill.name.03': '창벽', 'skill.name.04': '에너지 난사', 'skill.name.05': '연속 찌르기', 'skill.name.06': '방패벽', 'skill.name.07': '기병 돌격', 'skill.name.08': '부메랑 투척', 'skill.name.09': '대검 회전베기', 'skill.name.10': '돌격 대형', 'skill.name.11': '도끼 던지기', 'skill.name.12': '설원 질주', 'skill.name.13': '기병검 휩쓸기', 'skill.name.14': '거북 대형', 'skill.name.15': '화살비', 'skill.name.16': '일섬', 'skill.name.17': '방패 진지', 'skill.name.18': '투석 연사', 'skill.name.19': '기마 창돌격', 'skill.name.20': '은빛 고사리 결계', 'skill.name.21': '발도술 돌진', 'skill.name.22': '항해의 바람', 'skill.name.23': '날개 기병 돌격', 'skill.name.24': '사브르 연격', 'skill.name.25': '산악 도끼 내려찍기', 'skill.name.26': '방패 밀치기', 'skill.name.27': '곡도 회전베기', 'skill.name.28': '산바람', 'skill.name.29': '독수리 일격', 'skill.name.30': '함성',
       'x.clear': '클리어!', 'x.fail': '작전 종료', 'x.roundClear': '라운드 {n} 클리어',
       'x.nextRound': '다음 라운드', 'x.here': '그 자리에서', 'x.resume': '계속', 'x.exit': '나가기', 'x.quit': '종료',
-      'x.sound': '소리', 'x.keys': 'WASD 이동 · 클릭/J 치기 · 우클릭/K 쏘기 · L 스킬 · ESC 일시정지',
+      'x.sound': '소리', 'x.keys': 'WASD 이동 · 클릭/J 치기 · 우클릭/K 쏘기 · 우클릭 두 번/L 스킬1 · 클릭 두 번/; 스킬2 · 양쪽 동시/Space 무적 · ESC 일시정지',
       'x.loading': '불러오는 중…', 'x.rotate': '',
     },
   };
