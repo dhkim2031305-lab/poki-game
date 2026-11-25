@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오른쪽 조이스틱 배치</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p.lead{color:var(--sub);margin:0 0 12px;max-width:900px}
+h2{font-size:16px;margin:18px 0 8px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.card{background:var(--card);border-radius:12px;padding:10px;max-width:100%}
+.card h3{font-size:13px;margin:0 0 6px;color:var(--sub);font-weight:600}
+canvas{display:block;border-radius:6px;max-width:100%;height:auto}
+.legend{color:var(--sub);font-size:13px;margin-top:8px}
+</style></head><body>
+<h1>폰 오른쪽 조이스틱 + 둘레 버튼 배치 시안</h1>
+<p class="lead">실제 화면 픽셀 크기로 그렸어요(1배). 노란 점선 = 오른손 엄지가 편하게 닿는 범위, 빨간 박스 = HUD 자리예요. 각 화면 제목 옆 숫자는 그 화면에서의 버튼 실제 지름(px)이에요. 모든 버튼이 44px 이상이에요.</p>
+<h2>A안: 치기 버튼 없음 (스킬1 · 스킬2 · 방패)</h2><div class="row" id="A"></div>
+<h2>B안: 치기 버튼 있음 (치기 · 스킬1 · 스킬2 · 방패)</h2><div class="row" id="B"></div>
+<p class="legend">게임 좌표는 844×390 기준이에요. 작은 화면은 U = min(폭/844, 높이/390)배로 줄어요(568×320은 0.67배). 그래서 게임 좌표로는 둘레 버튼 지름 68, 치기 76, 조이스틱 바깥 128로 잡았어요. 가장 작은 화면에서도 둘레 버튼이 45.9px예요.</p>
+<script>
+const SCREENS=[[568,320],[667,375],[844,390]];
+// 게임 좌표(844×390 기준) 배치: 조이스틱 중심은 오른쪽 아래 모서리 기준 (VW-112, VH-108)
+const STICK={dx:120,dy:110,R:64,knob:28};
+const LAYOUT={
+ A:[{k:'방패',ang:180,r:34,icon:'shield'},{k:'스킬1',ang:228,r:34,icon:'1'},{k:'스킬2',ang:276,r:34,icon:'2'}],
+ B:[{k:'치기',ang:180,r:38,icon:'sword'},{k:'스킬1',ang:228,r:34,icon:'1'},{k:'스킬2',ang:276,r:34,icon:'2'},{k:'방패',ang:318,r:34,icon:'shield'}],
+};
+const GAP=14;
+function draw(id,v){SCREENS.forEach(([w,h])=>{
+ const U=Math.min(w/844,h/390),VW=w/U,VH=h/U;
+ const d=document.createElement('div');d.className='card';d.innerHTML=`<h3>${w}×${h} (배율 ${U.toFixed(2)})</h3><canvas width="${w}" height="${h}" style="width:${w}px"></canvas>`;
+ document.getElementById(id).appendChild(d);const x=d.querySelector('canvas').getContext('2d');
+ const P=(vx,vy)=>[vx*U,vy*U];
+ // 바닥
+ x.fillStyle='#2b2a33';x.fillRect(0,0,w,h);x.strokeStyle='rgba(255,255,255,.04)';for(let i=0;i<w;i+=32){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke()}for(let j=0;j<h;j+=32){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke()}
+ // HUD 자리
+ x.strokeStyle='rgba(255,90,90,.8)';x.setLineDash([4,3]);x.lineWidth=1;
+ const hud=[[2,4,26,30,'HP·돈'],[40,3,20,18,'라운드'],[89,3,9,15,'‖']];
+ for(const [l,t,ww,hh,n] of hud){x.strokeRect(l/100*w,t/100*h,ww/100*w,hh/100*h);x.fillStyle='rgba(255,90,90,.9)';x.font='10px system-ui';x.fillText(n,l/100*w+3,t/100*h+12)}
+ x.setLineDash([]);
+ // 왼쪽 조이스틱 (기존)
+ const [lx,ly]=P(VW*.15,VH*.72);x.fillStyle='rgba(255,255,255,.15)';x.beginPath();x.arc(lx,ly,64*U,0,7);x.fill();x.fillStyle='rgba(255,255,255,.5)';x.beginPath();x.arc(lx,ly,28*U,0,7);x.fill();
+ x.fillStyle='#cfd3dc';x.font='11px system-ui';x.textAlign='center';x.fillText('이동',lx,ly+64*U+13);
+ // 장수
+ const [hx,hy]=P(VW*.45,VH*.6);x.fillStyle='#8a5a3c';x.fillRect(hx-6,hy-22,12,18);x.fillStyle='#d9b38c';x.beginPath();x.arc(hx,hy-27,6,0,7);x.fill();
+ // 엄지 범위: 오른쪽 아래 모서리 근처를 축으로, 반지름 = 화면 높이의 0.72 (실제 px, 최대 280)
+ const tr=Math.min(h*.72,280);x.strokeStyle='rgba(255,214,102,.75)';x.setLineDash([6,5]);x.lineWidth=1.5;x.beginPath();x.arc(w+4,h+14,tr,Math.PI,Math.PI*1.5);x.stroke();x.setLineDash([]);
+ // 오른쪽 조이스틱
+ const cxv=VW-STICK.dx,cyv=VH-STICK.dy,[cx,cy]=P(cxv,cyv);
+ x.fillStyle='rgba(255,255,255,.15)';x.beginPath();x.arc(cx,cy,STICK.R*U,0,7);x.fill();x.strokeStyle='rgba(255,255,255,.35)';x.lineWidth=1.5;x.stroke();
+ x.fillStyle='rgba(255,255,255,.5)';x.beginPath();x.arc(cx+18*U,cy-10*U,STICK.knob*U,0,7);x.fill();
+ // 방향 눈금(쏘기)
+ x.strokeStyle='rgba(255,255,255,.5)';x.lineWidth=2;for(let a=0;a<4;a++){const t=a*Math.PI/2;x.beginPath();x.moveTo(cx+Math.cos(t)*(STICK.R-10)*U,cy+Math.sin(t)*(STICK.R-10)*U);x.lineTo(cx+Math.cos(t)*(STICK.R-3)*U,cy+Math.sin(t)*(STICK.R-3)*U);x.stroke()}
+ x.fillStyle='#cfd3dc';x.font='11px system-ui';x.fillText('쏘기',cx,cy+STICK.R*U+12);
+ // 쏘는 방향 미리 표시
+ x.strokeStyle='rgba(201,206,214,.6)';x.setLineDash([3,5]);x.beginPath();x.moveTo(hx,hy-12);x.lineTo(hx+Math.cos(-0.5)*90*U,hy-12+Math.sin(-0.5)*90*U);x.stroke();x.setLineDash([]);
+ // 둘레 버튼
+ let ok=true;const sizes=[];
+ for(const b of LAYOUT[v]){const rr=STICK.R+GAP+b.r,t=b.ang*Math.PI/180,bxv=cxv+Math.cos(t)*rr,byv=cyv+Math.sin(t)*rr,[bx,by]=P(bxv,byv),R=b.r*U;
+  const dia=Math.round(R*2*10)/10;if(dia<44)ok=false;
+  x.fillStyle='rgba(20,22,34,.6)';x.beginPath();x.arc(bx,by,R,0,7);x.fill();x.strokeStyle=b.k==='치기'?'#E8D9A8':'rgba(255,255,255,.6)';x.lineWidth=2;x.stroke();
+  x.fillStyle='#fff';x.strokeStyle='#fff';
+  if(b.icon==='shield'){const k=R*.5;x.beginPath();x.moveTo(bx,by-k);x.lineTo(bx+k*.85,by-k*.6);x.quadraticCurveTo(bx+k*.8,by+k*.5,bx,by+k);x.quadraticCurveTo(bx-k*.8,by+k*.5,bx-k*.85,by-k*.6);x.closePath();x.fill();}
+  else if(b.icon==='sword'){const k=R*.55;x.lineWidth=3;x.beginPath();x.moveTo(bx-k,by+k);x.lineTo(bx+k,by-k);x.stroke();x.beginPath();x.moveTo(bx-k*.75,by+k*.2);x.lineTo(bx-k*.2,by+k*.75);x.stroke();}
+  else{x.font=`bold ${Math.round(R*.8)}px system-ui`;x.textBaseline='middle';x.fillText(b.icon,bx,by+1);x.textBaseline='alphabetic';}
+  sizes.push(`${b.k} ${dia}px`);
+  if(b.k.startsWith('스킬')||b.k==='방패'){x.fillStyle='#D9AE4F';x.beginPath();x.arc(bx+R*.72,by-R*.72,7,0,7);x.fill();x.fillStyle='#16171f';x.font='bold 9px system-ui';x.fillText('2',bx+R*.72,by-R*.72+3)}
+  const dThumb=Math.hypot(bx-(w+4),by-(h+14));if(dThumb>tr+R*.5)ok=false;}
+ x.textAlign='left';x.fillStyle=ok?'#7ad8a0':'#ff7a7a';x.font='bold 11px system-ui';x.fillText(ok?'✓ 44px 이상 · 엄지 범위 안':'✗ 확인 필요',8,h-8);d.querySelector('h3').textContent+=' · '+sizes.join(' · ');
+});}
+draw('A','A');draw('B','B');
+</script></body></html>
