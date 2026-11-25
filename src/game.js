@@ -6,8 +6,10 @@
   const UI = window.UI, I18N = window.I18N, AUDIO = window.AUDIO, COL = UI.COL;
   const t_ = (k, v) => I18N.t(k, v);
   const cv = document.getElementById('game');
-  const ctx = cv.getContext('2d');
+  let ctx = cv.getContext('2d');
   UI.x = ctx;
+  // 다른 캔버스에 그리기 (3D 판에 쓸 장수 그림 등) — 기존 그리기 함수를 그대로 써요
+  function paintTo(c2, fn) { const o = ctx; ctx = c2; UI.x = c2; try { fn(); } finally { ctx = o; UI.x = o; } }
 
   // ---------- 저장 (막혀 있어도 안 터지게) ----------
   const store = {
@@ -17,6 +19,8 @@
   const reduceMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const settings = Object.assign({ sound: true, shake: !reduceMotion, flash: !reduceMotion }, store.get('settings', {}));
   const saveSettings = () => store.set('settings', settings);
+  // 렌더러: 2.5D(Three.js, B안)가 기본 · 되돌리기 = 주소 ?render=2d 또는 설정 render: '2d' (WebGL이 없어도 2D)
+  const use3d = (() => { try { if (new URLSearchParams(location.search).get('render') === '2d') return false; } catch {} return settings.render !== '2d' && !!window.R3D && window.R3D.init(cv); })();
   AUDIO.enabled = settings.sound;
   const best = store.get('best', {});     // 나라 key → { rounds, kills }
   let lastCountry = store.get('lastCountry', null);
@@ -32,6 +36,7 @@
     U = Math.min(W / 844, H / 390); VW = W / U; VH = H / U; UI.VW = VW; UI.VH = VH;
     fieldBox.s = Math.min(VW / FIELD.W, VH / FIELD.H);
     fieldBox.x = (VW - FIELD.W * fieldBox.s) / 2; fieldBox.y = (VH - FIELD.H * fieldBox.s) / 2;
+    if (use3d) R3D.resize(W, H, DPR);
   }
   window.addEventListener('resize', resize); resize();
   const coarse = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } })();
@@ -186,6 +191,7 @@
     if (input.mMelee && !wasM) buf.melee = 0.1; if (input.mRanged && !wasR) buf.ranged = 0.1;
     const p = toV(e), fb = fieldBox;
     mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
+    if (use3d) { const q = R3D.unproj(mouse.x, mouse.y); if (q) { mouse.x = q.x; mouse.y = q.y - 24; } }   // 3D: 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
   }
   cv.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') mouseButtons(e);
@@ -383,7 +389,7 @@
     const dmg = st.melee * atkMul(), ang0 = sw.ang;
     const mk = G.country.melee, life = FX.meleeTime(mk);
     // 궤적은 가장 강한 칸(6칸 중 3번째)이 명중 프레임에 보이게 그 칸부터 재생해요
-    G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
+    G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, h0: 26 - Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
     const hits = [];
     for (const a of G.aliens) {
       const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
@@ -451,26 +457,27 @@
     // 접촉점 (리뷰 3): 몸 가운데에서 공격이 들어온 쪽으로 6~10px
     const cy = a.y - (a.type === 'boss' ? 50 : 20), off = Math.min(10, a.r * .5 + 2);
     const cx = a.x - nx * off, cyy = cy - ny * off * .6;
-    if (main) G.fx.push({ kind: 'core', x: cx, y: cyy, t: 0, life: .1 });   // 흰 코어 0.025초 + 옅은 금 꼬리
-    G.fx.push({ kind: 'hit', x: cx, y: cyy, dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), alpha: main ? 1 : .5, t: 0, life: heavy ? 0.14 : 0.12 });
+    const h0 = a.y - cyy;   // 3D: 바닥에서 높이
+    if (main) G.fx.push({ kind: 'core', x: cx, y: cyy, h0, t: 0, life: .1 });   // 흰 코어 0.025초 + 옅은 금 꼬리
+    G.fx.push({ kind: 'hit', x: cx, y: cyy, h0, dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), alpha: main ? 1 : .5, t: 0, life: heavy ? 0.14 : 0.12 });
     // 방향성 파편 (리뷰 8): 몸 색 2~4개, 공격 방향 ±35°
-    shardBurst(cx, cyy, Math.atan2(ny, nx), alienCol(a), main ? 3 : 2, o.finisher ? 1.2 : 1);
+    shardBurst(cx, cyy, Math.atan2(ny, nx), alienCol(a), main ? 3 : 2, o.finisher ? 1.2 : 1, 0, h0);
     if (!heavy) AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
       // 처치 (리뷰 10): 몸이 0.08초 동안 0.65배로 접히며 사라진 뒤 파편 6개 + 처치 잔광
       const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
       G.fx.push({ kind: 'corpse', img: 'alien/alien-' + a.type, x: a.x, y: a.y, hgt, flip: a.vx < 0, t: 0, life: .08 });
-      shardBurst(a.x, a.y - 20, Math.atan2(ny, nx), alienCol(a), 6, o.finisher ? 1.3 : 1.1, .07);
-      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: -.07, life: 0.2 });
+      shardBurst(a.x, a.y - 20, Math.atan2(ny, nx), alienCol(a), 6, o.finisher ? 1.3 : 1.1, .07, 20);
+      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), h0: a.type === 'boss' ? 60 : 22, size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: -.07, life: 0.2 });
       later(() => AUDIO.play('kill'), 30);
     }
   }
   // 공격 방향으로 튀는 파편 (delay초 뒤 시작)
-  function shardBurst(x, y, dir, color, n, speedMul = 1, delay = 0) {
+  function shardBurst(x, y, dir, color, n, speedMul = 1, delay = 0, h0 = 20) {
     for (let i = 0; i < n && G.parts.length < 150; i++) {
       const a = dir + (Math.random() - .5) * 1.2, v = (90 + Math.random() * 70) * speedMul;
-      G.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .08 + Math.random() * .06, t: -delay, color, s: 1.5 + Math.random() });
+      G.parts.push({ x, y, h0, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .08 + Math.random() * .06, t: -delay, color, s: 1.5 + Math.random() });
     }
   }
   function hurt(dmg, fromX, fromY) {
@@ -655,10 +662,13 @@
   }
 
   // ---------- 그리기 ----------
+  const FIELD_SCENES = new Set(['play', 'roundPanel', 'ending', 'ad']);
   function draw() {
     ctx.setTransform(DPR * U, 0, 0, DPR * U, 0, 0);
     UI.hits = [];
-    ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, VW, VH);
+    const f3 = use3d && FIELD_SCENES.has(G.scene) && !portrait();
+    if (use3d) R3D.show(f3);
+    if (f3) ctx.clearRect(0, 0, VW, VH); else { ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, VW, VH); }
     if (portrait()) return drawRotate();
     switch (G.scene) {
       case 'loading': return drawLoading();
@@ -809,6 +819,7 @@
 
   // 전장
   function drawField() {
+    if (use3d) return drawField3D();
     const fb = fieldBox;
     ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH);
     ctx.save();
@@ -876,6 +887,96 @@
     if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
   }
 
+  // ---- 2.5D (B안, 사용자 "b안"): 바닥·벽·문은 3D, 장수·외계인·화폐는 판(빌보드), 효과·HUD는 2D를 원근에 맞춰 위에 겹쳐요 ----
+  const HERO_BOX = { l: 80, t: 104, w: 160, h: 144, k: 2 };          // 장수 판: 발 기준 왼쪽 80 · 위 104 (무기 포함) · 2배 해상도
+  const GROUND_BOX = { w: 76, h: 30, k: 2, stretch: 2.1 };           // 발밑 빛·화폐 고리 (2D 납작 타원을 바닥에 맞게 세로로 늘려요)
+  const FX_H0 = { melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0 };   // 효과가 뜨는 높이 (바닥에서)
+  let heroCv = null, heroTex = null, groundCv = null, groundTex = null;
+  const itemCv = [], itemTex = [];
+  const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  // 캔버스를 비우고 (cx, cy) 가 가운데 오게 해서 그려요
+  function paintBox(cv2, k, ox, oy, cx, cy, fn) {
+    const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv2.width, cv2.height);
+    c.setTransform(k, 0, 0, k, ox * k, oy * k); c.translate(-cx, -cy);
+    paintTo(c, fn);
+  }
+  function shakeOffset() {
+    let sx = 0, sy = 0;
+    if (settings.shake) {
+      if (G.shake > 0) { sx = (Math.random() - .5) * G.shake; sy = (Math.random() - .5) * G.shake; }
+      if (G.kick) { const k = G.kick.t < .018 ? G.kick.t / .018 : Math.max(0, 1 - (G.kick.t - .018) / .08); sx += G.kick.x * 2 * k; sy += G.kick.y * 2 * k; }
+    }
+    return [sx, sy];
+  }
+  function drawField3D() {
+    const fb = fieldBox, h = G.hero, [sx, sy] = shakeOffset();
+    if (!R3D.begin()) { ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH); return; }
+    const GB = GROUND_BOX;
+    // 바닥 화폐: 시간 고리는 바닥에, 화폐는 서 있는 판
+    G.items.forEach((it, i) => {
+      const al = it.life < 3 && Math.floor(it.life * 6) % 2 === 0 ? .35 : 1;
+      if (!itemCv[i]) { itemCv[i] = mkCv(GB.w * GB.k, GB.h * GB.k); itemTex[i] = R3D.canvasTex(itemCv[i]); }
+      paintBox(itemCv[i], GB.k, GB.w / 2, GB.h / 2, it.x, it.y, () => {
+        ctx.strokeStyle = COL.glow; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(it.x, it.y, 22, 8, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * it.life / BAL.ITEM_LIFE); ctx.stroke();
+      });
+      itemTex[i].needsUpdate = true;
+      R3D.decal(itemTex[i], it.x, it.y, GB.w, GB.h * GB.stretch, { alpha: al });
+      R3D.blob(it.x, it.y, 15, .45 * al);
+      R3D.sprite(R3D.tex('item/' + it.cur), it.x, it.y + 4, 34, { alpha: al });
+    });
+    // 장수: 발밑 빛은 바닥에, 몸·무기는 판 하나 (기존 2D 그리기를 그대로 판에 그려요)
+    if (h) {
+      if (!heroCv) { heroCv = mkCv(HERO_BOX.w * HERO_BOX.k, HERO_BOX.h * HERO_BOX.k); heroTex = R3D.canvasTex(heroCv); groundCv = mkCv(GB.w * GB.k, GB.h * GB.k); groundTex = R3D.canvasTex(groundCv); }
+      paintBox(groundCv, GB.k, GB.w / 2, GB.h / 2, h.x, h.y, () => heroGround(false));
+      groundTex.needsUpdate = true;
+      R3D.decal(groundTex, h.x, h.y, GB.w, GB.h * GB.stretch, { order: 45 });
+      R3D.blob(h.x, h.y, 17, .6);
+      paintBox(heroCv, HERO_BOX.k, HERO_BOX.l, HERO_BOX.t, h.x, h.y, heroBody);
+      heroTex.needsUpdate = true;
+      R3D.sprite(heroTex, h.x, h.y, HERO_BOX.h, {}, { aspect: HERO_BOX.w / HERO_BOX.h, below: HERO_BOX.h - HERO_BOX.t, shadow: !(h.dead && G.scene !== 'ending') });
+    }
+    // 외계인
+    for (const a of G.aliens) {
+      const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || '';
+      delete mo.white; delete mo.edge;
+      R3D.sprite(R3D.tex(L.name, v), a.x, a.y + 2, L.hgt, mo);
+      R3D.blob(a.x, a.y, a.r * 1.25 * (1 - L.hop * .03), .5);
+    }
+    // 처치 직후 접히는 몸
+    for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
+    for (const s of G.shots) R3D.blob(s.x, s.y, 7, .3);
+    for (const s of G.eshots) R3D.blob(s.x, s.y, 5, .28);
+    R3D.render((fb.x + sx) * U, (fb.y + sy) * U, FIELD.W * fb.s * U, FIELD.H * fb.s * U);
+
+    // 2D 겹치기: 바닥 점(x, fy)의 원근 자리·크기에 맞춰 기존 2D 그리기를 그대로 써요
+    ctx.save(); ctx.translate(fb.x + sx, fb.y + sy); ctx.scale(fb.s, fb.s);
+    const at = (x, fy, fn) => { const p = R3D.proj(x, fy); ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.s, p.s); ctx.translate(-x, -fy); fn(); ctx.restore(); };
+    for (const a of G.aliens) if (a.type === 'boss') at(a.x, a.y, () => bossBar(a, 140));
+    for (const e of G.fx) {
+      const k = e.t / e.life;
+      if (e.t < 0 || e.kind === 'corpse') continue;
+      const h0 = e.h0 != null ? e.h0 : (FX_H0[e.kind] || 0);
+      at(e.x, e.y + h0, () => {
+        if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
+        else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }
+        else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
+        else if (e.kind === 'groundRing') { ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); }
+        else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
+        else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }
+        else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
+        else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); }
+      });
+    }
+    for (const s of G.shots) {
+      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;
+      at(s.x, s.y, () => FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key));
+    }
+    for (const s of G.eshots) at(s.x, s.y, () => { ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); });
+    for (const p of G.parts) { if (p.t < 0) continue; const h0 = p.h0 != null ? p.h0 : 14; at(p.x, p.y + h0, () => { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }); }
+    ctx.restore();
+    if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
+  }
+
   // ---- 입체감 (사용자 "입체감이 전혀없어" → A안: 2D에 그림자·조명·원근·높이) ----
   const perspective = y => { const f = FIELD.floor; return .86 + .26 * clamp((y - f.y0) / (f.y1 - f.y0), 0, 1); };   // 먼 쪽 0.86배 ~ 가까운 쪽 1.12배
   function castAlien(a) {
@@ -930,12 +1031,12 @@
     else { part(0, WALL.top, WALL.side, FIELD.H - WALL.top); part(FIELD.W - WALL.side, WALL.top, WALL.side, FIELD.H - WALL.top); part(WALL.side, WALL.bottom, FIELD.W - WALL.side * 2, FIELD.H - WALL.bottom); }
   }
 
-  function drawHero() {
-    const h = G.hero, r = G.run, c = G.country, t = G.t;
-    if (!h) return;
+  function drawHero() { if (!G.hero) return; heroGround(); heroBody(); }
+  function heroGround(blob = true) {
+    const h = G.hero, r = G.run;
     const money = r ? Math.max(0, r.money) : 50;
     // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
-    softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45);   // 넓은 그림자 + 발밑 진한 그림자
+    if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }   // 넓은 그림자 + 발밑 진한 그림자
     { const ga = .25 + .65 * Math.min(1, money / 100);   // 돈 비율만큼 발밑 금빛 (납작한 판 대신 퍼지는 빛)
       ctx.save(); ctx.translate(h.x, h.y); ctx.scale(1, .32); ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); g.addColorStop(0, `rgba(255,209,102,${ga * .75})`); g.addColorStop(.55, `rgba(255,209,102,${ga * .35})`); g.addColorStop(1, 'rgba(255,209,102,0)');
@@ -943,6 +1044,9 @@
     if (h.buff) { ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < .15) G.parts.push({ x: h.x + (Math.random() - .5) * 30, y: h.y - Math.random() * 10, vx: 0, vy: -50, life: .35, t: 0, color: '#FFD166', s: 2 }); }
     const da = Math.atan2(h.dir.y, h.dir.x);
     ctx.strokeStyle = 'rgba(255,209,102,.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, da - .35, da + .35); ctx.stroke();   // 보는 방향 호: 옅게·짧게 (디자인팀)
+  }
+  function heroBody() {
+    const h = G.hero, c = G.country, t = G.t;
     if (h.skillT > 0) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);
     // 몸
     let mo = { flip: h.dir.x < -0.05 };
@@ -1058,9 +1162,16 @@
     ctx.restore();
   }
   function drawAlien(a) {
+    const L = alienLook(a);
+    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - L.hop * .03), a.r * .5, .5); softShadow(a.x, a.y, a.r * .7, a.r * .25, .4);
+    UI.sprite(L.name, a.x, a.y + 2, L.hgt, L.mo);
+    if (a.type === 'boss') bossBar(a, L.hgt);
+  }
+  const bossBar = (a, hgt) => { const w = 90; UI.rr(a.x - w / 2, a.y - hgt - 12, w, 6, 3, 'rgba(0,0,0,.6)'); UI.rr(a.x - w / 2, a.y - hgt - 12, w * Math.max(0, a.hp / a.max), 6, 3, COL.green); };   // 보스 체력
+  // 외계인 모양: 그림 이름·키·움직임 (2D·3D가 같이 써요)
+  function alienLook(a) {
     const t = G.t, name = 'alien/alien-' + a.type, hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
     const hop = a.hitT > 0 && !reduceMotion ? Math.sin(Math.PI * (1 - a.hitT / .1)) * 5 : 0;   // 맞으면 살짝 떠올랐다 떨어져요
-    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - hop * .03), a.r * .5, .5); softShadow(a.x, a.y, a.r * .7, a.r * .25, .4);
     let mo = { flip: a.vx < 0 };
     if (!reduceMotion) {
       if (a.type === 'grunt') { const p = Math.sin(t * 14 + a.seed); mo.sy = 1 + p * .08; mo.sx = 1 - p * .05; mo.rot = Math.sin(t * 7 + a.seed) * .08; }
@@ -1075,10 +1186,7 @@
     else if (a.edgeT > 0) mo.edge = alienCol(a);   // 몸 색 외곽선 (번쩍임을 꺼도 보여요)
     if (a.entering) mo.alpha = .85;
     if (hop) mo.oy = (mo.oy || 0) - hop;
-    UI.sprite(name, a.x, a.y + 2, hgt, mo);
-    if (a.type === 'boss') { // 보스 체력
-      const w = 90; UI.rr(a.x - w / 2, a.y - hgt - 12, w, 6, 3, 'rgba(0,0,0,.6)'); UI.rr(a.x - w / 2, a.y - hgt - 12, w * Math.max(0, a.hp / a.max), 6, 3, COL.green);
-    }
+    return { name, hgt, mo, hop };
   }
 
   // 위 표시: HP · 돈 · 라운드 · 남은 외계인 · 일시정지
@@ -1248,10 +1356,12 @@
   }
 
   // ---------- 루프 ----------
-  let lastT = 0;
+  let lastT = 0, slowT = 0;
   function loop(t) {
     let left = Math.min((t - lastT) / 1000 || 0, 0.25);
     lastT = t;
+    // 3D가 버거운 기기면 화질을 한 번 낮춰요 (3초 넘게 40fps 아래)
+    if (use3d && !R3D.low && G.scene === 'play' && !G.paused && left > 0) { slowT = left > 1 / 40 ? slowT + left : Math.max(0, slowT - left * .5); if (slowT > 3) R3D.lowQuality(); }
     try {
       while (left > 0) { const step = Math.min(left, 1 / 30); update(step); left -= step; }
       draw();

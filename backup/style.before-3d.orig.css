@@ -1,0 +1,2 @@
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0F1116; touch-action: none; user-select: none; -webkit-user-select: none; }
+canvas { display: block; width: 100vw; height: 100vh; }
