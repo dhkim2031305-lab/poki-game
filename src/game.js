@@ -868,7 +868,7 @@
     ctx.fillStyle = `rgba(255,209,102,${.25 + .65 * Math.min(1, money / 100)})`; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
     if (h.buff) { ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < .15) G.parts.push({ x: h.x + (Math.random() - .5) * 30, y: h.y - Math.random() * 10, vx: 0, vy: -50, life: .35, t: 0, color: '#FFD166', s: 2 }); }
     const da = Math.atan2(h.dir.y, h.dir.x);
-    ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, da - .5, da + .5); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,209,102,.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, da - .35, da + .35); ctx.stroke();   // 보는 방향 호: 옅게·짧게 (디자인팀)
     if (h.skillT > 0) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);
     // 몸
     let mo = { flip: h.dir.x < -0.05 };
@@ -946,7 +946,7 @@
     if (im && im.naturalWidth) {
       const sc = len / 192;   // 그림 폭 192 → len
       ctx.translate(px, py); ctx.rotate(a); if (Math.cos(a) < 0) ctx.scale(1, -1);
-      ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 (4, 80)
+      ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 = 폭×0.0208, 높이×0.5 (192×160 기준 (4,80), 288×240이면 (6,120)) · 그리는 크기는 그림 크기와 무관
     }
     ctx.restore();
   }
@@ -958,7 +958,7 @@
     if (bm.rot && flip !== mo.flip) bm.rot = -bm.rot;
     const dead = h.dead || (G.scene === 'ending' && G.ending.fell);
     const w = weaponAngle(h, aim);
-    // 손 위치: 칸 좌표를 게임 크기로 (왼쪽 방향은 x → 128 − x)
+    // 손 위치: 128칸 기준 좌표를 게임 크기로 (그림이 192칸이어도 비율이 같아요 · 왼쪽 방향은 x → 128 − x)
     const kk = 60 / 112, hd = HAND[cell], hdx = (hd[0] - 64) * kk * (flip ? -1 : 1), hdy = (hd[1] - 124) * kk;
     const hx = h.x + (mo.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
     const behind = hd[2];   // 오른쪽위·위를 볼 때는 몸 뒤에

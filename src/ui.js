@@ -114,14 +114,14 @@
     if (mo.white) x.filter = 'brightness(2.2)';
     x.drawImage(im, f * cw, 0, cw, ch, -cw * k / 2, -(ch - 2) * k, cw * k, ch * k); x.restore();
   };
-  // 8방향 몸 (7차): 5칸 = 아래·오른쪽아래·오른쪽·오른쪽위·위, 왼쪽은 좌우 뒤집기. 서 있는 키 = 칸 높이 × 112/128, 발은 칸 아래 4px
+  // 8방향 몸 (7차): 5칸 = 아래·오른쪽아래·오른쪽·오른쪽위·위, 왼쪽은 좌우 뒤집기. 서 있는 키 = 칸 높이 × 0.875, 발 = 칸 아래 칸 높이 × 0.03125 (칸 크기는 그림에서 읽어요)
   UI.dirBody = (key, cell, cx, footY, h, mo = {}) => {
     const im = UI.img['dir/' + key]; if (!im || !im.naturalWidth) return false;
     const x = UI.x, cw = im.naturalWidth / 5, ch = im.naturalHeight, k = h / (ch * 112 / 128);
     x.save(); x.translate(cx + (mo.ox || 0), footY + (mo.oy || 0)); if (mo.rot) x.rotate(mo.rot);
     x.scale((mo.flip ? -1 : 1) * (mo.sx || 1), mo.sy || 1); if (mo.alpha != null) x.globalAlpha = mo.alpha;
     if (mo.white) x.filter = 'brightness(2.2)';
-    x.drawImage(im, cell * cw, 0, cw, ch, -cw * k / 2, -(ch - 4) * k, cw * k, ch * k); x.restore();
+    x.drawImage(im, cell * cw, 0, cw, ch, -cw * k / 2, -(ch - ch * 0.03125) * k, cw * k, ch * k); x.restore();   // 발 = 칸 아래 칸 높이×0.03125 (128칸 4px · 192칸 6px)
     return true;
   };
   UI.sprite = (name, cx, footY, h, mo = {}) => {
