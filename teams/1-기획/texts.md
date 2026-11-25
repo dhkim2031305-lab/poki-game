@@ -13,7 +13,7 @@
 - 말투: 라운드 클리어는 아주 밝게, 엔딩·파산은 담담하고 비꼬듯이 써요. **나라를 탓하지 않고 구조(출발선·돈)를 말해요.** "가난한 나라·부자 나라" 대신 "돈이 적은/많은 나라"라고 써요. 나라 이름에는 부정적인 말을 붙이지 않아요.
 - 스킬 외침은 욕설 없이 순하게 써요. 목소리도 20개 언어로 필요해요.
 
-## 문구 (129줄)
+## 문구 (130줄)
 | ID | 원문 (한국어) | 영어 | 나오는 곳 | 상태 |
 |---|---|---|---|---|
 | `title` | A World Where Only the Strong Survive | A World Where Only the Strong Survive | 시작 화면 제목 (영어 원문, 나라마다 번역) | 확정 |
@@ -27,6 +27,7 @@
 | `ui.09` | 설정 | Settings | 설정 버튼·화면 제목 | 확정 |
 | `ui.10` | Language | Language | 설정 화면 맨 위 (모든 언어에서 영어 그대로 + 지구본 아이콘) | 확정 |
 | `ui.08` | 1인당 GDP(PPP) · OECD 2024 | GDP per capita (PPP) · OECD 2024 | ~~나라 카드 출처 표시~~ → 화면에서 가림(GDD 0-13). 게임 설명 페이지용으로만 남겨요 | 확정 |
+| `x.keys` | WASD 이동 · 클릭/J 치기 · 우클릭/K 쏘기 · 우클릭 두 번/L 스킬1 · 클릭 두 번/; 스킬2 · 양쪽 동시/Space 무적 · ESC 일시정지 | WASD move · Click/J strike · Right-click/K ranged · Right ×2/L skill 1 · Left ×2/; skill 2 · Both/Space invincible · ESC pause | PC 조작 안내 (폰에서는 숨김) · 코드 `src/i18n.js` 같은 키. 영어는 나라와 상관없는 말로 써요("throw" 대신 "ranged", "guard" 대신 "invincible"). 일시정지는 Esc만(GDD 0-14) | 확정 (2026-11-25, QA 973fdd4 A3) |
 | `round.clear.1` | 완벽해요! 세상은 정말 아름다워요! | Perfect! The world is truly beautiful! | 라운드 클리어 (무작위) | 확정 |
 | `round.clear.2` | 당신은 뭐든 할 수 있어요! | You can do anything! | 라운드 클리어 (무작위) | 확정 |
 | `end.unfair` | …하지만 인생은 불공평해요. | …But life isn't fair. | 6라운드 클리어 뒤, 장수가 쓰러지기 직전 | 확정 |
