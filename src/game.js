@@ -73,7 +73,7 @@
     });
   }
   function countryAssets(c) {
-    const l = ['dir/' + c.key];
+    const l = ['dir/' + c.key, 'walk/' + c.key];
     if (!FX.GUN[c.key]) l.push('weapon/' + c.key);
     if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
     if (c.ranged === 'sling') l.push('weapon/israel-ranged');
@@ -886,7 +886,8 @@
     const h = G.hero, c = G.country; if (!h || (h.dead && G.scene !== 'ending')) return;
     const im = UI.img['dir/' + c.key]; if (!im || !im.naturalWidth) return;
     const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x), o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8;
-    UI.dirBody(c.key, OCT[o][0], h.x, h.y, 60, { flip: OCT[o][1], shadow: .3 });
+    const bf = bodyFrame(h, OCT[o][0]);
+    UI.dirBody(c.key, bf.cell, h.x, h.y, 60, { flip: OCT[o][1], shadow: .3 }, bf.folder);
   }
   // 부드러운 타원 그림자 (가운데 진하고 가장자리로 사라져요)
   function softShadow(x, y, rx, ry, a) {
@@ -1023,6 +1024,13 @@
     }
     ctx.restore();
   }
+  // 걷기 (9차 그림): 서기 → A → 서기 → B, 초당 8칸. 걷기 칸 = 방향×2 + (A 0, B 1)
+  function bodyFrame(h, cell) {
+    const wi = UI.img['walk/' + G.country.key];
+    if (!h.moving || h.swing || h.dead || reduceMotion || !wi || !wi.naturalWidth) return { folder: 'dir', cell };
+    const ph = Math.floor(h.walkT * 8) % 4;
+    return ph === 1 ? { folder: 'walk', cell: cell * 2 } : ph === 3 ? { folder: 'walk', cell: cell * 2 + 1 } : { folder: 'dir', cell };
+  }
   function drawHero8(h, c, mo) {
     if (!UI.img['dir/' + c.key] || !UI.img['dir/' + c.key].naturalWidth) return false;
     const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x);
@@ -1036,7 +1044,8 @@
     const hx = h.x + (mo.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
     const behind = hd[2];   // 오른쪽위·위를 볼 때는 몸 뒤에
     if (!dead && behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
-    UI.dirBody(c.key, cell, h.x, h.y, 60, bm);
+    const bf = bodyFrame(h, cell);
+    UI.dirBody(c.key, bf.cell, h.x, h.y, 60, bm, bf.folder);
     if (!dead && !behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
     return true;
   }
