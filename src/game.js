@@ -262,8 +262,8 @@
     AUDIO.unlock();
     keys.add(e.code);
     if (e.repeat) return;
-    if (e.code === 'Escape' || e.code === 'KeyP') {
-      if (G.scene === 'play') return setPause(!G.paused);
+    if (e.code === 'Escape') {   // 설정 창은 ESC로만 (사용자 "세팅창 esc 누르기전까지 나오지 않게해", 2026-11-25) — P는 스킬 키 L·; 옆이라 뺐어요
+      if (G.scene === 'play') { if (G.hold) { G.hold = false; return; } return setPause(!G.paused); }   // 조용히 멈춘 상태면 ESC로 설정 창을 열어요
       if (G.scene === 'select') return action('back');
     }
     const ok = e.code === 'Enter' || e.code === 'Space';
@@ -280,8 +280,11 @@
     } else if (G.scene === 'result' && G.result.t > 0.6) { if (ok) action('restart'); if (e.code === 'Escape') action('quit'); }
   });
   window.addEventListener('keyup', e => keys.delete(e.code));
-  window.addEventListener('blur', () => { clearInput(); if (G.scene === 'play' && !G.paused) setPause(true); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && G.scene === 'play' && !G.paused) setPause(true); });
+  // 창·탭을 벗어나면 설정 창 없이 조용히 멈추고(G.hold), 돌아오면 그대로 이어가요
+  const hold = () => { clearInput(); if (G.scene === 'play' && !G.paused) { setPause(true); G.hold = true; } };
+  const unhold = () => { if (G.hold && !document.hidden) { G.hold = false; setPause(false); } };
+  window.addEventListener('blur', hold); window.addEventListener('focus', unhold);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) hold(); else unhold(); });
 
   function readMove() {
     let x = 0, y = 0;
@@ -295,7 +298,7 @@
 
   function setPause(p) {
     if (G.scene !== 'play') return;
-    G.paused = p; G.langOpen = false;
+    G.paused = p; G.langOpen = false; if (!p) G.hold = false;
     if (p) { Platform.gameplayStop(); clearInput(); }
     else Platform.gameplayStart();
   }
@@ -1328,7 +1331,7 @@
       case 'loading': return drawLoading();
       case 'title': return drawTitle();
       case 'select': return drawSelect();
-      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); if (G.paused) drawPause(); return;
+      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); if (G.paused && !G.hold) drawPause(); return;
       case 'roundPanel': drawField(); drawHUD(); drawRoundPanel(); return;
       case 'ending': drawField(); drawEnding(); return;
       case 'result': return drawResult();
@@ -1942,7 +1945,7 @@
     UI.txt(`${r.round}/6`, cx + 62, VH * .09, 12, COL.fg, 'center', 700);
     UI.I.alien(cx - 46, VH * .17 + 1, 18, '#CA57E5');
     UI.txt(t_('ui.04', { n: Math.max(0, remaining()) }), cx + 6, VH * .17 + 1, 14, COL.fg, 'center', 700, 120);
-    if (G.scene === 'play') UI.btnSub('pause', VW * .93, VH * .1, 44, 'pause');
+    if (G.scene === 'play' && G.touchUI) UI.btnSub('pause', VW * .93, VH * .1, 44, 'pause');   // 폰만 (PC는 ESC) — 마우스로 치다가 잘못 눌리지 않게
   }
 
   function drawControls() {
