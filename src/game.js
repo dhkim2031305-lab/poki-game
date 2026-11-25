@@ -59,7 +59,8 @@
   // ---------- 에셋 ----------
   function loadAssets() {
     const list = [];
-    COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'sheet/' + c.key); list.push('flag/' + c.iso); });
+    COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'dir/' + c.key); if (!FX.GUN[c.key]) list.push('weapon/' + c.key); list.push('flag/' + c.iso); });
+    list.push('weapon/korea-ranged', 'weapon/israel-ranged');
     list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
     Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
     let done = 0;
@@ -375,7 +376,7 @@
     const tgt = mouse.on ? null : aimAt(Math.PI * 75 / 180);
     let dx = h.dir.x, dy = h.dir.y;
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
-    h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18;
+    h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx);
     const rk = G.country.ranged;
     G.shots.push({ kind: rk, x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED, vy: dy * TEMP.SHOT_SPEED, dmg: st.ranged * atkMul(), life: 1.6, age: 0 });
     if (rk === 'water') G.fx.push({ kind: 'splash', x: h.x + dx * 18, y: h.y - 24 + dy * 8, t: 0, life: 0.2 });
@@ -442,6 +443,7 @@
       const d = Math.hypot(input.mx, input.my); h.dir = { x: input.mx / d, y: input.my / d };
     }
     h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
+    if (h.rangedT > 0) h.rangedT -= dt;
     // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
     if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
     h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
@@ -811,8 +813,73 @@
     if (G.scene === 'ending' && G.ending.fell) { const k = Math.min(1, (G.ending.t - 3.6) / .18); mo.rot = (mo.flip ? -1 : 1) * k * Math.PI / 2; mo.oy = -k * 6; }
     if (h.inv > 0 && !h.dead && Math.floor(h.inv * 12) % 2 === 0) mo.alpha = .45;
     if (h.hitT > 0 && settings.flash) mo.white = true;
-    UI.frame(c.key, frame, h.x, h.y, 60, mo);
+    if (!drawHero8(h, c, mo)) UI.frame(c.key, frame, h.x, h.y, 60, mo);   // 8방향 그림이 없으면 예전 동작 시트
     if (h.hitT > 0 && !settings.flash) { ctx.strokeStyle = COL.red; ctx.lineWidth = 2; ctx.strokeRect(h.x - 16, h.y - 60, 32, 60); }
+  }
+
+  // ---- 8방향 몸 + 무기 360도 (7차 그림, 사용자 결정 "8방향 그림 + 무기 360도") ----
+  // 몸: 조준 각도를 8방향으로 나눠 5칸 중 하나(왼쪽은 뒤집기). 무기: 손 위치에서 조준 각도대로 돌려요
+  const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향
+  const W_LEN = 0.95;     // 무기 길이 = 장수 키 × 0.95
+  const THROWN = k => FX.THROWN(k) || k === 'boomerang';
+  function weaponAngle(h, a) {
+    // 치기: 예비동작(뒤로) → 스윙(반대쪽까지) → 마무리(돌아옴). 찌르기는 각도 대신 앞뒤로 밀어요
+    const s = h.swing; if (!s) return { a, push: 0 };
+    const mk = G.country.melee, side = Math.cos(s.ang) >= 0 ? 1 : -1, t1 = SWING.wind, t2 = t1 + SWING.strike;
+    const ease = k => 1 - Math.pow(1 - k, 3);
+    if (mk === 'thrust' || mk === 'rapid') {
+      const push = s.t < t1 ? -6 * s.t / t1 : s.t < t2 ? -6 + 20 * ease((s.t - t1) / SWING.strike) : 14 * (1 - (s.t - t2) / SWING.follow);
+      return { a: s.ang, push };
+    }
+    const from = mk === 'smash' ? -1.7 : -1.15, to = mk === 'bigslash' ? 1.4 : mk === 'smash' ? .7 : 1.2;
+    let off;
+    if (s.t < t1) off = from * (s.t / t1);
+    else if (s.t < t2) off = from + (to - from) * ease((s.t - t1) / SWING.strike);
+    else off = to * (1 - (s.t - t2) / SWING.follow);
+    if (mk === 'spin') off = s.t < t1 ? 0 : Math.min(1, (s.t - t1) / (SWING.strike + SWING.follow)) * Math.PI * 2;
+    return { a: s.ang + off * side, push: 0 };
+  }
+  function drawWeapon(h, c, px, py, a, alpha) {
+    const ranged = c.ranged, rangedImg = ranged === 'arrow' ? 'korea-ranged' : ranged === 'sling' ? 'israel-ranged' : null;
+    const len = 60 * W_LEN;
+    ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
+    // 활·투석기: 쏜 직후 잠깐 그 장비를 들어요
+    if (rangedImg && h.rangedT > 0) {
+      const im = UI.img['weapon/' + rangedImg];
+      if (im && im.naturalWidth) {
+        const sc = (ranged === 'arrow' ? 56 : len) / 188;
+        ctx.translate(px + (ranged === 'arrow' ? Math.cos(h.aimShot) * 8 : 0), py + (ranged === 'arrow' ? Math.sin(h.aimShot) * 6 : 0));   // 활은 몸 앞으로 내밀어 들어요
+        if (ranged === 'arrow') { ctx.rotate(h.aimShot + Math.PI / 2); ctx.drawImage(im, -96 * sc, -80 * sc, 192 * sc, 160 * sc); }   // 활: 가운데가 중심, 시위가 장수 쪽
+        else { ctx.rotate(h.aimShot); if (Math.cos(h.aimShot) < 0) ctx.scale(1, -1); ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc); }
+        ctx.restore(); return;
+      }
+    }
+    // 던진 직후엔 손이 비어요 (무기가 날아가는 중)
+    if (THROWN(ranged) && h.rangedT > 0.12) { ctx.restore(); return; }
+    if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py, a, Math.cos(a) < 0, .65); ctx.restore(); return; }   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
+    const im = UI.img['weapon/' + c.key];
+    if (im && im.naturalWidth) {
+      const sc = len / 188;
+      ctx.translate(px, py); ctx.rotate(a); if (Math.cos(a) < 0) ctx.scale(1, -1);
+      ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 (4, 80)
+    }
+    ctx.restore();
+  }
+  function drawHero8(h, c, mo) {
+    if (!UI.img['dir/' + c.key] || !UI.img['dir/' + c.key].naturalWidth) return false;
+    const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x);
+    const o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
+    const bm = Object.assign({}, mo, { flip });
+    if (bm.rot && flip !== mo.flip) bm.rot = -bm.rot;
+    const dead = h.dead || (G.scene === 'ending' && G.ending.fell);
+    const w = weaponAngle(h, aim);
+    // 손 위치: 몸 가운데 높이, 보는 쪽으로 조금
+    const hx = h.x + (mo.ox || 0) + Math.cos(aim) * 7 + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) - 26 + Math.sin(aim) * 4 + Math.sin(w.a) * w.push * .8;
+    const behind = Math.sin(w.a) < -0.35;   // 무기가 위를 향하면 몸 뒤에
+    if (!dead && behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
+    UI.dirBody(c.key, cell, h.x, h.y, 60, bm);
+    if (!dead && !behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
+    return true;
   }
 
   function drawAlien(a) {

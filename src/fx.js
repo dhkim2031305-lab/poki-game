@@ -183,7 +183,7 @@
     },
     drawHitAny(px, py, q, col, dir, big, green) { if (!sheet('hit', q, px, py, dir || 0, big ? 44 : 34, .75, green)) hit(UI.x, px, py, q, col, dir, big); },
     GUN,
-    drawGun(key, px, py, ang, flipY) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); if (flipY) x.scale(1, -1); g(x); x.restore(); return true; },
+    drawGun(key, px, py, ang, flipY, sc = 1) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); x.scale(sc, flipY ? -sc : sc); g(x); x.restore(); return true; },
     MELEE, SHOT, muzzle, hit, splash,
     meleeTime: () => 0.21,   // 스윙 0.09 + 마무리 0.12 (모든 치기 같은 박자)
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
@@ -192,7 +192,7 @@
       // 7차 무기 그림(weapon/<나라>.webp: 무기만, +x 방향, 손잡이 끝 = 왼쪽 가운데)이 있으면 그 그림을 날려요
       const im = key && FX.THROWN(kind) && UI.img['weapon/' + key];
       if (im && im.naturalWidth) {
-        const x = UI.x, w = 40, h = w * im.naturalHeight / im.naturalWidth;
+        const x = UI.x, w = 52, h = w * im.naturalHeight / im.naturalWidth;   // 손에 든 크기와 비슷하게
         x.save(); x.translate(px, py); x.rotate(kind === 'polearm' ? dir : t * SPIN[kind]); x.drawImage(im, -w / 2, -h / 2, w, h); x.restore();
         return;
       }
