@@ -26,7 +26,7 @@ const { chromium } = require('playwright');
       const ev = (t, x, y) => cv.dispatchEvent(new PointerEvent(t, { pointerId: 31, pointerType: 'touch', clientX: x, clientY: y, bubbles: true }));
       ev('pointerdown', r.left + B.x * s, r.top + B.y * s); for (const [x, y] of pts) ev('pointermove', x, y); }, [pts]);
   const up = (x, y) => ph.evaluate(([x, y]) => { const cv = document.getElementById('game'); cv.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', clientX: x, clientY: y, bubbles: true })); }, [x, y]);
-  for (const [ci, tag] of [[3, '미국1 연사'], [14, '한국1 설치'], [18, '리투아니아1 돌진'], [25, '그리스1 범위(직사각형)']]) {
+  for (const [ci, tag] of (process.env.ONLY ? [[18, '리투아니아1 돌진'], [25, '그리스1 범위(직사각형)']] : [[3, '미국1 연사'], [14, '한국1 설치'], [18, '리투아니아1 돌진'], [25, '그리스1 범위(직사각형)']])) {
     await start(ph, ci); const [tx, ty] = await scr(ph, 420, 130);
     await drag([[tx - 100, ty - 40], [tx, ty]]); await ph.waitForTimeout(150); const pre = await ph.evaluate(() => JSON.stringify({ hold: !!G.hold, aim: !!G.dbgAim() })); await ph.screenshot({ path: `${S}/shots/aim-ph-${ci}.png` }); out.push('  찍기 전 ' + pre + ' 찍은 뒤 ' + await ph.evaluate(() => JSON.stringify({ hold: !!G.hold, aim: !!G.dbgAim() })));
     await up(tx, ty); await ph.waitForTimeout(900);

@@ -869,19 +869,19 @@
       if (k === 'orbit') { ring(h.x, h.y, 62, true, .06); ctx.restore(); return; }   // 튀르키예 1: 자리 지정 없음
       if (sk.type === 'zone') { link(); ring(tx, ty, R, false, .06); ctx.strokeStyle = SKG; ctx.lineWidth = 1.5; gEll(tx, ty, R * .7); ctx.stroke(); }
       else if (sk.type === 'area' && k === 'fear') { link(); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * GK(), 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-      else if (sk.type === 'area' && k === 'phalanx') { const L = 180, W = 46, c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -W], [L, -W], [L, W], [0, W]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + (s2 * u + c * v) * g]);
+      else if (sk.type === 'area' && k === 'phalanx') { const L = 180, W = 46, c = Math.cos(ang), s2 = Math.sin(ang), P = [[0, -W], [L, -W], [L, W], [0, W]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + s2 * u + c * v]);   // 판정과 같은 바닥 좌표
         ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       else if (sk.type === 'area' && k === 'crack') { link(); ring(tx, ty, 20, true, 0); }
       else if (sk.type === 'area' && k === 'cone') { link(); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.ellipse(tx, ty, R, R * GK(), 0, ang - Math.PI / 3, ang + Math.PI / 3); ctx.closePath(); ctx.fill(); ctx.stroke(); }
       else if (sk.type === 'area') { link(); ring(tx, ty, R, true, .1); ring(tx, ty, R + 8, false, 0); }
       else if (sk.type === 'dash') {   // 몸 폭 30 띠 + 흐르는 › 3개 + 도착 원
         let ex = tx, ey = ty; if (k === 'long') { ex = clamp(h.x + (tx - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ty - h.y) * 2, f.y0 + 22, f.y1); }
-        const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + (s2 * u + c * v) * g]);
+        const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v * g, h.y + s2 * u + c * v * g]);   // 길이는 바닥 좌표 그대로(끝 = 도착 원), 폭만 납작하게
           ctx.globalAlpha = (aim.cancel ? .35 : 1) * a; ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40); for (const [i, j] of [[0, 1], [3, 2]]) { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); } ctx.setLineDash([]); return L; };
         if (k === 'long') band(ex, ey, .4);   // 리투아니아 1: 목표 너머까지 옅게 (40%, 디자인 463e6b5)
         const L = band(tx, ty, 1);
-        ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const u = ((G.t * 120 + i * L / 3) % Math.max(1, L)), x = h.x + Math.cos(ang) * u, y = h.y + Math.sin(ang) * u * GK() / .35 * .35;
+        ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const u = ((G.t * 120 + i * L / 3) % Math.max(1, L)), x = h.x + Math.cos(ang) * u, y = h.y + Math.sin(ang) * u;
           ctx.beginPath(); ctx.moveTo(x - Math.cos(ang - .6) * 7, y - Math.sin(ang - .6) * 7 * .6); ctx.lineTo(x, y); ctx.lineTo(x - Math.cos(ang + .6) * 7, y - Math.sin(ang + .6) * 7 * .6); ctx.stroke(); }
         ring(tx, ty, 20, true, 0);
       }
