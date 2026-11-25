@@ -54,8 +54,8 @@
   function spin(x, cx, cy, p, R, col) {
     if (p < 0 || p > 1) return;
     const fade = p < .6 ? 1 : 1 - (p - .6) / .4;
-    x.save(); x.globalAlpha = fade;
-    for (let i = 0; i < 3; i++) { x.strokeStyle = i ? '#fff' : col; x.lineWidth = 7 - i * 2; x.beginPath(); x.ellipse(cx, cy + 6, R, R * .45, 0, p * Math.PI * 4 - 1.8, p * Math.PI * 4); x.stroke(); }
+    x.save(); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';   // 다른 효과처럼 은은하게 (빛 더하기, 얇게)
+    for (let i = 0; i < 3; i++) { x.globalAlpha = fade * [.25, .45, .7][i]; x.strokeStyle = i === 2 ? '#fff' : col; x.lineWidth = [6, 3.5, 1.5][i]; x.beginPath(); x.ellipse(cx, cy + 6, R, R * .45, 0, p * Math.PI * 4 - 1.6, p * Math.PI * 4); x.stroke(); }
     x.restore();
   }
 
@@ -158,26 +158,30 @@
 
   // 8차 이펙트 그림 (src/assets/fx/*.webp: 칸 80×80, 왼쪽부터 발생→최대→소멸, +x 방향) — 빛 더하기로 그려요
   const SHEET_N = { slash: 6, thrust: 6, smash: 6, hit: 6, death: 8 };
-  function sheet(name, p, cx, cy, ang, size, alpha = 1) {
+  function sheet(name, p, cx, cy, ang, size, alpha = 1, green) {
     const im = UI.img['fx/' + name]; if (!im || !im.naturalWidth || p < 0 || p >= 1) return false;
     const n = SHEET_N[name], cw = im.naturalWidth / n, f = Math.min(n - 1, Math.floor(p * n)), x = UI.x;
-    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; x.translate(cx, cy); x.rotate(ang);
+    x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; if (green) x.filter = 'hue-rotate(-150deg)'; x.translate(cx, cy); x.rotate(ang);   // 사격 외계인: 보라 그림을 초록으로
     x.drawImage(im, f * cw, 0, cw, im.naturalHeight, -size / 2, -size / 2, size, size); x.restore();
     return true;
   }
-  // 치기 종류 → 그림: 베기·큰 베기·회전 베기 = slash, 찌르기·빠른 찌르기 = thrust, 내려찍기 = smash
-  const MELEE_SHEET = { slash: ['slash', 76, 30], bigslash: ['slash', 96, 34], spin: ['slash', 80, 24], thrust: ['thrust', 84, 40], rapid: ['thrust', 70, 34], smash: ['smash', 80, 30] };
+  // 치기 종류 → 그림 (디자인팀 d2c56fb): 베기 = slash, 큰 베기 = slash 1.3배, 찌르기 = thrust, 빠른 찌르기 = thrust 3번 연속, 내려찍기 = smash
+  // 회전 베기(호주)는 그림 없이 코드로 그려요
+  const MELEE_SHEET = { slash: ['slash', 76, 30], bigslash: ['slash', 99, 36], thrust: ['thrust', 84, 40], rapid: ['thrust', 70, 34, 3], smash: ['smash', 80, 30] };
 
   window.FX = {
     sheet,
     // 그림이 있으면 그림, 없으면 코드 효과
     drawMeleeAny(kind, cx, cy, dir, p) {
-      const m = MELEE_SHEET[kind] || MELEE_SHEET.slash;
-      const ang = kind === 'spin' ? dir + p * Math.PI * 2 : dir;
-      if (sheet(m[0], p, cx + Math.cos(ang) * m[2], cy + Math.sin(ang) * m[2] * .82, ang, m[1], .7)) return;   // 밝기 70% (겹쳐도 하얗게 안 뭉개지게)
+      const m = MELEE_SHEET[kind];
+      if (m) {
+        const n = m[3] || 1, k = Math.min(n - 1, Math.floor(p * n)), q = p * n - k;   // 빠른 찌르기: 3번 연속, 위·가운데·아래로 살짝 비켜서
+        const off = n > 1 ? (k - 1) * 7 : 0, ox = -Math.sin(dir) * off, oy = Math.cos(dir) * off;
+        if (sheet(m[0], q, cx + Math.cos(dir) * m[2] + ox, cy + Math.sin(dir) * m[2] * .82 + oy, dir, m[1], .7)) return;
+      }   // 밝기 70% (겹쳐도 하얗게 안 뭉개지게)
       (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p);
     },
-    drawHitAny(px, py, q, col, dir, big) { if (!sheet('hit', q, px, py, dir || 0, big ? 44 : 34, .75)) hit(UI.x, px, py, q, col, dir, big); },
+    drawHitAny(px, py, q, col, dir, big, green) { if (!sheet('hit', q, px, py, dir || 0, big ? 44 : 34, .75, green)) hit(UI.x, px, py, q, col, dir, big); },
     GUN,
     drawGun(key, px, py, ang, flipY) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); if (flipY) x.scale(1, -1); g(x); x.restore(); return true; },
     MELEE, SHOT, muzzle, hit, splash,

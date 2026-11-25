@@ -391,18 +391,18 @@
     G.msgs.push({ text: t_('skill.shout', { country: I18N.countryName(G.country) }), t: 1.2, shout: true });
     AUDIO.play('skill');
   }
-  const alienCol = () => '#CA57E5';   // 외계인 쪽 효과·탄은 보라 한 색 (style-guide "이펙트 색 규칙")
+  const alienCol = a => a.type === 'shooter' ? '#B8D727' : '#CA57E5';   // 그 외계인 몸 색 한 가지: 보라 외계인·보스 = 보라, 사격 외계인 = 초록 (style-guide d2c56fb)
   function damage(a, dmg, nx, ny, heavy) {
     a.hp -= dmg; a.flash = 0.08;
     // 넉백: 공격 방향으로 밀려나며 미끄러져요 (보스는 조금만)
     const kb = (a.type === 'boss' ? 30 : heavy ? 112 : 70);   // 감쇠 14 → 치기 약 8px, 쏘기 약 5px, 보스 약 2px
     a.kb = { x: nx * kb, y: ny * kb };
-    G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, col: alienCol(a), t: 0, life: heavy ? 0.2 : 0.16 });
+    G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), t: 0, life: heavy ? 0.2 : 0.16 });
     if (!heavy) AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
       burst(a.x, a.y - 20, alienCol(a), 6, 110);   // 처치 파편 6개, 보라 한 색
-      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), size: a.type === 'boss' ? 140 : 60, t: 0, life: 0.42 });
+      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: 0, life: 0.42 });
       AUDIO.play('kill');
       if (a.type === 'boss' && settings.shake) G.shake = 5;
     }
@@ -467,7 +467,7 @@
       else if (a.type === 'shooter') {
         if (d > 170) { mx = dx / d; my = dy / d; } else if (d < 120) { mx = -dx / d; my = -dy / d; } else { mx = -dy / d * .6; my = dx / d * .6; }
         a.shootT -= dt;
-        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3, col: '#CA57E5' }); }
+        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3, col: '#B8D727' }); }
       } else {
         mx = dx / d; my = dy / d;
         if (a.type === 'boss') {
@@ -760,9 +760,9 @@
     for (const e of G.fx) {
       const k = e.t / e.life;
       if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
-      else if (e.kind === 'death') FX.sheet('death', k, e.x, e.y, 0, e.size, .8);
+      else if (e.kind === 'death') FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green);
       else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
-      else if (e.kind === 'hit') FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big);
+      else if (e.kind === 'hit') FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green);
       else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
     }
