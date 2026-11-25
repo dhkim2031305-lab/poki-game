@@ -79,7 +79,7 @@
     },
   };
 
-  // 설정 Language 목록 (자기 표기). 번역이 있는 것만 고를 수 있어요.
+  // 설정 Language 목록 20개 (자기 표기). 번역이 아직 없는 언어는 고르면 글자가 영어로 나와요.
   const LANG_NAMES = { en: 'English', fr: 'Français', de: 'Deutsch', nl: 'Nederlands', da: 'Dansk', sv: 'Svenska',
     fi: 'Suomi', it: 'Italiano', ko: '한국어', es: 'Español', cs: 'Čeština', he: 'עברית', lt: 'Lietuvių', ja: '日本語',
     pt: 'Português', pl: 'Polski', hu: 'Magyar', sk: 'Slovenčina', el: 'Ελληνικά', tr: 'Türkçe' };
@@ -88,8 +88,9 @@
   const I18N = {
     lang: 'en',
     LANG_NAMES,
-    available: () => Object.keys(LANG_NAMES).filter(has),
-    set(l) { this.lang = has(l) ? l : 'en'; },
+    available: () => Object.keys(LANG_NAMES),
+    translated: has,
+    set(l) { this.lang = LANG_NAMES[l] ? l : 'en'; },
     t(key, vars) {
       let s = (T[this.lang] && T[this.lang][key]) ?? T.en[key] ?? key;
       if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
@@ -99,7 +100,7 @@
     countryName(c) { return this.lang === c.lang ? c.native : this.lang === 'ko' ? c.ko : c.en; },
     deviceLang() {
       const l = ((navigator.languages && navigator.languages[0]) || navigator.language || 'en').slice(0, 2).toLowerCase();
-      return has(l) ? l : 'en';
+      return LANG_NAMES[l] ? l : 'en';
     },
   };
   window.I18N = I18N;

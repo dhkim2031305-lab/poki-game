@@ -59,7 +59,7 @@
   function loadAssets() {
     const list = [];
     COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'sheet/' + c.key); list.push('flag/' + c.iso); });
-    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room');
+    list.push('alien/alien-grunt', 'alien/alien-shooter', 'alien/alien-boss', 'room', 'title-bg'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
     Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
     let done = 0;
     return new Promise(res => {
@@ -306,7 +306,9 @@
     if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
     h.meleeCd = BAL.MELEE_CD; h.atkT = 0.22;
     const dmg = st.melee * atkMul(), ang0 = Math.atan2(h.dir.y, h.dir.x);
-    G.fx.push({ kind: 'arc', x: h.x, y: h.y - 18, a: ang0, t: 0, life: 0.25 });
+    const mk = G.country.melee;
+    G.fx.push({ kind: 'melee', m: mk, x: h.x, y: h.y - 22, a: ang0, t: 0, life: FX.meleeTime(mk) });
+    if (mk === 'bigslash' && settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('attack');
     for (const a of G.aliens) {
       const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
@@ -321,7 +323,9 @@
     let dx = h.dir.x, dy = h.dir.y;
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18;
-    G.shots.push({ x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED, vy: dy * TEMP.SHOT_SPEED, dmg: st.ranged * atkMul(), life: 1.6 });
+    const rk = G.country.ranged;
+    G.shots.push({ kind: rk, x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED, vy: dy * TEMP.SHOT_SPEED, dmg: st.ranged * atkMul(), life: 1.6, age: 0 });
+    if (rk === 'bullet') G.fx.push({ kind: 'muzzle', x: h.x + dx * 18, y: h.y - 24 + dy * 8, a: Math.atan2(dy, dx), t: 0, life: 0.35 });
     AUDIO.play('attack');
   }
   function useSkill() {
@@ -336,7 +340,7 @@
   function damage(a, dmg, nx, ny) {
     a.hp -= dmg; a.flash = 0.1;
     if (a.type !== 'boss') { a.x += nx * 4; a.y += ny * 4; }
-    burst(a.x, a.y - (a.type === 'boss' ? 50 : 18), '#FFFFFF', 3, 60);
+    G.fx.push({ kind: 'hit', x: a.x - nx * 4, y: a.y - (a.type === 'boss' ? 50 : 20), col: a.type === 'grunt' ? '#CA57E5' : a.type === 'shooter' ? '#B8D727' : '#8EBB2E', t: 0, life: 0.25 });
     AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
@@ -418,7 +422,7 @@
 
     // 우리 탄
     for (const s of G.shots) {
-      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.age += dt;
       if (s.x < f.x0 - 10 || s.x > f.x1 + 10 || s.y < f.y0 - 10 || s.y > f.y1 + 10) s.life = 0;
       for (const a of G.aliens) if (s.life > 0 && !a.dead && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); s.life = 0; }
     }
@@ -562,6 +566,11 @@
 
   function drawTitle() {
     const t = G.t;
+    const bg = UI.img['title-bg'], hasBg = !!(bg && bg.naturalWidth);
+    if (hasBg) { // 최종 배경 그림 (디자인팀 6차) — 화면을 꽉 채우게(cover)
+      const k = Math.max(VW / bg.naturalWidth, VH / bg.naturalHeight), w = bg.naturalWidth * k, h = bg.naturalHeight * k;
+      ctx.drawImage(bg, (VW - w) / 2, (VH - h) / 2, w, h);
+    } else {
     ctx.globalAlpha = .55; UI.draw('room', 0, 0, VW, VH); ctx.globalAlpha = 1;
     ctx.fillStyle = 'rgba(10,8,6,.45)'; ctx.fillRect(0, 0, VW, VH);
     const gl = ctx.createRadialGradient(VW / 2, VH * 1.05, 40, VW / 2, VH * 1.05, 520); gl.addColorStop(0, 'rgba(255,190,80,.45)'); gl.addColorStop(1, 'rgba(255,190,80,0)'); ctx.fillStyle = gl; ctx.fillRect(0, 0, VW, VH);
@@ -571,6 +580,7 @@
     if (!reduceMotion) for (const [cx, seed] of [[VW * .17, 1], [VW * .83, 500]]) for (let i = 0; i < 6; i++) {
       const ph = (t * .8 + hash(seed + i * 11)) % 1, u = hash(seed + i * 13) * 2 - 1;
       ctx.globalAlpha = Math.sin(ph * Math.PI); UI.I.star(cx + u * 190 * .8, pileTop(u, VH * 1.02, 230 * (.6 + hash(i) * .4)), 12, '#FFF6D6'); ctx.globalAlpha = 1;
+    }
     }
     // 떠 있는 화폐 6개 (사용자 승인)
     for (const [c, u, v, ph] of TITLE_CURS) {
@@ -674,20 +684,14 @@
     // 효과
     for (const e of G.fx) {
       const k = e.t / e.life;
-      if (e.kind === 'arc') {
-        ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.a);
-        ctx.globalAlpha = 1 - k; ctx.lineCap = 'round';
-        const sw = -TEMP.MELEE_ARC / 2 + TEMP.MELEE_ARC * Math.min(1, k * 2.2);
-        ctx.strokeStyle = COL.glow; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(0, 0, TEMP.MELEE_RANGE * .8, -TEMP.MELEE_ARC / 2, sw); ctx.stroke();
-        ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, TEMP.MELEE_RANGE * .8, -TEMP.MELEE_ARC / 2, sw); ctx.stroke();
-        ctx.restore();
-      } else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
+      if (e.kind === 'melee') FX.drawMelee(e.m, e.x, e.y, e.a, k);
+      else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
+      else if (e.kind === 'hit') FX.hit(ctx, e.x, e.y, k, e.col);
+      else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
     }
     for (const s of G.shots) {
-      const a = Math.atan2(s.vy, s.vx);
-      ctx.save(); ctx.translate(s.x, s.y - 20); ctx.rotate(a);
-      const g = ctx.createLinearGradient(-26, 0, 0, 0); g.addColorStop(0, 'rgba(255,224,138,0)'); g.addColorStop(1, 'rgba(255,224,138,.8)');
-      ctx.fillStyle = g; ctx.fillRect(-26, -2, 26, 4); UI.circ(0, 0, 4, COL.shot); UI.circ(0, 0, 2, '#FFFFFF'); ctx.restore();
+      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
+      FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), G.t);
     }
     for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = COL.pink; ctx.fillRect(-4, -4, 8, 8); ctx.restore(); }
     for (const p of G.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
@@ -812,13 +816,14 @@
     UI.btnSub('exit', px + pw * .3, py + ph - 40, 52, 'back');
     UI.btnMain('resume', px + pw * .68, py + ph - 40, 32, 'play');
     if (G.langOpen) {
-      const langs = I18N.available(), lx = VW * .5, lw = VW * .44;
-      UI.panel(lx, py, lw, 20 + langs.length * 36);
+      // 언어 20개: 2열 × 10줄, 자기 표기 (ui.md)
+      const langs = I18N.available(), lx = VW * .5, lw = VW * .44, top = VH * .07, rowH = Math.min(31, (VH * .86 - 20) / 10);
+      UI.panel(lx, top - 8, lw, rowH * 10 + 16);
       langs.forEach((l, i) => {
-        const ly = py + 28 + i * 36, on = l === I18N.lang;
-        UI.rr(lx + 10, ly - 15, lw - 20, 30, 8, on ? 'rgba(217,174,79,.2)' : null, on ? COL.gold : null, 1.5);
-        UI.txt(I18N.LANG_NAMES[l], lx + 24, ly, 14, on ? COL.gold : COL.fg, 'left', 700);
-        UI.hit('lang:' + l, lx + 10, ly - 15, lw - 20, 30);
+        const col = i % 2, row = Math.floor(i / 2), tx = lx + 16 + col * lw / 2, ty = top + rowH / 2 + row * rowH, on = l === I18N.lang, rtl = l === 'he';
+        if (on) UI.rr(tx - 8, ty - 13, lw / 2 - 16, 26, 8, 'rgba(217,174,79,.22)', COL.gold, 1.5);
+        UI.txt(I18N.LANG_NAMES[l], rtl ? tx + lw / 2 - 30 : tx, ty, 14, on ? COL.gold : COL.fg, rtl ? 'right' : 'left', on ? 700 : 500);
+        UI.hit('lang:' + l, tx - 8, ty - 13, lw / 2 - 16, 26);
       });
     }
   }
