@@ -820,7 +820,8 @@
   // ---- 8방향 몸 + 무기 360도 (7차 그림, 사용자 결정 "8방향 그림 + 무기 360도") ----
   // 몸: 조준 각도를 8방향으로 나눠 5칸 중 하나(왼쪽은 뒤집기). 무기: 손 위치에서 조준 각도대로 돌려요
   const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향
-  const W_LEN = 0.8;      // 무기 길이 = 장수 키 × 0.8 (디자인팀 7차 규격: 192px 그림 → 칸 90px)
+  // 무기 길이 = 장수 키 × 0.75, 창류(창·할버드·기병창)만 × 0.95 (디자인팀 점검 b292673)
+  const wLen = c => (c.ranged === 'polearm' ? 0.95 : 0.75);
   // 손 위치 (칸 128×128 좌표, 발 = (64,124)) · 칸마다 무기를 몸 앞/뒤 어디에 그릴지 (디자인팀 c8ed6d9)
   const HAND = [[47, 86, false], [86, 85, false], [64, 86, false], [82, 86, true], [88, 84, true]];   // ①아래 ②오른쪽아래 ③오른쪽 ④오른쪽위(뒤) ⑤위(뒤)
   const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
@@ -845,7 +846,7 @@
   }
   function drawWeapon(h, c, px, py, a, alpha) {
     const ranged = c.ranged, rangedImg = ranged === 'arrow' ? 'korea-ranged' : ranged === 'sling' ? 'israel-ranged' : null;
-    const len = 60 * W_LEN;
+    const len = 60 * wLen(c);
     ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
     // 활·투석기: 쏜 직후 잠깐 그 장비를 들어요
     if (rangedImg && h.rangedT > 0) {
