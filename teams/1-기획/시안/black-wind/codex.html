@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>검은 바람 · 스킬 시안</title>
+<style>
+  * { box-sizing: border-box }
+  body { margin: 0; background: #141919; color: #f0eee4; font: 15px/1.5 system-ui, sans-serif }
+  main { max-width: 920px; margin: auto; padding: clamp(12px, 4vw, 32px) }
+  h1 { margin: 0 0 6px; font-size: clamp(25px, 5vw, 42px); letter-spacing: -.055em }
+  p { margin: 0 0 16px; color: #bfc8c1 }
+  canvas { width: 100%; aspect-ratio: 720 / 376; display: block; border-radius: 12px; background: #8c9380; touch-action: manipulation; cursor: pointer }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px }
+  button { min-height: 44px; padding: 8px 14px; border-radius: 8px; border: 1px solid #596660; background: #252e2a; color: inherit; font: inherit; cursor: pointer }
+  button[aria-pressed="true"] { border-color: #d8c386; background: #3c392a; color: #fff0c4 }
+  button:focus-visible { outline: 2px solid #fff0c4; outline-offset: 2px }
+  #fire { color: #201b12; background: #e0c684; border-color: #e0c684; font-weight: 700 }
+</style>
+</head>
+<body>
+<main>
+  <h1>검은 바람</h1>
+  <p>전장을 누르거나 발사 버튼을 눌러 장수가 바라보는 방향으로 바람을 보내요.</p>
+  <canvas id="arena" width="720" height="376" aria-label="오른쪽을 바라보는 장수와 외계인들이 있는 전장"></canvas>
+  <div class="row" role="group" aria-label="바람 색">
+    <button data-color="black" aria-pressed="true">A. 검정</button>
+    <button data-color="silver" aria-pressed="false">B. 검정 + 은빛 테두리</button>
+    <button data-color="white" aria-pressed="false">C. 흰색</button>
+  </div>
+  <div class="row">
+    <button id="fire">바람 쏘기</button>
+    <button id="auto" aria-pressed="true">자동 반복</button>
+  </div>
+</main>
+<script>
+const canvas = document.querySelector('#arena');
+const ctx = canvas.getContext('2d', { alpha: false });
+const width = 720, height = 376, lane = 203, origin = 117;
+const speed = 1050, cooldown = .18;
+const palettes = {
+  black: { core: '#101116', strand: '#2b2c34', rim: null },
+  silver: { core: '#101116', strand: '#353841', rim: '#e0e6ed' },
+  white: { core: '#ffffff', strand: '#dbe6ef', rim: null }
+};
+const aliens = [[285, 183], [429, 217], [573, 193], [352, 96], [504, 303], [633, 110]]
+  .map(([x, y], i) => ({ x, y, phase: i * 1.9, offset: 0, velocity: 0, flash: 0 }));
+const waves = [], impacts = [];
+let selected = 'black', auto = true, time = 0, lastShot = -1, nextAuto = .55;
+let previousFrame;
+
+function resize() {
+  const bounds = canvas.getBoundingClientRect();
+  const density = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.max(1, Math.round(bounds.width * density));
+  canvas.height = Math.max(1, Math.round(bounds.height * density));
+  ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+function fire() {
+  if (time - lastShot < cooldown) return;
+  lastShot = time;
+  nextAuto = time + 2.25;
+  waves.push({ age: 0, color: palettes[selected], hit: new Set() });
+}
+
+canvas.addEventListener('pointerdown', event => { if (event.button === 0) fire(); });
+document.querySelector('#fire').addEventListener('click', fire);
+document.querySelector('#auto').addEventListener('click', event => {
+  auto = !auto;
+  event.currentTarget.setAttribute('aria-pressed', auto);
+  if (auto) nextAuto = time;
+});
+const options = document.querySelectorAll('[data-color]');
+for (const button of options) {
+  button.addEventListener('click', () => {
+    selected = button.dataset.color;
+    for (const option of options) option.setAttribute('aria-pressed', option === button);
+  });
+}
+
+function ellipse(x, y, rx, ry, color, angle = 0) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, angle, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function ground() {
+  ctx.fillStyle = '#929985';
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = '#a5a995';
+  ctx.beginPath();
+  ctx.moveTo(0, 139); ctx.lineTo(width, 145); ctx.lineTo(width, 258); ctx.lineTo(0, 275);
+  ctx.fill();
+  ctx.strokeStyle = '#38483e26';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let y = 20; y < height; y += 31) {
+    ctx.moveTo(0, y); ctx.lineTo(width, y - 9);
+  }
+  for (let x = -90; x < width; x += 87) {
+    ctx.moveTo(x + 95, 0); ctx.lineTo(x, height);
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#414e4136';
+  for (let i = 0; i < 50; i++) ctx.fillRect(i * 157 % width, i * i * 23 % height, 3 + i % 6, 2);
+}
+
+function hero() {
+  const recoil = Math.max(0, 1 - (time - lastShot) / .2);
+  ellipse(77, lane + 24, 27, 9, '#27352c67');
+  ctx.save();
+  ctx.translate(77 - recoil * 6, lane);
+  ctx.fillStyle = '#793c36';
+  ctx.beginPath();
+  ctx.moveTo(-8, -24); ctx.quadraticCurveTo(-24, -4, -35, 16);
+  ctx.lineTo(-6, 20); ctx.lineTo(9, -12); ctx.fill();
+  ellipse(-5, 17, 8, 10, '#242c32');
+  ellipse(10, 16, 8, 10, '#242c32');
+  ellipse(0, -4, 18, 24, '#3d4951', -.16);
+  ellipse(7, -8, 15, 13, '#9b9073');
+  ellipse(9, -27, 12, 13, '#433d32');
+  ellipse(16, -24, 7, 5, '#c7a584');
+  const sword = 33 + recoil * 9;
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#e9e5d5';
+  ctx.beginPath(); ctx.moveTo(14, 5); ctx.lineTo(sword + 11, -11 - recoil * 9); ctx.stroke();
+  ctx.strokeStyle = '#b18647';
+  ctx.beginPath(); ctx.moveTo(19, -3); ctx.lineTo(24, 5); ctx.stroke();
+  ctx.restore();
+}
+
+function alien(a) {
+  const x = a.x + a.offset, y = a.y + Math.sin(time * 4 + a.phase) * 2;
+  const lit = a.flash > .075;
+  ellipse(x, a.y + 20, 22, 8, '#25392c65');
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.min(.38, Math.max(-.12, a.velocity * .0008)));
+  const skin = lit ? '#ffffff' : '#67c393';
+  ellipse(-11, 12, 7, 9, skin, .4);
+  ellipse(11, 12, 7, 9, skin, -.4);
+  ellipse(0, 4, 15, 17, lit ? '#fff' : '#416e66');
+  ellipse(1, -8, 20, 16, skin);
+  if (!lit) {
+    ellipse(-7, -8, 4, 6, '#193637', -.35);
+    ellipse(7, -8, 4, 6, '#193637', .35);
+  }
+  ctx.restore();
+}
+
+function center(age) {
+  return lane + 12 * Math.sin(age * 8);
+}
+
+function wind(wave) {
+  const { age, color } = wave;
+  const x = origin + speed * age;
+  const length = Math.min(188, speed * age + 11);
+  const envelope = Math.min(1, .35 + age * 7);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (let i = 0; i < 8; i++) {
+    const phase = i * Math.PI / 4 + age * (i % 2 ? 18 : 13);
+    const span = length * (1 - i % 3 * .13);
+    const thickness = i < 3 ? 8 - i : 2.8;
+    let lastX, lastY;
+    for (let j = 0; j <= 16; j++) {
+      const u = j / 16;
+      const history = Math.max(0, age - u * span / speed);
+      const angle = phase - u * 6.8;
+      const radius = (21 + 36 * Math.sin(u * 2.9)) * envelope;
+      const px = x - u * span + Math.cos(angle) * (7 + u * 12) - i * 1.4;
+      const py = center(history) + Math.sin(angle) * radius;
+      if (j > 0) {
+        const fade = (1 - (j - .5) / 16) * (i < 3 ? .92 : .52);
+        const weight = Math.max(.6, thickness * (1 - u * .76));
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(px, py);
+        if (color.rim && i < 3) {
+          ctx.globalAlpha = fade * .85;
+          ctx.strokeStyle = color.rim;
+          ctx.lineWidth = weight + 2;
+          ctx.stroke();
+        }
+        ctx.globalAlpha = fade;
+        ctx.strokeStyle = i < 3 ? color.core : color.strand;
+        ctx.lineWidth = weight;
+        ctx.stroke();
+      }
+      lastX = px;
+      lastY = py;
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function impact(fx) {
+  const u = fx.age / .34;
+  const radius = 6 + u * 40;
+  ctx.globalAlpha = (1 - u) * .85;
+  ctx.strokeStyle = '#fff1d0';
+  ctx.lineWidth = 1 + (1 - u) * 2;
+  ctx.beginPath();
+  ctx.ellipse(fx.x, fx.y, radius * .63, radius, -.25, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = '#fff8e8';
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (i - 3.5) * .55;
+    const travel = u * (27 + i % 3 * 11);
+    const x = fx.x + Math.cos(angle) * travel;
+    const y = fx.y + Math.sin(angle) * travel;
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(angle) * (12 - 8 * u), y + Math.sin(angle) * (12 - 8 * u));
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function update(dt) {
+  for (const a of aliens) {
+    a.flash = Math.max(0, a.flash - dt);
+    a.velocity += (-52 * a.offset - 12 * a.velocity) * dt;
+    a.offset += a.velocity * dt;
+  }
+  for (let i = waves.length - 1; i >= 0; i--) {
+    const wave = waves[i];
+    const from = origin + speed * wave.age;
+    wave.age += dt;
+    const to = origin + speed * wave.age;
+    for (const a of aliens) {
+      const x = a.x + a.offset;
+      if (wave.hit.has(a) || x < from - 19 || x > to + 19) continue;
+      const crossing = Math.max(0, (x - origin) / speed);
+      if (Math.abs(a.y - center(crossing)) > 46) continue;
+      wave.hit.add(a);
+      a.flash = .15;
+      a.velocity = 670;
+      impacts.push({ x: x - 13, y: a.y - 6, age: 0 });
+    }
+    if (to > width + 210) waves.splice(i, 1);
+  }
+  for (let i = impacts.length - 1; i >= 0; i--) {
+    impacts[i].age += dt;
+    if (impacts[i].age >= .34) impacts.splice(i, 1);
+  }
+}
+
+function frame(now) {
+  const dt = Math.min(.033, (now - (previousFrame ?? now)) / 1000);
+  previousFrame = now;
+  time += dt;
+  if (auto && time >= nextAuto) fire();
+  update(dt);
+  ground();
+  hero();
+  for (const a of aliens) alien(a);
+  for (const wave of waves) wind(wave);
+  for (const fx of impacts) impact(fx);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
