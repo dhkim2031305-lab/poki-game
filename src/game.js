@@ -177,7 +177,8 @@
     const p = toV(e);
     if (G.scene === 'ad' || portrait()) return;
     try { cv.setPointerCapture(e.pointerId); } catch {}
-    const id = UI.hitAt(p.x, p.y);
+    let id = UI.hitAt(p.x, p.y);
+    if (id === 'pause' && e.pointerType === 'mouse') id = null;   // 마우스 클릭은 언제나 공격 (GDD 0-14) — 터치 겸용 PC에서도
     if (id) { if (id.startsWith('card:')) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false, card: id }; return; } AUDIO.play('button'); return action(id); }
     if (G.scene === 'select' && p.x < VW * .6 && p.y > VH * .18) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false }; return; }
     if (G.scene !== 'play' || G.paused) return;
