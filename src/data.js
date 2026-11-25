@@ -65,7 +65,7 @@
     // 고유 스킬 유형별 수치 (balance.md 확정, 사용자 "추천대로"): 피해 = 80 × F
     SKILL: { DMG: 80,   // 40 → 80 (사용자 확정 2026-11-25, 팀장 전달) · 범위·시간 그대로
       DASH_DIST: 260, DASH_TIME: 0.35, AREA_R: 140, BARRAGE_TIME: 1.5, BARRAGE_N: 8, BARRAGE_DIV: 4,
-      GUARD_TIME: 2, ZONE_D: 180, ZONE_TIME: 3, ZONE_TICK: 0.5, ZONE_DIV: 3 },
+      ZONE_D: 180, ZONE_TIME: 3, ZONE_TICK: 0.5, ZONE_DIV: 3 },
     ITEM_TIME: 8, ITEM_LIFE: 10, ITEMS_PER_ROUND: 2,
     CONTACT_DMG: 10, BOSS_CONTACT_DMG: 20,
     // 라운드별 외계인: n = 외계인 수(보스 제외), hp·speed, boss = 보스 체력
@@ -80,7 +80,7 @@
   };
 
   // 나라별 고유 스킬 — teams/1-기획/skills.md (전부 확정 2026-11-25) · 순위 순서
-  // type: dash 돌진 · area 범위 · barrage 연사 · guard 방어 · zone 설치 / shout: 그 나라에서 유명한 말 (번역 안 함)
+  // type: dash 돌진 · area 범위 · barrage 연사 · zone 설치 (방어는 GDD 0-15로 없앰) / shout: 그 나라에서 유명한 말 (번역 안 함)
   const SK = (type, shout, mod = {}) => ({ type, shout, mod });   // mod = 나라별 특징 (기획 승인 뒤 채워요)
   const SKILLS = [
     SK('dash', 'Hopp Lëtzebuerg!'), SK('area', "G'wan!"), SK('zone', 'Hopp Schwiiz!'), SK('barrage', "Let's go!"), SK('barrage', "Zet 'm op!"),
@@ -175,7 +175,7 @@
     ITEM_TIMES: [5, 15],          // 라운드 시작 뒤 화폐가 나오는 시간(초)
     ITEM_SPOTS: [[0.3, 0.35], [0.7, 0.65], [0.7, 0.35], [0.3, 0.65], [0.5, 0.3], [0.5, 0.7]],
     // 라운드마다 나오는 화폐 2개 (모든 나라 같음) — 약한 것에서 강한 것으로
-    SKILL_GUARD_R: 46, SKILL_GUARD_AHEAD: 30, SKILL_ZONE_AHEAD: 120,   // 방어 벽 반지름·앞 거리, 설치 구역을 놓는 앞 거리 (기획서에 없음)
+    SKILL_ZONE_AHEAD: 120,   // 설치 구역을 놓는 앞 거리 (기획서에 없음)
     // 외계인 점프 (GDD 0-11 확정: 졸개 일부 + 4라운드부터 보스 · 수치는 alien-jump.md [제안])
     JUMP: { n: [0, 0, 2, 3, 4, 5], gap: [0, 0, 6, 5, 5, 4], crouch: 0.5, air: 0.6, r: 70, dmg: 15, lift: 46 },
     BOSS_JUMP: { from: 4, gap: 10, crouch: 0.7, air: 0.8, r: 120, dmg: 25, lift: 90 },

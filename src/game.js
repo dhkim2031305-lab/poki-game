@@ -90,7 +90,7 @@
     const list = [];
     COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'flag/' + c.iso); });
     list.push('alien/grunt-dir', 'alien/shooter-dir', 'alien/boss-dir', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death', 'fx/wave',
-      '3d/floor', '3d/wall', '3d/wall-top', '3d/door-arch', '3d/pillar', 'skill/icon-dash', 'skill/icon-area', 'skill/icon-barrage', 'skill/icon-guard', 'skill/icon-zone'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
+      '3d/floor', '3d/wall', '3d/wall-top', '3d/door-arch', '3d/pillar', 'skill/icon-dash', 'skill/icon-area', 'skill/icon-barrage', 'skill/icon-zone'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
     Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
     return loadList(list, k => { G.load = k; });
   }
@@ -112,7 +112,7 @@
     r.itemIdx = 0; r.invuln = BAL.INVULN_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
     G.hero = {
       x: FIELD.W / 2, y: FIELD.H / 2 + 30, r: 14, hp: st.hp, maxHp: st.hp, dir: { x: 1, y: 0 }, moving: false, walkT: 0,
-      inv: 0, skillT: 0, dash: null, barrage: null, guard: null, meleeCd: 0, rangedCd: 0, atkT: 0, buff: null, dead: false, deadT: 0, hitT: 0,
+      inv: 0, skillT: 0, dash: null, barrage: null, meleeCd: 0, rangedCd: 0, atkT: 0, buff: null, dead: false, deadT: 0, hitT: 0,
     };
     G.aliens = []; G.shots = []; G.eshots = []; G.items = []; G.fx = []; G.parts = []; G.zones = []; G.marks = []; G.timers = []; G.ents = [];
     G.msgs = G.msgs.filter(m => m.keep);
@@ -538,8 +538,6 @@
   // 장수 효과: 이동 속도 배율 · 받는 피해 배율
   function heroSpd() {
     const h = G.hero; let k = 1;
-    if (h.guard && h.guard.k === 'walkGuard') k *= .5;                  // 이탈리아 1: 방패 든 채 절반 속도
-    if (h.guard && h.guard.k === 'omni') k = 0;                         // 캐나다 2: 둘레를 막는 동안 제자리
     for (const z of G.zones) if (z.k === 'speedZone' && Math.hypot(h.x - z.x, h.y - z.y) < SKB.ZONE_D / 2) k *= 1.5;   // 뉴질랜드 1
     return k;
   }
@@ -555,11 +553,6 @@
   function echoEnt(path, look, dmg) { const sk = new Set(), N = path.length; let t = 0, gT = 0;
     ent({ x: path[0][0], y: path[0][1], update(dt) { t += dt; const [x, y] = path[Math.min(N - 1, Math.floor(t / SKB.DASH_TIME * (N - 1)))]; this.x = x; this.y = y;
       hitCircle(x, y, 32, dmg, { skip: sk }); if ((gT -= dt) <= 0) { gT = .045; G.fx.push({ kind: 'ghost', x, y, cell: look.cell, flip: look.flip, folder: look.folder, t: 0, life: .45, clone: true }); } return t < SKB.DASH_TIME; }, draw() {} }); }
-  // 넘기기 (멕시코 2): 막은 외계인을 장수 머리 위로 넘겨 뒤에 떨어뜨려요
-  function tossEnt(a, dmg, ca, sa) { const H = G.hero, f = FIELD.floor, sx = a.x, sy = a.y, tx = clamp(H.x - ca * 70, f.x0 + 20, f.x1 - 20), ty = clamp(H.y - sa * 60, f.y0 + 20, f.y1); let t = 0;
-    a.air = .5; a.airH = 0; a.kb = { x: 0, y: 0 }; sfx('tossArc', sx, sy, .5, { x1: tx, y1: ty });
-    ent({ update(dt) { if (a.dead) return false; t += dt; const q = Math.min(1, t / .4); a.x = sx + (tx - sx) * q; a.y = sy + (ty - sy) * q; a.lift = Math.sin(Math.PI * q) * 60;
-      if (q >= 1) { a.lift = 0; damage(a, dmg, -ca, -sa, true); sfx('ringOut', a.x, a.y, .3, { r: 28 }); AUDIO.play('impact'); return false; } return true; }, draw() {} }); }
   // 튕기는 도끼 (슬로바키아 2): 맞으면 가까운 다음 외계인으로 (최대 3번)
   function ricochet(a, s) {
     if (s.bounces <= 0) return;
@@ -659,7 +652,6 @@
         h.atkT = .2; return;
       }
       G.hero.barrage = { t: 0, n: 0, N: m.k === 'boomer' || m.k === 'stick' || m.k === 'ricochet' ? 1 : m.n || SKB.BARRAGE_N, base: o.dmg, dmg: o.dmg / (m.div || SKB.BARRAGE_DIV), mod: m }; },
-    guard(o) { G.hero.guard = { t: 0, a: o.ang, base: o.dmg, hit: new Set(), mod: o.mod, k: o.mod.k, blocked: 0, tick: 0, shoved: new Map(), T: o.mod.time || SKB.GUARD_TIME, omni: o.mod.k === 'omni' || o.mod.k === 'walkGuard' }; },
     zone(o) {
       const h = G.hero, f = FIELD.floor, m = o.mod;
       G.zones.push({ x: clamp(h.x + o.dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + o.dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK / 2,   // 0.25·0.75 … 2.75초 = 3초에 6번 (balance.md, QA M1)
@@ -672,7 +664,7 @@
   };
   function useSkill(n = 1) {
     const r = G.run, h = G.hero;
-    if (!r || sLeft(n) <= 0 || h.dead || h.dash || h.barrage || h.guard) return;
+    if (!r || sLeft(n) <= 0 || h.dead || h.dash || h.barrage) return;
     r.skillsLeft[BAL.SKILL_SHARED ? 1 : n]--;
     const sk = skillOf(G.country, n), dmg = SKB.DMG * r.st.F;
     const ang = Math.atan2(h.dir.y, h.dir.x);
@@ -768,48 +760,6 @@
       }
       if (b.t >= BT) h.barrage = null;
     }
-    if (h.guard) {   // 방어: 앞 반원 벽 2초 · 닿으면 밀어내고 · 외계인 탄을 막아요
-      const g = h.guard, m = g.mod; g.t += dt;
-      const ahead = TEMP.SKILL_GUARD_AHEAD + (g.k === 'advance' ? Math.min(110, g.t * 60) : 0);   // 덴마크 1: 벽이 앞으로 나가요
-      const ca = Math.cos(g.a), sa = Math.sin(g.a), cx = g.omni ? h.x : h.x + ca * ahead, cy = g.omni ? h.y : h.y + sa * ahead, R = TEMP.SKILL_GUARD_R;   // 둘레 막기(캐나다 2·이탈리아 1)는 장수 가운데
-      g.cx = cx; g.cy = cy;
-      const touching = [];
-      for (const a of G.aliens) {
-        if (a.dead || a.entering) continue;
-        const ex = a.x - cx, ey = a.y - cy, d = Math.hypot(ex, ey) || 1;
-        if (d < R + a.r && (g.omni || (a.x - h.x) * ca + (a.y - h.y) * sa > 0)) {
-          touching.push(a);
-          if (g.k === 'spikes') { a.kb = { x: ca * 40, y: sa * 40 }; a.stun = .25; }   // 스위스 1: 밀지 않고 벽 앞에 붙잡아 계속 찔러요
-          else if (g.omni) { a.kb = { x: ex / d * 300, y: ey / d * 300 }; a.stun = .2; }   // 둘레 막기: 바깥으로
-          else if (g.k === 'toss' && !g.hit.has(a) && a.type !== 'boss') tossEnt(a, g.base * m.mul, ca, sa);   // 멕시코 2: 머리 위로 넘겨 뒤로
-          else if (g.k === 'root') { a.kb = { x: 0, y: 0 }; control(a, 'root', 1); }      // 리투아니아 2: 벽 앞에 1초 묶어 둬요 (보스 0.3초)
-          else { a.kb = { x: ca * (g.k === 'advance' ? 380 : 320), y: sa * (g.k === 'advance' ? 380 : 320) }; a.stun = .2; }
-          const first = !g.hit.has(a); g.hit.add(a);
-          if (first) {
-            if (!g.k) damage(a, g.base, ca, sa, true);                              // 기본: 1번 피해
-            else if (g.k === 'advance') damage(a, g.base * m.mul, ca, sa, true);   // 덴마크 1: 밀 때 1번
-            else if (g.k === 'shove') { damage(a, g.base * m.mul, ca, sa, true); a.kb = { x: ca * 1000, y: sa * 1000 }; a.stun = .5; if (a.type !== 'boss') g.shoved.set(a, .7); }   // 그리스 1: 밀치기
-            else if (g.k === 'toss' && a.type === 'boss') damage(a, g.base * m.mul, ca, sa, true);   // 보스는 못 넘기고 밀기만
-            else if (g.k === 'reflect') g.blocked += a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG;   // 룩셈부르크 2: 막은 양을 모아요
-          }
-        }
-      }
-      for (const [a, t] of g.shoved) {   // 그리스 1: 밀친 외계인이 다른 외계인과 부딪히면 둘 다
-        if (a.dead || t <= 0) { g.shoved.delete(a); continue; } g.shoved.set(a, t - dt);
-        const b = G.aliens.find(b => b !== a && !b.dead && !b.entering && Math.hypot(b.x - a.x, b.y - a.y) < (a.r + b.r) * 1.3);   // 서로 겹치지 않게 떨어져 있어서 조금 넉넉히
-        if (b) { damage(a, g.base * m.bump, ca, sa, true); damage(b, g.base * m.bump, ca, sa, true); sfx('star', (a.x + b.x) / 2, (a.y + b.y) / 2, .35); g.shoved.delete(a); AUDIO.play('impact'); }
-      }
-      if (g.k === 'spikes' && (g.tick -= dt) <= 0) { g.tick += .5; for (const a of touching) damage(a, g.base / m.div, ca, sa, false); if (touching.length) sfx('spikeHit', cx, cy, .2, { a: g.a }); }   // 스위스 1: 0.5초마다 찔러요
-      let blockedShot = false;
-      for (const s of G.eshots) if (Math.hypot(s.x - cx, s.y - cy) < R + 4) { s.life = 0; blockedShot = true; g.blocked += s.dmg; G.fx.push({ kind: 'hit', x: s.x, y: s.y - 18, h0: 18, dir: g.a, big: false, col: '#E8D9A8', alpha: .7, t: 0, life: .1 }); }
-      if (g.k === 'counter' && !g.countered && (touching.length || blockedShot)) {   // 스웨덴 2: 공격받으면 앞을 X자로 1번
-        g.countered = true; hitCircle(cx + ca * 20, cy + sa * 20, 70, g.base * m.mul, { test: (a) => (a.x - h.x) * ca + (a.y - h.y) * sa > -10 }); sfx('xslash', cx + ca * 18, cy + sa * 18, .3, { a: g.a }); AUDIO.play('impSlash');
-      }
-      if (g.t >= g.T) {
-        if (g.k === 'reflect' && g.blocked > 0) { const dm = Math.min(g.base, g.blocked * m.ratio); hitCircle(h.x, h.y, 130, dm); sfx('reflect', h.x, h.y, .5); AUDIO.play('impact'); }   // 막은 양 × 0.5 (최대 80×F)
-        h.guard = null;
-      }
-    }
     for (const z of G.zones) {   // 설치: 지름 180 구역 3초
       z.t += dt;
       if (z.k === 'rings') {   // 미국 2: 1초마다 퍼지는 고리가 지나가며 맞혀요
@@ -859,13 +809,6 @@
   // ---- 스킬 이펙트 (코드로 그림, 흰 + 은 #C9CED6 / 옅은 금 #E8D9A8) ----
   const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
   const gEll = (x, y, r, a0 = 0, a1 = Math.PI * 2) => { ctx.beginPath(); ctx.ellipse(x, y, r, r * GK(), 0, a0, a1); };
-  // 서 있는 반원 벽 (바닥 호 + 높이 hgt): 방어 공통
-  function wallArc(cx, cy, a, R, hgt, fill, edge, span = Math.PI / 2) {
-    const n = 16, pts = []; for (let i = 0; i <= n; i++) { const q = a - span + span * 2 * i / n; pts.push([cx + Math.cos(q) * R * .45, cy + Math.sin(q) * R * GK() * .9 + 0]); }
-    ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); for (let i = n; i >= 0; i--) ctx.lineTo(pts[i][0], pts[i][1] - hgt); ctx.closePath();
-    ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = edge; ctx.lineWidth = 2; ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y - hgt) : ctx.moveTo(x, y - hgt)); ctx.stroke();
-    return pts;
-  }
   function drawSkills(at) {
     const h = G.hero;
     if (!h) return;
@@ -973,32 +916,6 @@
         if (d.k === 'dashInv') {   // 앞쪽 은빛 방패 반원
           ctx.globalAlpha = .85; ctx.strokeStyle = SKW; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(h.x + Math.cos(a) * 10, h.y - 26 + Math.sin(a) * 6, 24, a - 1.2, a + 1.2); ctx.stroke();
           ctx.globalAlpha = .3; ctx.fillStyle = SKS; ctx.fill();
-        }
-        ctx.restore();
-      });
-    }
-    if (h.guard) {
-      const g = h.guard, T = SKB.GUARD_TIME, cx = g.cx != null ? g.cx : h.x + Math.cos(g.a) * TEMP.SKILL_GUARD_AHEAD, cy = g.cy != null ? g.cy : h.y + Math.sin(g.a) * TEMP.SKILL_GUARD_AHEAD;
-      const rise = Math.min(1, g.t / .25), fade = g.t > T - .3 ? (T - g.t) / .3 : 1, R = TEMP.SKILL_GUARD_R * 2.2;
-      if (!g.k) { const fr = g.t < .3 ? g.t / .3 * 3 : g.t > T - .3 ? 4 + (g.t - (T - .3)) / .3 * 2 : 3; at(cx, cy, () => FX.cell('skill/fx-guard', 6, fr, cx, cy - 30, 0, 104, .9, Math.cos(g.a) < -.2)); }
-      else at(cx, cy, () => {
-        ctx.save(); ctx.globalAlpha = fade;
-        if (g.k === 'omni') {   // 캐나다 2: 다섯 갈래 단풍잎 모양 원
-          ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; ctx.fillStyle = 'rgba(201,206,214,.18)'; ctx.beginPath();
-          for (let i = 0; i <= 60; i++) { const q = i / 60 * Math.PI * 2, r = (40 + 10 * Math.pow(Math.abs(Math.sin(q * 2.5)), .6)) * rise; ctx.lineTo(cx + Math.cos(q - Math.PI / 2) * r, cy - 18 + Math.sin(q - Math.PI / 2) * r * .75); }
-          ctx.closePath(); ctx.fill(); ctx.stroke();
-        } else if (g.k === 'walkGuard') {   // 이탈리아 1: 장수 둘레 사각 방패 4장
-          for (let i = 0; i < 4; i++) { const q = i * Math.PI / 2 + Math.PI / 4, x = cx + Math.cos(q) * 30, y = cy + Math.sin(q) * 30 * GK();
-            ctx.fillStyle = 'rgba(201,206,214,.5)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.fillRect(x - 9, y - 30 * rise, 18, 26 * rise); ctx.strokeRect(x - 9, y - 30 * rise, 18, 26 * rise); ctx.fillStyle = SKG; ctx.fillRect(x - 2, y - 20 * rise, 4, 6 * rise); }
-        } else if (g.k === 'advance') {   // 나란히 선 둥근 방패 3개가 앞으로
-          const px = -Math.sin(g.a), py = Math.cos(g.a);
-          for (const o of [-1, 0, 1]) { const x = cx + px * o * 22, y = cy + py * o * 22 * GK(); ctx.fillStyle = 'rgba(201,206,214,.45)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.ellipse(x, y - 16 * rise, 12, 16 * rise, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = SKG; ctx.beginPath(); ctx.arc(x, y - 16 * rise, 3, 0, 7); ctx.fill(); }
-        } else {
-          const pts = wallArc(cx, cy, g.a, R, 34 * rise, 'rgba(201,206,214,.35)', SKW);
-          if (g.k === 'reflect') { ctx.fillStyle = SKG; for (let i = 0; i < 8; i++) { const [x, y] = pts[1 + i * 2]; ctx.beginPath(); ctx.moveTo(x - 3, y - 34 * rise); ctx.lineTo(x, y - 34 * rise - 7); ctx.lineTo(x + 3, y - 34 * rise); ctx.fill(); } }   // 옅은 금 톱니(갈기) 8개
-          if (g.k === 'root') { ctx.strokeStyle = SKG; ctx.lineWidth = 2; for (let i = 0; i < 5; i++) { const [x, y] = pts[2 + i * 3]; ctx.beginPath(); ctx.moveTo(x, y - 34 * rise); ctx.lineTo(x + Math.cos(g.a) * 6, y - 40 * rise); ctx.lineTo(x - Math.cos(g.a) * 2, y - 34 * rise); ctx.stroke(); } }   // 리투아니아 2: 창 끝 5개
-          if (g.k === 'spikes') { ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 5; i++) { const [x, y] = pts[2 + i * 3], L = 12 + 4 * Math.sin(G.t * 20 + i); ctx.beginPath(); ctx.moveTo(x, y - 17 * rise); ctx.lineTo(x + Math.cos(g.a) * L, y - 17 * rise + Math.sin(g.a) * L * GK()); ctx.stroke(); } }   // 앞으로 튀어나온 가시 5개
         }
         ctx.restore();
       });
@@ -2091,7 +2008,7 @@
       else if (m.shout) {   // 외침: 장수 머리 위 1.2초, 양피지색 글자 + 어두운 반투명 띠 (style-guide)
         const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
         UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, UI.x.measureText(m.text).width + 36));
-        const HUD_B = 78, x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22 - 18 * p < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + 18 * p, VH - 40);   // 위 HUD(체력·남은 외계인·일시정지)를 가리면 장수 발밑으로
+        const HUD_B = VH * .17 + 16, x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22 - 18 * p < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + 18 * p, VH - 40);   // 위 HUD(체력·남은 외계인·일시정지)를 가리면 장수 발밑으로
         UI.rr(x - w / 2, y - 18 * p, w, (m.sub ? 50 : 36) * p, 10, 'rgba(10,11,15,.62)');
         if (m.rtl) ctx.direction = 'rtl';
         UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, w - 28);

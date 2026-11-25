@@ -1,7 +1,7 @@
 // 외침 말풍선이 화면 밖으로 나가는지: 장수를 오른쪽 끝에 두고 화면 전체 캡처 (node shout.js S)
 const { chromium } = require('playwright');
 (async () => { const [S] = process.argv.slice(2); const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] }); const out = [];
-  for (const [w, h, ci, n, side] of [[667, 375, 15, 2, 1], [667, 375, 17, 2, 1], [667, 375, 18, 1, 0], [1280, 720, 15, 2, 1], [1280, 720, 19, 2, 1]]) {
+  for (const [w, h, ci, n, side] of [[667, 375, 15, 2, 1], [667, 375, 17, 2, 1], [667, 375, 18, 1, 0], [1280, 720, 15, 2, 1], [1280, 720, 19, 2, 1], [667, 375, 3, 1, 1]]) {
     const p = await b.newPage({ viewport: { width: w, height: h } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.goto('http://localhost:8080/web/'); await p.waitForFunction(() => window.G && G.scene === 'title');
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(300);
