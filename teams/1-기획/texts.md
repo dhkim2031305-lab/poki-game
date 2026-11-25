@@ -7,7 +7,7 @@
 > 번역 검수: GPT 1차 번역 → Gemini 역번역 대조 → 가능하면 원어민 확인 (GDD 5-1)
 
 ## 규칙
-- `skill2.shout.*`는 원문 열에 **그 나라 말 외침**을, 영어 열에 **한국어 뜻**을 적었어요. 번역하지 않고 그 나라 말 그대로 써요. 모두 원어민 확인 전이라 "확인 필요"예요.
+- `skill2.shout.*`는 원문 열에 **그 나라 말 외침**을, 영어 열에 **한국어 뜻**을 적었어요. 번역하지 않고 그 나라 말 그대로 써요. 2026-11-25에 검수했어요. 고칠 건 없었어요. 원어민 확인은 아직이에요. 선택해서 바꿀 만한 안은 아래 "2번 외침 선택안"에 있어요.
 - `{n}`, `{나라}`는 게임이 채우는 칸이에요. 번역할 때 그대로 둬요. `{나라}`에는 그 나라 언어로 된 나라 이름이 들어가요.
 - 버튼은 아이콘으로도 알아볼 수 있어야 해요. 글자가 길어지면 줄이는 쪽을 택해요.
 - 말투: 라운드 클리어는 아주 밝게, 엔딩·파산은 담담하고 비꼬듯이 써요. **나라를 탓하지 않고 구조(출발선·돈)를 말해요.** "가난한 나라·부자 나라" 대신 "돈이 적은/많은 나라"라고 써요. 나라 이름에는 부정적인 말을 붙이지 않아요.
@@ -115,37 +115,46 @@
 | `skill2.name.28` | 산바람 소용돌이 | Mountain Wind Vortex | 칠레 2번 스킬 이름 (설치) | 확정 |
 | `skill2.name.29` | 사브르 받아치기 | Saber Counter | 멕시코 2번 스킬 이름 (방어) | 확정 |
 | `skill2.name.30` | 사브르 돌격 | Saber Rush | 콜롬비아 2번 스킬 이름 (돌진) | 확정 |
-| `skill2.shout.01` | 룩셈부르크: Je suis peut-être fauché, mais j'ai ma fierté ! | 돈은 없어도 자존심(체면)은 있다 | 룩셈부르크 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.02` | 아일랜드: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 아일랜드 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.03` | 스위스: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 스위스 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.04` | 미국: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 미국 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.05` | 네덜란드: Ik ben misschien blut, maar ik heb mijn trots! | 돈은 없어도 자존심(체면)은 있다 | 네덜란드 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.06` | 덴마크: Jeg er måske flad, men jeg har min stolthed! | 돈은 없어도 자존심(체면)은 있다 | 덴마크 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.07` | 오스트리아: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 오스트리아 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.08` | 호주: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 호주 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.09` | 독일: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 독일 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.10` | 스웨덴: Jag må vara pank, men jag har min stolthet! | 돈은 없어도 자존심(체면)은 있다 | 스웨덴 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.11` | 캐나다: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 캐나다 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.12` | 핀란드: Rahaa ei ole, mutta ylpeyttä on! | 돈은 없어도 자존심(체면)은 있다 | 핀란드 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.13` | 프랑스: Je suis peut-être fauché, mais j'ai ma fierté ! | 돈은 없어도 자존심(체면)은 있다 | 프랑스 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.14` | 이탈리아: Sarò anche al verde, ma ho il mio orgoglio! | 돈은 없어도 자존심(체면)은 있다 | 이탈리아 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.15` | 한국: 내가 돈이 없지 가오가 없나! | 돈은 없어도 자존심(체면)은 있다 | 한국 2번 스킬 외침 · 원문 그대로 ("가오"는 한국어판에만) | 확인 필요 |
-| `skill2.shout.16` | 스페인: ¡Estaré sin un duro, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 스페인 2번 스킬 외침 · "sin un duro" = 스페인식 "빈털터리" | 확인 필요 |
-| `skill2.shout.17` | 체코: Možná nemám peníze, ale mám svou hrdost! | 돈은 없어도 자존심(체면)은 있다 | 체코 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.18` | 이스라엘: אולי אין לי כסף, אבל יש לי כבוד! | 돈은 없어도 자존심(체면)은 있다 | 이스라엘 2번 스킬 외침 · "kavod" = 체면·존중 | 확인 필요 |
-| `skill2.shout.19` | 리투아니아: Gal ir neturiu pinigų, bet turiu savigarbą! | 돈은 없어도 자존심(체면)은 있다 | 리투아니아 2번 스킬 외침 · "savigarba" = 자존심 | 확인 필요 |
-| `skill2.shout.20` | 뉴질랜드: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 뉴질랜드 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.21` | 일본: 金はなくても、プライドはある！ | 돈은 없어도 자존심(체면)은 있다 | 일본 2번 스킬 외침 · "金" = 돈(구어) | 확인 필요 |
-| `skill2.shout.22` | 포르투갈: Posso estar teso, mas tenho o meu orgulho! | 돈은 없어도 자존심(체면)은 있다 | 포르투갈 2번 스킬 외침 · "teso" = 포르투갈 구어 "빈털터리" | 확인 필요 |
-| `skill2.shout.23` | 폴란드: Może nie mam kasy, ale mam honor! | 돈은 없어도 자존심(체면)은 있다 | 폴란드 2번 스킬 외침 · "honor" = 자존심·명예 | 확인 필요 |
-| `skill2.shout.24` | 헝가리: Lehet, hogy nincs pénzem, de büszkeségem az van! | 돈은 없어도 자존심(체면)은 있다 | 헝가리 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.25` | 슬로바키아: Možno nemám peniaze, ale hrdosť mám! | 돈은 없어도 자존심(체면)은 있다 | 슬로바키아 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.26` | 그리스: Μπορεί να μην έχω λεφτά, αλλά έχω αξιοπρέπεια! | 돈은 없어도 자존심(체면)은 있다 | 그리스 2번 스킬 외침 · "αξιοπρέπεια" = 체면·품위 | 확인 필요 |
-| `skill2.shout.27` | 튀르키예: Param olmayabilir ama gururum var! | 돈은 없어도 자존심(체면)은 있다 | 튀르키예 2번 스킬 외침 · 의역 | 확인 필요 |
-| `skill2.shout.28` | 칠레: ¡Estaré sin plata, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 칠레 2번 스킬 외침 · "sin plata" = 중남미식 "돈 없이" | 확인 필요 |
-| `skill2.shout.29` | 멕시코: ¡Estaré sin lana, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 멕시코 2번 스킬 외침 · "sin lana" = 멕시코식 "돈 없이" | 확인 필요 |
-| `skill2.shout.30` | 콜롬비아: ¡Estaré sin plata, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 콜롬비아 2번 스킬 외침 · "sin plata" = 중남미식 | 확인 필요 |
+| `skill2.shout.01` | 룩셈부르크: Je suis peut-être fauché, mais j'ai ma fierté ! | 돈은 없어도 자존심(체면)은 있다 | 룩셈부르크 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.02` | 아일랜드: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 아일랜드 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.03` | 스위스: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 스위스 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.04` | 미국: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 미국 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.05` | 네덜란드: Ik ben misschien blut, maar ik heb mijn trots! | 돈은 없어도 자존심(체면)은 있다 | 네덜란드 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.06` | 덴마크: Jeg er måske flad, men jeg har min stolthed! | 돈은 없어도 자존심(체면)은 있다 | 덴마크 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.07` | 오스트리아: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 오스트리아 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.08` | 호주: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 호주 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.09` | 독일: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 독일 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.10` | 스웨덴: Jag må vara pank, men jag har min stolthet! | 돈은 없어도 자존심(체면)은 있다 | 스웨덴 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.11` | 캐나다: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 캐나다 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.12` | 핀란드: Rahaa ei ole, mutta ylpeyttä on! | 돈은 없어도 자존심(체면)은 있다 | 핀란드 2번 스킬 외침 · 의역 | 검수 OK · 검색 안 함 |
+| `skill2.shout.13` | 프랑스: Je suis peut-être fauché, mais j'ai ma fierté ! | 돈은 없어도 자존심(체면)은 있다 | 프랑스 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.14` | 이탈리아: Sarò anche al verde, ma ho il mio orgoglio! | 돈은 없어도 자존심(체면)은 있다 | 이탈리아 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.15` | 한국: 내가 돈이 없지 가오가 없나! | 돈은 없어도 자존심(체면)은 있다 | 한국 2번 스킬 외침 · 원문 그대로 ("가오"는 한국어판에만) | 검수 OK · 검색 안 함 |
+| `skill2.shout.16` | 스페인: ¡Estaré sin un duro, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 스페인 2번 스킬 외침 · "sin un duro" = 스페인식 "빈털터리" | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.17` | 체코: Možná nemám peníze, ale mám svou hrdost! | 돈은 없어도 자존심(체면)은 있다 | 체코 2번 스킬 외침 · 의역 | 검수 OK · 검색 안 함 |
+| `skill2.shout.18` | 이스라엘: אולי אין לי כסף, אבל יש לי כבוד! | 돈은 없어도 자존심(체면)은 있다 | 이스라엘 2번 스킬 외침 · "kavod" = 체면·존중 | 검수 OK · 검색 안 함 |
+| `skill2.shout.19` | 리투아니아: Gal ir neturiu pinigų, bet turiu savigarbą! | 돈은 없어도 자존심(체면)은 있다 | 리투아니아 2번 스킬 외침 · "savigarba" = 자존심 | 검수 OK · 검색 안 함 |
+| `skill2.shout.20` | 뉴질랜드: I may be broke, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 뉴질랜드 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.21` | 일본: 金はなくても、プライドはある！ | 돈은 없어도 자존심(체면)은 있다 | 일본 2번 스킬 외침 · "金" = 돈(구어) | 검수 OK · 검색 안 함 |
+| `skill2.shout.22` | 포르투갈: Posso estar teso, mas tenho o meu orgulho! | 돈은 없어도 자존심(체면)은 있다 | 포르투갈 2번 스킬 외침 · "teso" = 포르투갈 구어 "빈털터리" | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.23` | 폴란드: Może nie mam kasy, ale mam honor! | 돈은 없어도 자존심(체면)은 있다 | 폴란드 2번 스킬 외침 · "honor" = 자존심·명예 | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.24` | 헝가리: Lehet, hogy nincs pénzem, de büszkeségem az van! | 돈은 없어도 자존심(체면)은 있다 | 헝가리 2번 스킬 외침 · 의역 | 검수 OK · 검색 안 함 |
+| `skill2.shout.25` | 슬로바키아: Možno nemám peniaze, ale hrdosť mám! | 돈은 없어도 자존심(체면)은 있다 | 슬로바키아 2번 스킬 외침 · 의역 | 검수 OK · 검색 안 함 |
+| `skill2.shout.26` | 그리스: Μπορεί να μην έχω λεφτά, αλλά έχω αξιοπρέπεια! | 돈은 없어도 자존심(체면)은 있다 | 그리스 2번 스킬 외침 · "αξιοπρέπεια" = 체면·품위 | 검수 OK · 검색 안 함 |
+| `skill2.shout.27` | 튀르키예: Param olmayabilir ama gururum var! | 돈은 없어도 자존심(체면)은 있다 | 튀르키예 2번 스킬 외침 · 의역 | 검수 OK · 검색 안 함 |
+| `skill2.shout.28` | 칠레: ¡Estaré sin plata, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 칠레 2번 스킬 외침 · "sin plata" = 중남미식 "돈 없이" | 검수 OK · 검색 안 함 |
+| `skill2.shout.29` | 멕시코: ¡Estaré sin lana, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 멕시코 2번 스킬 외침 · "sin lana" = 멕시코식 "돈 없이" | 웹·사전 확인함 (2026-11-25) |
+| `skill2.shout.30` | 콜롬비아: ¡Estaré sin plata, pero tengo mi orgullo! | 돈은 없어도 자존심(체면)은 있다 | 콜롬비아 2번 스킬 외침 · "sin plata" = 중남미식 | 검수 OK · 검색 안 함 |
 
 ## 나라 이름 (30개)
 - 각 나라 이름은 그 나라 언어로만 보여 줘요. 예: 한국 → 대한민국/한국, 일본 → 日本.
 - 목록은 `balance.md`의 "시작 돈" 표를 따라요.
+
+## 2번 외침 선택안 (검수 결과 · 사용자 결정 대기)
+| 나라 | 지금 | 바꿀 만한 안 | 이유 |
+|---|---|---|---|
+| 이스라엘 | …יש לי כבוד! | …יש לי כבוד עצמי! | "כבוד"만 쓰면 "명예·존경"으로도 읽혀요. "자존심"이 분명해져요 |
+| 포르투갈 | Posso estar teso… | Posso estar sem cheta… | 브라질에서 "teso"가 다른 뜻으로 읽힐 수 있다는 의견이 있어요(확인은 못 했어요) |
+| 튀르키예 | Param olmayabilir… | Cebimde beş kuruş yok ama gururum var! | "주머니에 한 푼도 없지만"이라 맛이 살아요 |
+| 일본 | 金はなくても… | 金はねえけど、プライドはある！ | 더 거친 장수 말투예요 |
+| 아일랜드 / 호주·뉴질랜드 | I may be broke… | I may be skint… / I might be flat broke… | 그 지역 맛이 나요 |
