@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
   const [S, port, tag] = process.argv.slice(2); const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2 });
   await p.goto(`http://localhost:${port}/web/`); await p.waitForFunction(() => window.G && G.scene === 'title');
-  await p.evaluate(() => { G.scene = 'select'; G.sel = 14; }); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+  await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, +(process.argv[5] || 14)); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
   await p.evaluate(() => { G.run.spawnT = 99; G.aliens = []; G.hero.x = 300; G.hero.y = 220; G.hero.dir = { x: 1, y: 0 }; G.msgs = []; G.hero.inv = 99;
     const mk = (x, y) => ({ type: 'grunt', x, y, dx: 0, dy: 0, entering: false, hp: 999, max: 999, speed: 0, r: 15, flash: 0, shootT: 99, seed: 0, vx: -1, kb: { x: 0, y: 0 }, recoil: 0 });
     G.aliens.push(mk(345, 210), mk(340, 245)); });

@@ -2,7 +2,8 @@
 // 모양만 나라마다 달라요. 공격력·사거리·탄 속도는 모든 나라가 같아요 (balance.md).
 (() => {
   const UI = window.UI;
-  const GLOW = '#FFD166';
+  const GLOW = '#E8E2D2';   // 우리 공격 효과는 모두 흰색 + 옅은 은금색 한 계열 (나라·무기별 색 없음, 차이는 모양뿐)
+  const PALE = 'rgba(232,226,210,';
   const ease = p => 1 - Math.pow(1 - p, 3);
   function star(x, px, py, n, outer, inner, col) {
     x.beginPath();
@@ -25,11 +26,11 @@
     const fade = p < .45 ? 1 : 1 - (p - .45) / .55;
     x.save(); x.globalCompositeOperation = 'lighter';
     const RR = R + 8;
-    crescent(x, cx, cy, tail, head, RR + 3, w * 2.2, .45 * fade, col);         // 바깥 빛
-    crescent(x, cx, cy, tail, head, RR, w * 1.5, .95 * fade, col);             // 칼날 빛
-    crescent(x, cx, cy, tail + (head - tail) * .3, head, RR - w * .1, w * .7, fade, '#FFFFFF'); // 흰 심
+    crescent(x, cx, cy, tail, head, RR + 2, w * 1.6, .18 * fade, col);         // 바깥 빛
+    crescent(x, cx, cy, tail, head, RR, w * 1.1, .85 * fade, col);             // 칼날 빛
+    crescent(x, cx, cy, tail + (head - tail) * .3, head, RR - w * .1, w * .5, fade, '#FFFFFF'); // 흰 심
     x.restore();
-    if (p < .5) { const hx = cx + Math.cos(head) * (R + 8), hy = cy + Math.sin(head) * (R + 8) * .82; x.save(); x.globalCompositeOperation = 'lighter'; star(x, hx, hy, 4, 9 * fade + 3, 2, '#FFF6D6'); x.restore(); }
+    if (p < .5) { const hx = cx + Math.cos(head) * (R + 8), hy = cy + Math.sin(head) * (R + 8) * .82; x.save(); x.globalCompositeOperation = 'lighter'; star(x, hx, hy, 4, 6 * fade + 2, 2, '#FFFFFF'); x.restore(); }
   }
   function thrust(x, cx, cy, dir, p, len, col, n = 1) {
     for (let k = 0; k < n; k++) {
@@ -61,10 +62,10 @@
   // 치기 6종: [길이(초), 그리기]
   const MELEE = {
     slash: [0.25, (x, cx, cy, d, p) => arc(x, cx, cy, d, p, 38, 2.2, 10, GLOW)],
-    bigslash: [0.3, (x, cx, cy, d, p) => arc(x, cx, cy, d, p, 52, 3.0, 15, '#FFB45C')],
+    bigslash: [0.3, (x, cx, cy, d, p) => arc(x, cx, cy, d, p, 52, 3.0, 15, GLOW)],
     smash: [0.35, (x, cx, cy, d, p) => smash(x, cx, cy, d, p, GLOW)],
     thrust: [0.2, (x, cx, cy, d, p) => thrust(x, cx, cy, d, p, 78, GLOW)],
-    rapid: [0.3, (x, cx, cy, d, p) => thrust(x, cx, cy, d, p, 56, '#F2E3C6', 3)],
+    rapid: [0.3, (x, cx, cy, d, p) => thrust(x, cx, cy, d, p, 56, GLOW, 3)],
     spin: [0.3, (x, cx, cy, d, p) => spin(x, cx, cy, p, 40, GLOW)],
   };
 
@@ -72,8 +73,8 @@
   const SHOT = {
     arrow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-34, 0); x.lineTo(-12, 0); x.stroke(); x.strokeStyle = '#8A5A2B'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-12, 0); x.lineTo(10, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(14, 0); x.lineTo(8, -3.5); x.lineTo(8, 3.5); x.fill(); x.fillStyle = '#F2E3C6'; x.fillRect(-13, -3, 5, 2); x.fillRect(-13, 1, 5, 2); x.restore(); },
     crossbow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-26, 0); x.lineTo(-6, 0); x.stroke(); x.fillStyle = '#5A3429'; x.fillRect(-6, -2, 14, 4); x.fillStyle = '#C9C9C9'; x.beginPath(); x.moveTo(13, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
-    bullet(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); const g = x.createLinearGradient(-40, 0, 4, 0); g.addColorStop(0, 'rgba(255,209,102,0)'); g.addColorStop(1, 'rgba(255,240,190,.95)'); x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(-40, 0); x.lineTo(2, 0); x.stroke(); UI.circ(3, 0, 2.8, '#FFF3C4'); x.restore(); },
-    beam(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.lineCap = 'round'; x.strokeStyle = '#5BC8FF'; x.lineWidth = 8; x.shadowColor = '#5BC8FF'; x.shadowBlur = 14; x.beginPath(); x.moveTo(-46, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.shadowBlur = 0; x.stroke(); x.restore(); },
+    bullet(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); const g = x.createLinearGradient(-40, 0, 4, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(1, 'rgba(255,255,255,.9)'); x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(-40, 0); x.lineTo(2, 0); x.stroke(); UI.circ(3, 0, 2.8, '#FFFFFF'); x.restore(); },
+    beam(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.lineCap = 'round'; x.strokeStyle = GLOW; x.lineWidth = 6; x.shadowColor = GLOW; x.shadowBlur = 6; x.beginPath(); x.moveTo(-46, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.shadowBlur = 0; x.stroke(); x.restore(); },
     axe(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 22); x.fillStyle = '#6B4A2E'; x.fillRect(-1.5, -11, 3, 22); x.fillStyle = '#C9CDD3'; x.beginPath(); x.moveTo(1, -11); x.quadraticCurveTo(13, -6, 9, 4); x.lineTo(1, -3); x.fill(); x.restore(); },
     spear(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = '#6B4A2E'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-30, 0); x.lineTo(8, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(18, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     boomerang(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 26); x.strokeStyle = '#C9A24A'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.arc(0, 6, 11, -2.6, -.5); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); x.restore(); },
@@ -94,7 +95,7 @@
   };
   SHOT.axe = ((orig) => (x, px, py, dir, t) => { x.save(); x.translate(px, py); trail(x); x.restore(); orig(x, px, py, dir, t); })(SHOT.axe);
   // 회전하며 날아가는 무기 뒤 옅은 원 궤적
-  function trail(x) { x.save(); x.strokeStyle = 'rgba(255,224,138,.35)'; x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 16, 0, Math.PI * 1.3); x.stroke(); x.restore(); }
+  function trail(x) { x.save(); x.strokeStyle = PALE + '.25)'; x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 16, 0, Math.PI * 1.3); x.stroke(); x.restore(); }
   const SPIN = { blade: 20, axe: 22, mace: 18, boomerang: 26 };
 
   // 물보라: 맞거나 사라질 때 파랑·흰 물방울이 튀어요
@@ -108,7 +109,7 @@
   function muzzle(x, px, py, dir, q) {
     if (q < 0 || q > .35) return;
     const f = 1 - q / .35;
-    x.save(); x.globalAlpha = f; star(x, px, py, 6, 13 * f + 4, 4, '#FFB45C'); star(x, px, py, 6, 7 * f + 2, 2, '#FFF3C4'); x.restore();
+    x.save(); x.globalAlpha = f; star(x, px, py, 6, 7 * f + 2, 2.5, GLOW); star(x, px, py, 6, 4 * f + 1, 1.5, '#FFFFFF'); x.restore();
     x.save(); x.globalAlpha = .5 * f; for (let i = 0; i < 3; i++) UI.circ(px - Math.cos(dir) * (4 + i * 5) + (i - 1) * 3, py - 6 - i * 4 - q * 20, 5 + i * 2 + q * 10, 'rgba(177,165,153,.6)'); x.restore();
   }
   // 맞음: 흰 별 + 외계인 색 파편 6개
@@ -117,14 +118,14 @@
     if (q < 0 || q > 1) return;
     const s = big ? 1.5 : 1, f = 1 - q;
     x.save(); x.globalCompositeOperation = 'lighter';
-    const g = x.createRadialGradient(px, py, 0, px, py, 15 * s); g.addColorStop(0, `rgba(255,246,214,${.55 * f})`); g.addColorStop(1, 'rgba(255,209,102,0)');
-    x.fillStyle = g; x.beginPath(); x.arc(px, py, 15 * s, 0, Math.PI * 2); x.fill();
-    x.globalAlpha = f; star(x, px, py, 4, (9 + q * 7) * s, 2, '#FFFFFF');
-    x.strokeStyle = '#FFF6D6'; x.lineWidth = 2.5 * f + .5; x.lineCap = 'round';
-    for (let i = -1; i <= 1; i++) { const a = dir + i * .5, r0 = 7 + q * 12, r1 = r0 + 8 * f * s; x.beginPath(); x.moveTo(px + Math.cos(a) * r0, py + Math.sin(a) * r0); x.lineTo(px + Math.cos(a) * r1, py + Math.sin(a) * r1); x.stroke(); }
+    const g = x.createRadialGradient(px, py, 0, px, py, 9 * s); g.addColorStop(0, PALE + (.4 * f) + ')'); g.addColorStop(1, PALE + '0)');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, 9 * s, 0, Math.PI * 2); x.fill();
+    x.globalAlpha = f; star(x, px, py, 4, (6 + q * 4) * s, 1.5, '#FFFFFF');
+    x.strokeStyle = GLOW; x.lineWidth = 1.5 * f + .5; x.lineCap = 'round';
+    for (let i = -1; i <= 1; i++) { const a = dir + i * .5, r0 = 6 + q * 8, r1 = r0 + 5 * f * s; x.beginPath(); x.moveTo(px + Math.cos(a) * r0, py + Math.sin(a) * r0); x.lineTo(px + Math.cos(a) * r1, py + Math.sin(a) * r1); x.stroke(); }
     x.restore();
     x.save(); x.globalAlpha = f;
-    for (let i = 0; i < 8; i++) { const a = dir + (i - 3.5) * .45, d = q * 24 * s; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d + q * q * 10, 2 * f + .5, col); }
+    for (let i = 0; i < 4; i++) { const a = dir + (i - 1.5) * .55, d = q * 18 * s; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d + q * q * 8, 1.6 * f + .4, col); }   // 외계인 색 하나만, 4개
     x.restore();
   }
 

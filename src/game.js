@@ -389,16 +389,17 @@
     G.msgs.push({ text: t_('skill.shout', { country: I18N.countryName(G.country) }), t: 1.2, shout: true });
     AUDIO.play('skill');
   }
+  const alienCol = a => a.type === 'shooter' ? '#B8D727' : '#B14DE0';   // 보라 외계인·보스 = 보라, 사격 외계인 = 초록
   function damage(a, dmg, nx, ny, heavy) {
     a.hp -= dmg; a.flash = 0.12;
     // 넉백: 공격 방향으로 밀려나며 미끄러져요 (보스는 조금만)
     const kb = (a.type === 'boss' ? 60 : heavy ? 260 : 140);
     a.kb = { x: nx * kb, y: ny * kb };
-    G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, col: a.type === 'grunt' ? '#CA57E5' : a.type === 'shooter' ? '#B8D727' : '#8EBB2E', t: 0, life: heavy ? 0.3 : 0.25 });
+    G.fx.push({ kind: 'hit', x: a.x - nx * 8, y: a.y - (a.type === 'boss' ? 50 : 20), dir: Math.atan2(ny, nx), big: !!heavy, col: alienCol(a), t: 0, life: heavy ? 0.2 : 0.16 });
     if (!heavy) AUDIO.play('hit');
     if (a.hp <= 0 && !a.dead) {
       a.dead = true; G.run.kills++; G.run.killsRound++;
-      burst(a.x, a.y - 20, a.type === 'grunt' ? '#CA57E5' : a.type === 'shooter' ? '#B8D727' : '#8EBB2E', a.type === 'boss' ? 30 : 10, 140);
+      burst(a.x, a.y - 20, alienCol(a), a.type === 'boss' ? 14 : 5, 110);   // 처치 파편: 그 외계인 색 하나, 양은 반
       AUDIO.play('kill');
       if (a.type === 'boss' && settings.shake) G.shake = 5;
     }
@@ -416,7 +417,7 @@
   function burst(x, y, color, n, sp) {
     for (let i = 0; i < n && G.parts.length < 150; i++) {
       const a = Math.random() * Math.PI * 2, v = sp * (.4 + Math.random() * .8);
-      G.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .4 + Math.random() * .2, t: 0, color, s: 2 + Math.random() * 2 });
+      G.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .25 + Math.random() * .1, t: 0, color, s: 1.5 + Math.random() * 1.2 });
     }
   }
   const inFloor = a => { const f = FIELD.floor; return a.x > f.x0 + 4 && a.x < f.x1 - 4 && a.y > f.y0 + 4 && a.y < f.y1 - 4; };
@@ -463,14 +464,14 @@
       else if (a.type === 'shooter') {
         if (d > 170) { mx = dx / d; my = dy / d; } else if (d < 120) { mx = -dx / d; my = -dy / d; } else { mx = -dy / d * .6; my = dx / d * .6; }
         a.shootT -= dt;
-        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3 }); }
+        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3, col: '#B8D727' }); }
       } else {
         mx = dx / d; my = dy / d;
         if (a.type === 'boss') {
           a.shootT -= dt;
           if (a.shootT <= 0) {
             a.shootT = TEMP.BOSS_RING_GAP;
-            for (let i = 0; i < TEMP.BOSS_RING_N; i++) { const an = i / TEMP.BOSS_RING_N * Math.PI * 2 + a.seed; G.eshots.push({ x: a.x, y: a.y - 30, vx: Math.cos(an) * TEMP.ENEMY_SHOT_SPEED * .8, vy: Math.sin(an) * TEMP.ENEMY_SHOT_SPEED * .8, dmg: TEMP.BOSS_SHOT_DMG, life: 3.5 }); }
+            for (let i = 0; i < TEMP.BOSS_RING_N; i++) { const an = i / TEMP.BOSS_RING_N * Math.PI * 2 + a.seed; G.eshots.push({ x: a.x, y: a.y - 30, vx: Math.cos(an) * TEMP.ENEMY_SHOT_SPEED * .8, vy: Math.sin(an) * TEMP.ENEMY_SHOT_SPEED * .8, dmg: TEMP.BOSS_SHOT_DMG, life: 3.5, col: '#B14DE0' }); }
           }
         }
       }
@@ -506,7 +507,7 @@
       it.life -= dt;
       if (dist2(it, h) < 26 * 26) {
         it.life = 0; h.buff = { cur: it.cur, mul: CURRENCY_MUL[it.cur], t: BAL.ITEM_TIME, max: BAL.ITEM_TIME };
-        AUDIO.play('pickup'); burst(h.x, h.y - 20, COL.glow, 12, 90);
+        AUDIO.play('pickup'); burst(h.x, h.y - 20, COL.glow, 6, 80);
       }
     }
     G.items = G.items.filter(it => it.life > 0);
@@ -765,7 +766,7 @@
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
       FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key);
     }
-    for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = COL.pink; ctx.fillRect(-4, -4, 8, 8); ctx.restore(); }
+    for (const s of G.eshots) { ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#B8D727'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
     for (const p of G.parts) { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
     ctx.restore();
     // 맞음: 화면 테두리 빨강 (번쩍임 끄면 장수 테두리만)
@@ -779,7 +780,7 @@
     // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
     ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(h.x, h.y, 18, 6, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = `rgba(255,209,102,${.25 + .65 * Math.min(1, money / 100)})`; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 7, 0, 0, Math.PI * 2); ctx.fill();
-    if (h.buff) { ctx.strokeStyle = 'rgba(255,150,60,.9)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < .3) G.parts.push({ x: h.x + (Math.random() - .5) * 30, y: h.y - Math.random() * 10, vx: 0, vy: -50, life: .5, t: 0, color: '#FFB347', s: 2.5 }); }
+    if (h.buff) { ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < .15) G.parts.push({ x: h.x + (Math.random() - .5) * 30, y: h.y - Math.random() * 10, vx: 0, vy: -50, life: .35, t: 0, color: '#FFD166', s: 2 }); }
     const da = Math.atan2(h.dir.y, h.dir.x);
     ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, da - .5, da + .5); ctx.stroke();
     if (h.skillT > 0) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);
