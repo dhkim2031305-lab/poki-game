@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>총 모션 비교</title>
+<style>
+:root{--bg:#1c1d26;--card:#262836;--fg:#eef0f6;--sub:#9aa0b4;--bad:#ff7a7a;--good:#7ad8a0}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.card{background:var(--card);border-radius:12px;padding:12px;flex:1 1 300px;max-width:420px}
+.card h2{font-size:15px;margin:0 0 4px}.bad{color:var(--bad)}.good{color:var(--good)}
+canvas{width:100%;height:auto;background:#3a3d4f;border-radius:8px;display:block}
+p{margin:6px 0 0;color:var(--sub)}
+</style></head><body>
+<h1>미국·핀란드 총 모션: 지금 vs 고친 안</h1>
+<div class="row">
+<div class="card"><h2 class="bad">지금</h2><canvas id="a" width="400" height="240"></canvas>
+<p>치기 = 검처럼 위→아래로 크게 휘둘러요. 쏘고 나면 총이 아래로 30° 내려가요. 연사하면 위아래로 까딱거려요.</p></div>
+<div class="card"><h2 class="good">고친 안</h2><canvas id="b" width="400" height="240"></canvas>
+<p>치기 = 총검 찌르기예요. 총을 수평으로 든 채 앞으로 쭉 내질러요. 쏠 때는 반동으로 뒤로 3px만 밀려요. 쉴 때도 아래로 10°만 내리고, 각도는 0.15초에 걸쳐 부드럽게 바뀌어요.</p></div>
+</div>
+<script>
+function gun(x){x.fillStyle='#1F2E5C';x.fillRect(0,-4,40,8);x.fillStyle='#C9CED6';x.fillRect(40,-1.5,16,3);
+x.beginPath();x.moveTo(56,-2);x.lineTo(64,0);x.lineTo(56,2);x.fill();x.fillStyle='#5a3a22';x.fillRect(-10,-3,12,10);x.fillStyle='#B22234';x.fillRect(8,-4,24,2)}
+function hero(x,cx,cy){x.fillStyle='#d9b38c';x.beginPath();x.arc(cx,cy-70,14,0,7);x.fill();x.fillStyle='#4a5a7a';x.fillRect(cx-14,cy-56,28,40);
+x.fillStyle='#2e3445';x.fillRect(cx-12,cy-16,10,16);x.fillRect(cx+2,cy-16,10,16);x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.ellipse(cx,cy+2,22,6,0,0,7);x.fill()}
+function flash(x){x.fillStyle='#fff';x.beginPath();x.arc(66,0,6,0,7);x.fill();x.fillStyle='rgba(232,217,168,.7)';x.beginPath();x.arc(66,0,10,0,7);x.fill()}
+function shot(x,t,y){x.fillStyle='#fff';const k=(t%1);x.fillRect(150+k*260,y-2,14,4)}
+const ease=k=>1-Math.pow(1-k,3);
+function draw(id,mode){const c=document.getElementById(id),x=c.getContext('2d');let smooth=0;
+(function f(ts){const t=ts/1000,cy=180,cx=120;x.clearRect(0,0,400,240);hero(x,cx,cy);
+const ph=t%3;let a=0,push=0,fl=false;
+if(ph<1.2){ // 연사 3발
+ const k=ph%0.4;fl=k<0.06;
+ if(mode==='a'){a=k<0.35?0:0.52;push=0}else{a=0;push=fl?-3:0}
+}else if(ph<1.8){ // 쉬기
+ a=mode==='a'?0.52:0.17
+}else{ // 치기
+ const s=(ph-1.8)/0.6;
+ if(mode==='a'){const from=-1.15,to=1.2;a=s<.25?from*s/.25:s<.6?from+(to-from)*ease((s-.25)/.35):to*(1-(s-.6)/.4)}
+ else{a=0;push=s<.25?-6*s/.25:s<.6?-6+26*ease((s-.25)/.35):20*(1-(s-.6)/.4)}
+}
+if(mode==='b'){smooth+=(a-smooth)*0.25;a=smooth}
+x.save();x.translate(cx+10+push,cy-40);x.rotate(a);gun(x);if(fl)flash(x);x.restore();
+if(ph<1.2)shot(x,ph/0.4,cy-40);
+x.fillStyle='#9aa0b4';x.font='13px system-ui';x.fillText(ph<1.2?'쏘기 연사':ph<1.8?'쉬기':'치기',12,22);
+requestAnimationFrame(f)})(0)}
+draw('a','a');draw('b','b');
+</script></body></html>
