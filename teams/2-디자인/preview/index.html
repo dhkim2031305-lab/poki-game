@@ -45,6 +45,12 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(
 </header>
 
 <section>
+  <h2>0. 1차 게임 모션·효과 전/후 <small>사용자 "모션이 안 이쁜 게 많다" · 왼쪽 = 지금 게임, 오른쪽 = 고친 안</small></h2>
+  <p>개발팀 1차 게임을 직접 돌려 보고 어색한 곳 5가지를 골랐어요. ① 치기: 칼자국이 몸에서 떨어진 큰 초승달로 보여요 → 손 높이에서 몸 크기에 맞게 휘두르고, 몸이 앞으로 살짝 나가며, 맞는 순간 0.05초 멈춰요. ② 쏘기: 칼 나라도 작은 화살·선이 날아가요 → <b>든 무기가 돌며 날아가요</b>(사용자 결정). ③ 화살·총탄이 너무 가늘어요 → 키웠어요. ④ 걷기: 장수가 작고 어두운 바닥에 묻혀요 → 키 60→72px, 테두리 빛, 발걸음 먼지. ⑤ 외계인 처치: 그냥 사라져요 → 하얗게 번쩍, 쪼그라들며 파편.</p>
+  <div class="phone"><canvas id="c-ba" width="1688" height="1300" style="aspect-ratio:844/650"></canvas></div>
+</section>
+
+<section>
   <h2>1. 시작 화면 <small>나라를 고르기 전이라 글자 없이 아이콘만 써요</small></h2>
   <div class="phone"><canvas id="c-title" width="1688" height="780"></canvas></div>
 </section>
@@ -497,6 +503,51 @@ function drawSettings(t){const x=ctxOf('c-settings');field(x,0);x.fillStyle='rgb
     const rtl=l==='עברית';txt(x,l,rtl?tx+lw/2-30:tx,ty,14,sel?C.gold:C.fg,rtl?'right':'left',sel?700:500);});
 }
 
+/* ===== 전/후 비교 ===== */
+function katana(x,px,py,rot,s=1){x.save();x.translate(px,py);x.rotate(rot);x.scale(s,s);
+  x.strokeStyle='#1A1410';x.lineWidth=5;x.lineCap='round';x.beginPath();x.moveTo(-20,0);x.lineTo(22,-2);x.stroke();
+  const g=x.createLinearGradient(0,-3,0,3);g.addColorStop(0,'#FFFFFF');g.addColorStop(1,'#9AA3AE');x.strokeStyle=g;x.lineWidth=3;x.beginPath();x.moveTo(-4,0);x.quadraticCurveTo(10,-1,22,-3);x.stroke();
+  x.strokeStyle='#5A1A1A';x.lineWidth=3.5;x.beginPath();x.moveTo(-20,0);x.lineTo(-7,0);x.stroke();circ(x,-6,0,3.2,'#C9A24A','#1A1410',1);x.restore();}
+function rim(x,n,f,cx,fy,h,mo){const m=Object.assign({},mo,{bright:1.9,alpha:.35});x.save();for(const[dx,dy]of[[-1,0],[1,0],[0,-1]]){const mm=Object.assign({},m,{ox:(mo.ox||0)+dx*1.5,oy:(mo.oy||0)+dy*1.5});frameSprite(x,n,f,cx,fy,h,mm);}x.restore();frameSprite(x,n,f,cx,fy,h,mo);}
+function baCell(x,ox,oy,w,h,label,after){rr(x,ox+4,oy+4,w-8,h-8,10,'#151820',after?C.gold:C.frame,after?2:1);if(IMG.room){x.save();x.beginPath();x.roundRect(ox+5,oy+5,w-10,h-10,10);x.clip();x.globalAlpha=.35;x.drawImage(IMG.room,ox-200,oy-150,1100,620);x.restore();}
+  rr(x,ox+12,oy+12,after?54:44,18,9,after?C.gold:'#2C2A30');txt(x,after?'고친 안':'지금',ox+12+(after?27:22),oy+21,10,after?'#1A1410':C.muted,'center',700);txt(x,label,ox+w-14,oy+21,11,C.fg,'right',600);}
+function drawBA(t){const c=document.getElementById('c-ba');const x=c.getContext('2d');x.setTransform(c.width/W,0,0,c.width/W,0,0);x.fillStyle=C.bg;x.fillRect(0,0,W,650);
+  const W2=W/2,RH=130;const P=1.4,p=(t%P)/P;
+  const rows=['① 치기 (한국 환도)','② 쏘기 (일본 카타나)','③ 화살·총탄','④ 걷기','⑤ 외계인 처치'];
+  rows.forEach((lab,ri)=>{for(let side=0;side<2;side++){const ox=side*W2,oy=ri*RH,after=side===1;baCell(x,ox,oy,W2,RH,lab,after);
+    const hx=ox+110,fy=oy+RH-22,ax=ox+300,ay=fy;const hh=after?72:60;
+    x.save();x.beginPath();x.rect(ox+5,oy+5,W2-10,RH-10);x.clip();
+    if(ri===0){ // 치기
+      const sw=p<.22,f=p<.06?5:sw?6:0;let lunge=0,stop=after&&p>.12&&p<.16;if(after&&sw)lunge=Math.sin(p/.22*Math.PI)*6;
+      const mo={ox:lunge};x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(hx,fy,18,6,0,0,Math.PI*2);x.fill();
+      after?rim(x,'korea',f,hx,fy,hh,mo):frameSprite(x,'korea',f,hx,fy,hh,mo);
+      if(after)fxArc(x,hx+12+lunge,fy-hh*.45,0,Math.min(1,p*4.5),hh*.62,2.0,7,C.glow);else fxArc(x,hx,fy-22,0,Math.min(1,p*4.5),38,2.2,10,C.glow);
+      const tx=after?hx+70:hx+60,hq=(p-.14)/.3;sprite(x,'alien-grunt',tx,ay,40,{bright:hq>0&&hq<.25?2.6:1,ox:after&&hq>0?Math.min(1,hq*3)*8:0,flip:true});if(after)hitFx(x,tx-6,ay-16,hq);
+    }else if(ri===1){ // 쏘기
+      const f=p<.06?5:p<.16?6:0;x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(hx,fy,18,6,0,0,Math.PI*2);x.fill();
+      after?rim(x,'japan',f,hx,fy,hh,{}):frameSprite(x,'japan',f,hx,fy,hh,{});
+      const q=(p-.1)/.45,sx=hx+16,sy=fy-hh*.5,ex=ax-14;
+      if(q>=0&&q<=1){const px=sx+(ex-sx)*q;if(after){const ROT=qq=>qq*Math.PI*2*1.6,POS=qq=>sx+(ex-sx)*qq;for(let k=3;k>=1;k--){const qq=Math.max(0,q-k*.035);x.globalAlpha=.16*(4-k);katana(x,POS(qq),sy,ROT(qq),1.05);}x.globalAlpha=1;katana(x,px,sy,ROT(q),1.05);}else SHOT.arrow(x,px,fy-24,0);}
+      const hq=(p-.55)/.3;sprite(x,'alien-grunt',ax,ay,40,{bright:hq>0&&hq<.25?2.6:1,flip:true});if(after)hitFx(x,ax-6,ay-16,hq);
+    }else if(ri===2){ // 화살·총탄
+      const q=(p*1.6)%1,dir=0;for(const[k,yy]of[[0,oy+50],[1,oy+92]]){const px=ox+60+q*320;
+        if(after){x.save();x.translate(px,yy);x.scale(1.6,1.6);k?SHOT.bullet(x,0,0,dir):SHOT.arrow(x,0,0,dir);x.restore();}else{k?SHOT.bullet(x,px,yy,dir):SHOT.arrow(x,px,yy,dir);}}
+      txt(x,'화살',ox+30,oy+50,10,C.muted,'left',600);txt(x,'총탄',ox+30,oy+92,10,C.muted,'left',600);
+    }else if(ri===3){ // 걷기
+      const tt=t*1.0,px=ox+60+((tt*70)%300),f=walkF(tt);const mo=M.walk(tt,11,1);mo.rot=0;
+      x.fillStyle='rgba(0,0,0,.4)';x.beginPath();x.ellipse(px,fy,after?20:18,after?6.5:6,0,0,Math.PI*2);x.fill();
+      if(after){mo.oy*=.5;for(let i=0;i<3;i++){const dq=((tt*3+i/3)%1);x.globalAlpha=(1-dq)*.5;circ(x,px-10-dq*18,fy-2-dq*6,2+dq*4,'#8E8679');}x.globalAlpha=1;rim(x,'korea',f,px,fy,hh,mo);}
+      else{mo.oy*=.5;frameSprite(x,'korea',f,px,fy,hh,mo);}
+    }else{ // 외계인 처치
+      const q=p;const cx=ox+W2/2,cy=fy;
+      if(!after){if(q<.35){sprite(x,'alien-grunt',cx,cy,44,{bright:q>.2?2.4:1});}hitFx(x,cx,cy-16,(q-.3)/.4);}
+      else{if(q<.45){const k=q<.25?0:(q-.25)/.2;sprite(x,'alien-grunt',cx,cy,44*(1-k*.6),{bright:q>.18?2.8:1,alpha:1-k*.8});}
+        const dq=(q-.3)/.5;if(dq>=0&&dq<=1){x.save();x.globalAlpha=1-dq;for(let i=0;i<12;i++){const a=i*.52,d=dq*40;circ(x,cx+Math.cos(a)*d,cy-16+Math.sin(a)*d*.6-dq*8,3-dq*2,i%2?'#CA57E5':'#892BA5');}x.strokeStyle='#CA57E5';x.lineWidth=3*(1-dq);x.beginPath();x.ellipse(cx,cy,10+dq*36,4+dq*12,0,0,Math.PI*2);x.stroke();x.restore();}
+        hitFx(x,cx,cy-16,(q-.18)/.35);}
+    }
+    x.restore();}});
+}
+
 /* ===== 공격 효과 ===== */
 const ease=p=>1-Math.pow(1-p,3);
 function fxArc(x,cx,cy,dir,p,R,spread,w,col){ // 베기 호: p 0~1
@@ -605,6 +656,6 @@ const sw=document.getElementById('sounds');SND.forEach(([l,f])=>{const b=documen
 
 /* 그리기 */
 drawSelect();
-function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);drawAll30(t);if(!reduce)requestAnimationFrame(frame);}
+function frame(ms){const t=ms/1000;drawTitle(t);drawPlay(t);drawRound(t);drawResult('c-fail',false,t);drawResult('c-clear',true,t);drawBankrupt(t);drawSettings(t);drawGlow(t);drawItems(t);drawAliens(t);drawFx(t);drawAll30(t);drawBA(t);if(!reduce)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
 </script>
