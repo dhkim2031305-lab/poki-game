@@ -466,12 +466,13 @@
     const rk = G.country.ranged;
     G.shots.push({ kind: rk, x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED, vy: dy * TEMP.SHOT_SPEED, dmg: st.ranged * atkMul(), life: 1.6, age: 0 });
     if (rk === 'water') G.fx.push({ kind: 'splash', x: h.x + dx * 18, y: h.y - 24 + dy * 8, t: 0, life: 0.2 });
+    if (rk === 'wave') { AUDIO.play('swing'); G.fx.push({ kind: 'melee', m: G.country.melee === 'bigslash' ? 'bigslash' : 'slash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('slash') * .8 }); }   // 검기: 칼을 휘두르는 궤적 + 검기
     if (rk === 'bullet') G.fx.push({ kind: 'muzzle', x: h.x + dx * 18, y: h.y - 24 + dy * 8, a: Math.atan2(dy, dx), t: 0, life: 0.35 });
     AUDIO.play('attack');
   }
   // ---- 나라별 고유 스킬 (skills.md 확정): 유형 5개 · 라운드마다 2회 · 쓰는 동안 0.5초 무적 · 피해 40 × F ----
   const SKB = BAL.SKILL;
-  const BARRAGE_SHOT = { beam: 'beam', boomerang: 'boomerang', axe: 'axe', sling: 'sling', bullet: 'bullet', arrow: 'arrow' };   // 쏘는 무기 나라는 그 탄, 칼·창 나라는 빛줄기
+  const BARRAGE_SHOT = { wave: 'wave', beam: 'beam', boomerang: 'boomerang', axe: 'axe', sling: 'sling', bullet: 'bullet', arrow: 'arrow' };   // 쏘는 무기 나라는 그 탄, 칼·창 나라는 빛줄기
   const skillOf = (c, n) => (n === 2 ? c.skill2 : c.skill);
   // 남은 횟수: 1번·2번 각각 5번 (BAL.SKILL_SHARED면 합쳐서 5번 — 1번 칸 하나를 같이 써요)
   const sLeft = n => G.run.skillsLeft[BAL.SKILL_SHARED ? 1 : n];

@@ -71,6 +71,17 @@
 
   // 쏘기 8종: 날아가는 것 그리기 (dir = 날아가는 방향, t = 시간)
   const SHOT = {
+    // 검기 (검 나라 쏘기, 사용자 확정): 초승달 은빛 — 흰 가운데 + 은 #C9CED6 / 옅은 금 테두리, 날아가며 조금 커져요
+    wave(x, px, py, dir, t) {
+      const k = 1 + Math.min(.35, t * 1.2), R = 15 * k;
+      x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter';
+      const moon = (r, w, col, a) => { x.globalAlpha = a; x.fillStyle = col; x.beginPath(); x.arc(-r * .55, 0, r, -1.25, 1.25); x.arc(-r * .55 - w, 0, r * .92, 1.18, -1.18, true); x.closePath(); x.fill(); };
+      moon(R * 1.18, R * .5, PALE + '.55)', .55);      // 바깥 옅은 금 빛
+      moon(R, R * .38, GLOW, .85);                      // 은빛 날
+      moon(R * .9, R * .2, '#FFFFFF', .95);             // 흰 가운데
+      x.globalAlpha = .35; x.strokeStyle = GLOW; x.lineWidth = 1.5; for (const o of [-6, 6]) { x.beginPath(); x.moveTo(-R * 1.6, o * k * .7); x.lineTo(-R * .7, o * k * .55); x.stroke(); }   // 뒤 바람 줄
+      x.restore();
+    },
     // 스킬 연사(검·창 나라): 짧은 빛줄기 — 흰 머리 + 옅은 금 꼬리 (style-guide "스킬 5유형")
     streak(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
       const g = x.createLinearGradient(-30, 0, 6, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(.6, PALE + '.7)'); g.addColorStop(1, 'rgba(255,255,255,.95)');
@@ -208,7 +219,7 @@
     // 궤적 수명 (리뷰 6): 베기 0.12 · 큰 베기 0.15 · 찌르기 0.08 · 내려찍기 0.13 · 회전 0.21
     meleeTime: k => ({ slash: .12, bigslash: .15, thrust: .08, rapid: .16, smash: .13, spin: .21 }[k] || .12),
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
-    THROWN: k => k === 'blade' || k === 'axe' || k === 'mace' || k === 'polearm',
+    THROWN: k => k === 'blade' || k === 'axe' || k === 'mace' || k === 'polearm',   // wave(검기)는 던지지 않아요
     drawShot(kind, px, py, dir, t, key) {
       // 7차 무기 그림(weapon/<나라>.webp: 무기만, +x 방향, 손잡이 끝 = 왼쪽 가운데)이 있으면 그 그림을 날려요
       const im = key && FX.THROWN(kind) && UI.img['weapon/' + key];

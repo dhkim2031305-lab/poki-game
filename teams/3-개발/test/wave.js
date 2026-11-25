@@ -1,0 +1,18 @@
+const { chromium } = require('playwright');
+(async () => { const [S, tag, q, ci] = process.argv.slice(2); const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] }); const p = await b.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2 });
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
+  await p.goto(`http://localhost:8080/web/${q || ''}`); await p.waitForFunction(() => window.G && G.scene === 'title');
+  await p.evaluate(ci => { G.scene = 'select'; G.sel = +ci; }, ci); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(500);
+  await p.evaluate(() => { G.run.spawnT = 99; G.aliens = []; G.msgs = []; G.hero.x = 220; G.hero.y = 210; G.hero.dir = { x: 1, y: -.15 }; G.hero.inv = 99; G.items = [];
+    const mk = (type, x, y) => ({ type, x, y, dx: 0, dy: 0, entering: false, hp: 999, max: 999, speed: 0, r: 15, flash: 0, shootT: 99, seed: x, vx: -1, kb: { x: 0, y: 0 }, recoil: 0 });
+    G.aliens.push(mk('grunt', 470, 175)); window.__manual = true; });
+  await p.waitForTimeout(150);
+  await p.evaluate(() => { window.__t = performance.now(); window.__cb(window.__t); });
+  await p.keyboard.press('KeyK');
+  const st = n => p.evaluate(n => { for (let i = 0; i < n; i++) { window.__t += 1000 / 60; window.__cb(window.__t); } }, n);
+  await st(5); await p.keyboard.press('KeyK'); await st(9);
+  const info = await p.evaluate(() => ({ shots: G.shots.map(s => s.kind), weaponInHand: !DATA.COUNTRIES[G.sel].ranged || G.country.ranged, hp: G.aliens.map(a => Math.round(a.hp)) }));
+  await p.screenshot({ path: `${S}/shots/wave-${tag}.png`, clip: { x: 120, y: 90, width: 420, height: 170 } });
+  await st(40); const hp = await p.evaluate(() => G.aliens.map(a => Math.round(a.hp)));
+  console.log(tag, JSON.stringify(info), '맞은 뒤 hp', hp, 'errors:', errs.join(' | ') || 'none'); await b.close(); })();

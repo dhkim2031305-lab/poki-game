@@ -4,40 +4,41 @@
   // 30개국 (게임 순위 순서). gdp = 1인당 GDP USD PPP 2024, money = 시작 돈(1위=100)
   // lang = 대표 언어, cur = 통화 코드(아이템 그림 이름), sym = 통화 기호, iso = 국기 파일
   // melee = 치기 효과, ranged = 쏘기 (style-guide.md "나라별 치기·쏘기")
-  //   탄: arrow(활)·beam(미국 에너지 소총)·bullet(핀란드 소총)·sling(투석기) — 물총은 사용자가 취소 / 던지기: blade·axe·mace(회전), polearm(곧게), boomerang(돌아옴)
+  //   탄: arrow(활)·beam(미국 에너지 소총)·bullet(핀란드 소총)·sling(투석기) — 물총은 사용자가 취소 / 던지기: axe·mace(회전), polearm(곧게), boomerang(돌아옴)
+  //   wave = 검 나라: 칼은 손에 둔 채 휘둘러 초승달 은빛 검기를 날려요 (사용자 확정 2026-11-25, 팀장 전달 — 예전엔 칼을 던졌어요 'blade')
   const C = (key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged) =>
     ({ key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged });
   const COUNTRIES = [
-    C('luxembourg', 'lu', 157809, 100.0, 'fr', 'EUR', '€', 'Luxembourg', 'Luxembourg', '룩셈부르크', 'slash', 'blade'),
+    C('luxembourg', 'lu', 157809, 100.0, 'fr', 'EUR', '€', 'Luxembourg', 'Luxembourg', '룩셈부르크', 'slash', 'wave'),
     C('ireland', 'ie', 140848, 89.3, 'en', 'EUR', '€', 'Ireland', 'Ireland', '아일랜드', 'smash', 'axe'),
     C('switzerland', 'ch', 97357, 61.7, 'de', 'CHF', 'CHF', 'Schweiz', 'Switzerland', '스위스', 'thrust', 'polearm'),
     C('usa', 'us', 86147, 54.6, 'en', 'USD', '$', 'United States', 'United States', '미국', 'slash', 'beam'),
-    C('netherlands', 'nl', 84738, 53.7, 'nl', 'EUR', '€', 'Nederland', 'Netherlands', '네덜란드', 'rapid', 'blade'),
+    C('netherlands', 'nl', 84738, 53.7, 'nl', 'EUR', '€', 'Nederland', 'Netherlands', '네덜란드', 'rapid', 'wave'),
     C('denmark', 'dk', 82563, 52.3, 'da', 'DKK', 'kr', 'Danmark', 'Denmark', '덴마크', 'smash', 'axe'),
-    C('austria', 'at', 76674, 48.6, 'de', 'EUR', '€', 'Österreich', 'Austria', '오스트리아', 'slash', 'blade'),
+    C('austria', 'at', 76674, 48.6, 'de', 'EUR', '€', 'Österreich', 'Austria', '오스트리아', 'slash', 'wave'),
     C('australia', 'au', 75044, 47.6, 'en', 'AUD', '$', 'Australia', 'Australia', '호주', 'spin', 'boomerang'),
-    C('germany', 'de', 74947, 47.5, 'de', 'EUR', '€', 'Deutschland', 'Germany', '독일', 'bigslash', 'blade'),
-    C('sweden', 'se', 71381, 45.2, 'sv', 'SEK', 'kr', 'Sverige', 'Sweden', '스웨덴', 'slash', 'blade'),
+    C('germany', 'de', 74947, 47.5, 'de', 'EUR', '€', 'Deutschland', 'Germany', '독일', 'bigslash', 'wave'),
+    C('sweden', 'se', 71381, 45.2, 'sv', 'SEK', 'kr', 'Sverige', 'Sweden', '스웨덴', 'slash', 'wave'),
     C('canada', 'ca', 65483, 41.5, 'en', 'CAD', '$', 'Canada', 'Canada', '캐나다', 'smash', 'axe'),
     C('finland', 'fi', 65163, 41.3, 'fi', 'EUR', '€', 'Suomi', 'Finland', '핀란드', 'slash', 'bullet'),
-    C('france', 'fr', 62648, 39.7, 'fr', 'EUR', '€', 'France', 'France', '프랑스', 'slash', 'blade'),
-    C('italy', 'it', 62530, 39.6, 'it', 'EUR', '€', 'Italia', 'Italy', '이탈리아', 'thrust', 'blade'),
+    C('france', 'fr', 62648, 39.7, 'fr', 'EUR', '€', 'France', 'France', '프랑스', 'slash', 'wave'),
+    C('italy', 'it', 62530, 39.6, 'it', 'EUR', '€', 'Italia', 'Italy', '이탈리아', 'thrust', 'wave'),
     C('korea', 'kr', 61227, 38.8, 'ko', 'KRW', '₩', '한국', 'Korea', '한국', 'slash', 'arrow'),
-    C('spain', 'es', 58189, 36.9, 'es', 'EUR', '€', 'España', 'Spain', '스페인', 'slash', 'blade'),
+    C('spain', 'es', 58189, 36.9, 'es', 'EUR', '€', 'España', 'Spain', '스페인', 'slash', 'wave'),
     C('czechia', 'cz', 57723, 36.6, 'cs', 'CZK', 'Kč', 'Česko', 'Czechia', '체코', 'smash', 'mace'),
     C('israel', 'il', 57357, 36.3, 'he', 'ILS', '₪', 'ישראל', 'Israel', '이스라엘', 'slash', 'sling'),
     C('lithuania', 'lt', 56261, 35.7, 'lt', 'EUR', '€', 'Lietuva', 'Lithuania', '리투아니아', 'thrust', 'polearm'),
     C('newzealand', 'nz', 55692, 35.3, 'en', 'NZD', '$', 'New Zealand', 'New Zealand', '뉴질랜드', 'thrust', 'polearm'),
-    C('japan', 'jp', 54232, 34.4, 'ja', 'JPY', '¥', '日本', 'Japan', '일본', 'slash', 'blade'),
-    C('portugal', 'pt', 52761, 33.4, 'pt', 'EUR', '€', 'Portugal', 'Portugal', '포르투갈', 'rapid', 'blade'),
+    C('japan', 'jp', 54232, 34.4, 'ja', 'JPY', '¥', '日本', 'Japan', '일본', 'slash', 'wave'),
+    C('portugal', 'pt', 52761, 33.4, 'pt', 'EUR', '€', 'Portugal', 'Portugal', '포르투갈', 'rapid', 'wave'),
     C('poland', 'pl', 50162, 31.8, 'pl', 'PLN', 'zł', 'Polska', 'Poland', '폴란드', 'thrust', 'polearm'),
-    C('hungary', 'hu', 48548, 30.8, 'hu', 'HUF', 'Ft', 'Magyarország', 'Hungary', '헝가리', 'slash', 'blade'),
+    C('hungary', 'hu', 48548, 30.8, 'hu', 'HUF', 'Ft', 'Magyarország', 'Hungary', '헝가리', 'slash', 'wave'),
     C('slovakia', 'sk', 48190, 30.5, 'sk', 'EUR', '€', 'Slovensko', 'Slovakia', '슬로바키아', 'smash', 'axe'),
     C('greece', 'gr', 44497, 28.2, 'el', 'EUR', '€', 'Ελλάδα', 'Greece', '그리스', 'thrust', 'polearm'),
-    C('turkiye', 'tr', 43626, 27.6, 'tr', 'TRY', '₺', 'Türkiye', 'Türkiye', '튀르키예', 'slash', 'blade'),
-    C('chile', 'cl', 35493, 22.5, 'es', 'CLP', '$', 'Chile', 'Chile', '칠레', 'slash', 'blade'),
-    C('mexico', 'mx', 26110, 16.5, 'es', 'MXN', '$', 'México', 'Mexico', '멕시코', 'slash', 'blade'),
-    C('colombia', 'co', 23021, 14.6, 'es', 'COP', '$', 'Colombia', 'Colombia', '콜롬비아', 'slash', 'blade'),
+    C('turkiye', 'tr', 43626, 27.6, 'tr', 'TRY', '₺', 'Türkiye', 'Türkiye', '튀르키예', 'slash', 'wave'),
+    C('chile', 'cl', 35493, 22.5, 'es', 'CLP', '$', 'Chile', 'Chile', '칠레', 'slash', 'wave'),
+    C('mexico', 'mx', 26110, 16.5, 'es', 'MXN', '$', 'México', 'Mexico', '멕시코', 'slash', 'wave'),
+    C('colombia', 'co', 23021, 14.6, 'es', 'COP', '$', 'Colombia', 'Colombia', '콜롬비아', 'slash', 'wave'),
   ];
   COUNTRIES.forEach((c, i) => { c.rank = i + 1; });
 
@@ -60,8 +61,9 @@
     SKILL_SHARED: false,          // false = 1번·2번 **각각** 5번 (사용자 "1. 각각 5번") · true면 합쳐서 5번
     INVULN_PER_ROUND: 2,          // 무적은 라운드마다 2번 (사용자 "무적스킬은 라운드당 2번")
     REVIVE_INVULN: 2.0,
-    // 고유 스킬 유형별 수치 (balance.md 확정, 사용자 "추천대로"): 피해 = 40 × F
-    SKILL: { DMG: 40, DASH_DIST: 260, DASH_TIME: 0.35, AREA_R: 140, BARRAGE_TIME: 1.5, BARRAGE_N: 8, BARRAGE_DIV: 4,
+    // 고유 스킬 유형별 수치 (balance.md 확정, 사용자 "추천대로"): 피해 = 80 × F
+    SKILL: { DMG: 80,   // 40 → 80 (사용자 확정 2026-11-25, 팀장 전달) · 범위·시간 그대로
+      DASH_DIST: 260, DASH_TIME: 0.35, AREA_R: 140, BARRAGE_TIME: 1.5, BARRAGE_N: 8, BARRAGE_DIV: 4,
       GUARD_TIME: 2, ZONE_D: 180, ZONE_TIME: 3, ZONE_TICK: 0.5, ZONE_DIV: 3 },
     ITEM_TIME: 8, ITEM_LIFE: 10, ITEMS_PER_ROUND: 2,
     CONTACT_DMG: 10, BOSS_CONTACT_DMG: 20,
