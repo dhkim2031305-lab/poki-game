@@ -81,14 +81,14 @@
 | `skill.name.24` | 사브르 연격 | Saber Combo | 헝가리 스킬 이름 (연사) | 확정 |
 | `skill.name.25` | 산악 도끼 내려찍기 | Mountain Axe Slam | 슬로바키아 스킬 이름 (범위) | 확정 |
 | `skill.name.26` | 방패 밀치기 | Shield Bash | 그리스 스킬 이름 (방어) | 확정 |
-| `skill.name.27` | 곡도 회전베기 | Scimitar Spin | 튀르키예 스킬 이름 (범위) | 확정 |
+| `skill.name.27` | 곡도 칼날 고리 | Scimitar Blade Ring | 튀르키예 스킬 이름 (범위) | 확정 (2026-11-25 이름 바꿈) |
 | `skill.name.28` | 산바람 | Mountain Gale | 칠레 스킬 이름 (범위) | 확정 |
 | `skill.name.29` | 독수리 일격 | Eagle Strike | 멕시코 스킬 이름 (돌진) | 확정 |
 | `skill.name.30` | 함성 | Battle Cry | 콜롬비아 스킬 이름 (범위) | 확정 |
 | `skill2.name.01` | 사자 방패 | Lion Shield | 룩셈부르크 2번 스킬 이름 (방어) | 확정 |
 | `skill2.name.02` | 도끼 돌격 | Axe Rush | 아일랜드 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.03` | 미늘창 연속 찌르기 | Halberd Flurry | 스위스 2번 스킬 이름 (연사) | 확정 |
-| `skill2.name.04` | 에너지 장판 | Energy Field | 미국 2번 스킬 이름 (설치) | 확정 |
+| `skill2.name.04` | 에너지 파동 | Energy Pulse | 미국 2번 스킬 이름 (설치) | 확정 (2026-11-25 이름 바꿈) |
 | `skill2.name.05` | 레이피어 돌파 | Rapier Breakthrough | 네덜란드 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.06` | 도끼 회전 | Axe Spin | 덴마크 2번 스킬 이름 (범위) | 확정 |
 | `skill2.name.07` | 기병검 원베기 | Cavalry Circle Slash | 오스트리아 2번 스킬 이름 (범위) | 확정 |
@@ -104,8 +104,8 @@
 | `skill2.name.17` | 도리깨 휘두르기 | Flail Swing | 체코 2번 스킬 이름 (범위) | 확정 |
 | `skill2.name.18` | 검 돌격 | Sword Rush | 이스라엘 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.19` | 창 방진 | Spear Phalanx | 리투아니아 2번 스킬 이름 (방어) | 확정 |
-| `skill2.name.20` | 산악 질주 | Mountain Dash | 뉴질랜드 2번 스킬 이름 (돌진) | 확정 |
-| `skill2.name.21` | 회전 베기 | Spin Slash | 일본 2번 스킬 이름 (범위) | 확정 |
+| `skill2.name.20` | 고사리 씨앗 질주 | Fern Seed Dash | 뉴질랜드 2번 스킬 이름 (돌진) | 확정 (2026-11-25 이름 바꿈) |
+| `skill2.name.21` | 삼연 베기 | Triple Cut | 일본 2번 스킬 이름 (범위) | 확정 (2026-11-25 이름 바꿈) |
 | `skill2.name.22` | 물보라 찌르기 | Spray Thrust | 포르투갈 2번 스킬 이름 (연사) | 확정 |
 | `skill2.name.23` | 기병창 휩쓸기 | Lance Sweep | 폴란드 2번 스킬 이름 (범위) | 확정 |
 | `skill2.name.24` | 경기병 돌진 | Hussar Dash | 헝가리 2번 스킬 이름 (돌진) | 확정 |
@@ -113,8 +113,8 @@
 | `skill2.name.26` | 창 돌격 | Spear Rush | 그리스 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.27` | 곡도 돌파 | Scimitar Breakthrough | 튀르키예 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.28` | 산바람 소용돌이 | Mountain Wind Vortex | 칠레 2번 스킬 이름 (설치) | 확정 |
-| `skill2.name.29` | 사브르 받아치기 | Saber Counter | 멕시코 2번 스킬 이름 (방어) | 확정 |
-| `skill2.name.30` | 사브르 돌격 | Saber Rush | 콜롬비아 2번 스킬 이름 (돌진) | 확정 |
+| `skill2.name.29` | 사브르 넘기기 | Saber Toss-Over | 멕시코 2번 스킬 이름 (방어) | 확정 (2026-11-25 이름 바꿈) |
+| `skill2.name.30` | 잔상 돌격 | Afterimage Rush | 콜롬비아 2번 스킬 이름 (돌진) | 확정 (2026-11-25 이름 바꿈) |
 | `skill2.shout.01` | 룩셈부르크: Je suis peut-être fauché, mais j'ai ma fierté ! | 돈은 없어도 자존심(체면)은 있다 | 룩셈부르크 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
 | `skill2.shout.02` | 아일랜드: I may be skint, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 아일랜드 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
 | `skill2.shout.03` | 스위스: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 스위스 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
