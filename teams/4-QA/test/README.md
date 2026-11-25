@@ -15,5 +15,6 @@
 | `ios.js` | WebGL 없음 → 2D, `?debug=1`, 한 파일 빌드 바깥 요청 | `node ios.js OUT /절대경로/dist/single.html` |
 | `sdk.js` | 빌드 ZIP + 가짜 SDK: 호출 순서, 광고 중 무음·입력 막힘, SDK 막힘 | `node sdk.js OUT poki 8090 [block]` |
 | `misc.js` | 기록 저장·저장소 막힘·페이지 스크롤 | `node misc.js` |
+| `pause.js` | PC 일시정지 Esc만·클릭은 공격·포커스 잃으면 조용히 멈춤, 터치 일시정지 버튼 (GDD 0-14) | `node pause.js` |
 | `recheck.js` | 능력치 ???·무적 시간·1위 보정 다시 보기 | `node recheck.js OUT` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
