@@ -12,13 +12,13 @@ h2{font-size:16px;margin:18px 0 8px}
 canvas{display:block;border-radius:6px;max-width:100%;height:auto}
 table{border-collapse:collapse;margin:6px 0 10px}td,th{border:1px solid #3a3d4f;padding:4px 10px;text-align:left}
 </style></head><body>
-<h1>오른쪽: 큰 원 + 화살표 4개 (사용자 안)</h1>
+<h1>오른쪽: 큰 원 + 화살표 4개 (✅ 확정 · ←치기 ↑스킬1 →스킬2 ↓무적)</h1>
 <p>가운데 손잡이를 밀면 그 방향으로 쏘기가 계속 나가요. 원 테두리 밖으로 튀어나온 화살표 4개가 각각 치기 · 무적 · 스킬1 · 스킬2예요. 실제 화면 픽셀 크기(1배)로 그렸어요. 노란 점선은 오른손 엄지가 편하게 닿는 범위, 빨간 박스는 HUD 자리예요.</p>
 <table><tr><th>방향</th><th>동작</th><th>쓰는 법</th><th>이유</th></tr>
 <tr><td>← 왼쪽</td><td>치기</td><td>톡 = 가까운 적 쪽 · 끌기 = 끈 방향</td><td>가장 자주 눌러요. 엄지가 안쪽으로 펴는 자리라 제일 편해요</td></tr>
-<tr><td>↑ 위</td><td>스킬1 (5)</td><td>끌어서 조준 → 놓으면 그 자리</td><td>위에서 전장 쪽으로 끌기 쉬워요</td></tr>
-<tr><td>↓ 아래</td><td>스킬2 (5)</td><td>끌어서 조준 → 놓으면 그 자리</td><td>엄지를 굽히면 닿아요. 끌어 올려 쓰면 돼요</td></tr>
-<tr><td>→ 오른쪽</td><td>무적 (2)</td><td>톡 누르면 바로</td><td>엄지 뿌리 바로 옆이라 급할 때 펴지 않고 눌러요</td></tr></table>
+<tr><td>↑ 위</td><td>스킬1 (5)</td><td>꾹 누르면 조준 모드 → 손가락 방향으로 조준 → 놓으면 그 자리</td><td>위에서 전장 쪽으로 끌기 쉬워요</td></tr>
+<tr><td>→ 오른쪽</td><td>스킬2 (5)</td><td>꾹 누르면 조준 모드 → 손가락 방향으로 조준 → 놓으면 그 자리</td><td>엄지 뿌리 옆이라 누르기 쉬워요</td></tr>
+<tr><td>↓ 아래</td><td>무적 (2)</td><td>톡 누르면 바로</td><td>엄지를 굽히면 바로 닿아요 (사용자 결정 "무적은 아래로")</td></tr></table>
 <p><b style="color:#eef0f6">헷갈림 막기:</b> 처음 닿은 자리로만 정해요. 원 안에서 시작하면 쏘기 손잡이, 화살표에서 시작하면 그 동작이고, 끄는 도중에는 바뀌지 않아요. 화살표는 원 밖으로 튀어나온 진한 판이고 손잡이는 옅은 원이라 모양부터 달라요.</p>
 <h2>개발팀 질문에 대한 디자인 [제안]</h2>
 <table><tr><th>질문</th><th>제안</th></tr>
@@ -30,7 +30,7 @@ table{border-collapse:collapse;margin:6px 0 10px}td,th{border:1px solid #3a3d4f;
 const SCREENS=[[568,320,'idle'],[667,375,'idle'],[844,390,'idle'],[844,390,'drag']];
 // 게임 좌표(844×390 기준). 큰 원 중심 = (VW-130, VH-130)
 const C={dx:130,dy:130,R:56,knob:26,arm:66,gap:4};
-const ARROWS=[{k:'치기',ang:180,icon:'sword'},{k:'스킬1',ang:270,icon:'1',n:5},{k:'스킬2',ang:90,icon:'2',n:5},{k:'무적',ang:0,icon:'shield',n:2}];
+const ARROWS=[{k:'치기',ang:180,icon:'sword'},{k:'스킬1',ang:270,icon:'1',n:5},{k:'스킬2',ang:0,icon:'2',n:5},{k:'무적',ang:90,icon:'shield',n:2}];
 const WH='#FFFFFF',SV='#C9CED6',GD='#E8D9A8';
 function icon(x,t,cx,cy,s){x.fillStyle='#fff';x.strokeStyle='#fff';
  if(t==='shield'){const k=s*.42;x.beginPath();x.moveTo(cx,cy-k);x.lineTo(cx+k*.85,cy-k*.6);x.quadraticCurveTo(cx+k*.8,cy+k*.5,cx,cy+k);x.quadraticCurveTo(cx-k*.8,cy+k*.5,cx-k*.85,cy-k*.6);x.closePath();x.fill()}
@@ -38,7 +38,7 @@ function icon(x,t,cx,cy,s){x.fillStyle='#fff';x.strokeStyle='#fff';
  else{x.font=`bold ${Math.round(s*.5)}px system-ui`;x.textAlign='center';x.textBaseline='middle';x.fillText(t,cx,cy+1);x.textBaseline='alphabetic'}}
 SCREENS.forEach(([w,h,mode])=>{
  const U=Math.min(w/844,h/390),VW=w/U,VH=h/U;
- const d=document.createElement('div');d.className='card';d.innerHTML=`<h3>${w}×${h} (배율 ${U.toFixed(2)})${mode==='drag'?' · 스킬1을 위 화살표에서 끄는 중':''}</h3><canvas width="${w}" height="${h}" style="width:${w}px"></canvas>`;
+ const d=document.createElement('div');d.className='card';d.innerHTML=`<h3>${w}×${h} (배율 ${U.toFixed(2)})${mode==='drag'?' · 스킬1을 꾹 눌러 조준하는 중':''}</h3><canvas width="${w}" height="${h}" style="width:${w}px"></canvas>`;
  document.getElementById('R').appendChild(d);const x=d.querySelector('canvas').getContext('2d');
  x.fillStyle='#2b2a33';x.fillRect(0,0,w,h);x.strokeStyle='rgba(255,255,255,.04)';for(let i=0;i<w;i+=32){x.beginPath();x.moveTo(i,0);x.lineTo(i,h);x.stroke()}for(let j=0;j<h;j+=32){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke()}
  x.strokeStyle='rgba(255,90,90,.8)';x.setLineDash([4,3]);x.lineWidth=1;
