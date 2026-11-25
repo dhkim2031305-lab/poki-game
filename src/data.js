@@ -149,6 +149,16 @@
     israel: [{ k: 'lob', div: 4 }, { k: 'returnDash', mul: .4 }],
     lithuania: [{ k: 'long', mul: .7 }, { k: 'root' }],
     newzealand: [{ k: 'speedZone', div: 8 }, { k: 'seeds', mul: .4, seed: .2 }],
+    japan: [{ k: 'iai', mul: .5, cut: .5 }, { k: 'chain3', mul: .4 }],
+    portugal: [{ k: 'gust', mul: .6 }, { k: 'splash', div: 6, sdiv: 12 }],
+    poland: [{ k: 'accel', from: .5, to: 1 }, { k: 'pole', mul: .8 }],
+    hungary: [{ k: 'arcs8', div: 8, n: 8, time: .8 }, { k: 'invHit', mul: .8, per: .2, max: 1 }],
+    slovakia: [{ k: 'crack', mul: .9 }, { k: 'ricochet', mul: .3, n: 3 }],
+    greece: [{ k: 'shove', mul: .5, bump: .4 }, { k: 'spearEnd', mul: .6, spear: .4 }],
+    turkiye: [{ k: 'orbit', div: 5 }, { k: 'curve', mul: .9 }],
+    chile: [{ k: 'lift', mul: .5 }, { k: 'vortex', div: 4 }],
+    mexico: [{ k: 'leap', mul: 1 }, { k: 'toss', mul: .5 }],
+    colombia: [{ k: 'roar', mul: .3 }, { k: 'echo', mul: .5, clone: .4 }],
   };
   COUNTRIES.forEach(c => { const m = SKILL_MOD[c.key]; if (m) { c.skill.mod = m[0]; c.skill2.mod = m[1]; } });
 
