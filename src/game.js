@@ -165,10 +165,21 @@
   const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const held = { melee: new Set(), ranged: new Set() };
   const buf = { melee: 0, ranged: 0 };   // 누른 것을 0.1초 기억 (히트스톱 중 짧은 탭)   // 버튼을 누르고 있는 손가락들
-  const btnPos = () => ({
-    melee: { x: VW * .87, y: VH * .72, r: 48 }, ranged: { x: VW * .73, y: VH * .84, r: 34 }, skill: { x: VW * .75, y: VH * .56, r: 28 },
-    skill2: { x: VW * .89, y: VH * .43, r: 26 }, invuln: { x: VW * .61, y: VH * .7, r: 26 },   // 2번 스킬 · 무적 (사용자 결정 2026-11-25)
-  });
+  // 폰 오른쪽 (GDD 0-18, 디자인 e2f8c4d): 큰 원 중심 (VW−130, VH−130) 반지름 56 · 화살표 66×66은 원 테두리에서 4 띄워 바깥으로 (중심까지 56 + 4 + 33)
+  const STICK_R = 56, ARROW = 66;
+  const btnPos = () => {
+    const cx = VW - 130, cy = VH - 130, d = STICK_R + 4 + ARROW / 2, r = ARROW / 2;
+    return {
+      stick: { x: cx, y: cy, r: STICK_R },
+      melee: { x: cx - d, y: cy, r, a: Math.PI },
+      skill: { x: cx, y: cy - d, r, a: -Math.PI / 2 },
+      skill2: { x: cx, y: cy + d, r, a: Math.PI / 2 },
+      invuln: { x: cx + d, y: cy, r, a: 0 },
+    };
+  };
+  const rstick = { id: null, x: 0, y: 0 };   // 오른쪽 손잡이 (−1..1)
+  const mArrow = { id: null, x0: 0, y0: 0, dir: null };   // ← 치기 화살표: 누르고 있으면 계속, 끌면 끈 방향
+  const arrowHeld = () => aim != null || mArrow.id != null;   // 화살표를 누르는 동안 쏘기 멈춤
   G.btnPos = btnPos;   // 테스트용 (버튼 자리)
   const toV = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / U, y: (e.clientY - b.top) / U }; };
   let drag = null;
@@ -194,15 +205,17 @@
     if (G.scene !== 'play' || G.paused) return;
     if (e.pointerType === 'mouse') { mouseButtons(e); return; }   // 좌클릭 = 치기, 우클릭 = 쏘기
     const B = btnPos();
-    for (const k of ['melee', 'ranged', 'skill', 'skill2', 'invuln']) {
+    // 처음 닿은 자리로만 정해요 (GDD 0-18): 화살표 → 그 동작 · 큰 원 안 → 쏘기 손잡이 · 왼쪽 절반 → 이동
+    for (const k of ['melee', 'skill', 'skill2', 'invuln']) {
       const b = B[k];
-      if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (b.r * 1.25) ** 2) {
-        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0) aim = { n, id: e.pointerId, b, drag: false, cancel: false, t: null }; }   // 끌어서 자리 고르기 (GDD 0-17)
+      if (Math.abs(p.x - b.x) < b.r + 4 && Math.abs(p.y - b.y) < b.r + 4) {
+        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0 && !aim) aim = { n, id: e.pointerId, b, drag: false, cancel: false, t: null }; }   // 끌어서 자리 고르기 (GDD 0-17)
         else if (k === 'invuln') useInvuln();
-        else if (!touchPress(k, e.timeStamp / 1000)) { held[k].add(e.pointerId); input[k] = true; buf[k] = 0.1; }
+        else if (mArrow.id == null) { mArrow.id = e.pointerId; mArrow.x0 = p.x; mArrow.y0 = p.y; mArrow.dir = null; held.melee.add(e.pointerId); input.melee = true; buf.melee = 0.1; }
         return;
       }
     }
+    if (rstick.id == null && Math.hypot(p.x - B.stick.x, p.y - B.stick.y) < B.stick.r + 4) { rstick.id = e.pointerId; rstick.x = rstick.y = 0; return; }
     if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
   });
   // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
@@ -215,14 +228,6 @@
     if (now - prevDown <= M_SIM) { MC.pend = null; MC.mute |= 3; MC.last[1] = MC.last[2] = MC.down[1] = MC.down[2] = -9; useInvuln(); return; }
     if (now - MC.last[bit] <= M_DBL) { MC.last[bit] = -9; MC.mute |= bit; if (MC.pend && MC.pend.bit === bit) MC.pend = null; useSkill(bit === 2 ? 1 : 2, cursorTarget()); return; }
     MC.last[bit] = now; MC.pend = { bit, t: now };
-  }
-  // 폰 (사용자 "근거리 공격 두번: 스킬 1 원거리 공격 두번: 스킬 2" + "둘 다"): 치기 두 번 = 1번 스킬 · 쏘기 두 번 = 2번 스킬 · 두 버튼 같이 = 무적 (PC와 짝이 반대, GDD)
-  const TC = { last: { melee: -9, ranged: -9 } };
-  function touchPress(k, now) {   // true면 치기·쏘기 대신 스킬·무적을 썼어요
-    const other = k === 'melee' ? 'ranged' : 'melee';
-    if (now - TC.last[other] <= M_SIM) { TC.last.melee = TC.last.ranged = -9; useInvuln(); return true; }
-    if (now - TC.last[k] <= M_DBL) { TC.last[k] = -9; useSkill(k === 'melee' ? 1 : 2); return true; }
-    TC.last[k] = now; return false;
   }
   const cursorTarget = () => (mouse.on && !G.touchUI ? { x: mouse.gx, y: mouse.gy, pc: true } : null);   // PC: 커서 자리가 곧 조준 (GDD 0-17)
   function mouseHeld() {
@@ -254,6 +259,11 @@
       if (drag.moved) G.selScroll = clamp(drag.s0 - (p.y - drag.y0), 0, selMaxScroll());
       return;
     }
+    if (rstick.id === e.pointerId) {   // 오른쪽 손잡이: 밀면 그 방향으로 쏘기
+      const B = btnPos(); let dx = (p.x - B.stick.x) / 40, dy = (p.y - B.stick.y) / 40; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+      rstick.x = dx; rstick.y = dy; return;
+    }
+    if (mArrow.id === e.pointerId) { const dx = p.x - mArrow.x0, dy = p.y - mArrow.y0, l = Math.hypot(dx, dy); mArrow.dir = l > 14 ? { x: dx / l, y: dy / l } : null; return; }   // ← 치기를 끌면 끈 방향
     if (aim && aim.id === e.pointerId) {   // 스킬 버튼 끌기: 버튼 둘레(취소 원) 밖으로 나가면 조준, 다시 들어오면 취소 상태
       const inC = Math.hypot(p.x - aim.b.x, p.y - aim.b.y) < aim.b.r + 14;
       if (!inC) aim.drag = true;
@@ -272,6 +282,8 @@
     if (e.pointerType === 'mouse') { MC.b = e.buttons & 3; MC.mute &= MC.b; mouseHeld(); }
     if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
     if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
+    if (rstick.id === e.pointerId) { rstick.id = null; rstick.x = rstick.y = 0; }
+    if (mArrow.id === e.pointerId) { mArrow.id = null; mArrow.dir = null; }
     if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel && a.t) useSkill(a.n, a.t); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
   };
@@ -280,7 +292,7 @@
   cv.addEventListener('lostpointercapture', e => release(e, false));
   // 모든 입력 풀기 (광고 앞뒤, 창을 벗어날 때, 화면을 돌릴 때)
   function clearInput() {
-    keys.clear(); drag = null; aim = null; joy.id = null; joy.x = joy.y = 0;
+    keys.clear(); drag = null; aim = null; joy.id = null; joy.x = joy.y = 0; rstick.id = null; rstick.x = rstick.y = 0; mArrow.id = null; mArrow.dir = null;
     held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = input.mMelee = input.mRanged = false; input.mx = input.my = 0;
   }
   window.addEventListener('orientationchange', clearInput);
@@ -435,7 +447,8 @@
   const atkMul = () => (G.hero.buff ? G.hero.buff.mul : 1);
   function melee() {
     const h = G.hero, st = G.run.st;
-    const near = mouse.on ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
+    const near = mouse.on || (mArrow.id != null && mArrow.dir) ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
+    if (mArrow.id != null && mArrow.dir) h.dir = { x: mArrow.dir.x, y: mArrow.dir.y };   // 폰 ← 화살표를 끌면 끈 방향 (GDD 0-18)
     if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
     h.meleeCd = BAL.MELEE_CD; h.atkT = 0;
     // 휘두르기 3단계: 예비동작 0.07 → 스윙 0.09 → 마무리 0.12 (피해는 스윙이 시작될 때)
@@ -494,8 +507,10 @@
   }
   function ranged() {
     const h = G.hero, st = G.run.st;
-    const tgt = mouse.on ? null : aimAt(Math.PI * 75 / 180);
+    const sOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3;   // 폰 손잡이: 민 방향 그대로
+    const tgt = mouse.on || sOn ? null : aimAt(Math.PI * 75 / 180);
     let dx = h.dir.x, dy = h.dir.y;
+    if (sOn) { const l = Math.hypot(rstick.x, rstick.y); dx = rstick.x / l; dy = rstick.y / l; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
     const rk = G.country.ranged;
@@ -1225,7 +1240,8 @@
       if (!h.swing.hit && h.swing.t >= SWING.wind + SWING.strike * wp().hitK) { h.swing.hit = true; meleeStrike(); }
       if (h.swing.t >= SWING.wind + SWING.strike + SWING.follow) h.swing = null;
     }
-    const mel = input.melee || input.mMelee || keys.has('KeyJ') || buf.melee > 0, rng = input.ranged || input.mRanged || keys.has('KeyK') || buf.ranged > 0;
+    const stickOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3 && !arrowHeld();   // 손잡이를 밀면 계속 쏘기, 화살표를 누르는 동안은 멈춤 (GDD 0-18)
+    const mel = input.melee || input.mMelee || keys.has('KeyJ') || buf.melee > 0, rng = input.ranged || input.mRanged || keys.has('KeyK') || buf.ranged > 0 || stickOn;
     if (mel && h.meleeCd <= 0) { melee(); buf.melee = 0; } else if (rng && h.rangedCd <= 0) { ranged(); buf.ranged = 0; }
     if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
     updateSkills(dt);
@@ -2070,17 +2086,24 @@
     UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(0,0,0,.45)', 4);
     UI.circ(jx, jy, 62, null, 'rgba(255,255,255,.35)', 1.5);
     UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
-    const btn = (b, ic, on) => { UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3); UI.I[ic](b.x, b.y, b.r * 1.05, COL.fg); };
-    const dim = aim && aim.drag ? .35 : 1;   // 끄는 동안 다른 버튼은 35%
-    ctx.globalAlpha = dim; btn(B.melee, 'sword', input.melee); btn(B.ranged, 'arrow', input.ranged); ctx.globalAlpha = 1;
-    const h = G.hero, r = G.run, badge = (b, n) => { UI.circ(b.x + b.r * .72, b.y - b.r * .72, 10, COL.gold); UI.txt(String(n), b.x + b.r * .72, b.y - b.r * .72, 12, COL.icon, 'center', 800); };
-    const imgBtn = (b, im, on, fallback, label) => {
-      UI.circ(b.x, b.y, b.r, on ? 'rgba(217,174,79,.45)' : 'rgba(255,255,255,.22)', COL.gold, 3);
-      if (im && im.naturalWidth) ctx.drawImage(im, b.x - b.r * .82, b.y - b.r * .82, b.r * 1.64, b.r * 1.64); else UI.I[fallback](b.x, b.y, b.r * 1.05, COL.fg);
-      if (label) UI.txt(label, b.x - b.r * .7, b.y + b.r * .7, 11, COL.fg, 'center', 800);
+    // 오른쪽: 큰 원 + 손잡이 + 화살표 4개 (GDD 0-18 · style-guide "폰 오른쪽 조작")
+    const h = G.hero, r = G.run, drag = aim && aim.drag, dim = drag ? .35 : 1;
+    ctx.globalAlpha = dim; UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(255,255,255,.12)', 'rgba(255,255,255,.35)', 2);
+    UI.circ(B.stick.x + rstick.x * (STICK_R - 26), B.stick.y + rstick.y * (STICK_R - 26), 26, rstick.id != null ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.5)', null, 0); ctx.globalAlpha = 1;
+    const arrow = (b, me, gold, glow) => {   // 바깥쪽 끝이 뾰족한 진한 판
+      const R = b.r; ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a);
+      ctx.beginPath(); ctx.moveTo(-R, -R); ctx.lineTo(R * .45, -R); ctx.lineTo(R, 0); ctx.lineTo(R * .45, R); ctx.lineTo(-R, R); ctx.closePath();
+      ctx.fillStyle = glow ? 'rgba(201,206,214,.55)' : 'rgba(20,22,34,.82)'; ctx.fill();
+      ctx.strokeStyle = me ? '#E8D9A8' : gold ? '#E8D9A8' : 'rgba(255,255,255,.7)'; ctx.lineWidth = me ? 3 : 2; ctx.stroke(); ctx.restore();
     };
-    for (const [n, b] of [[1, B.skill], [2, B.skill2]]) { const me = aim && aim.drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (aim && aim.drag && !me ? dim : 1); imgBtn(b, UI.img['skill/icon-' + skillOf(G.country, n).type], false, 'bolt', String(n)); if (me) UI.circ(b.x, b.y, b.r, null, '#E8D9A8', 3); ctx.globalAlpha = 1; }
-    ctx.globalAlpha = (r.invuln > 0 ? 1 : .4) * dim; imgBtn(B.invuln, null, h.skillT > 0, 'shield'); ctx.globalAlpha = 1;
+    const badge = (b, n) => { const bx = b.x + b.r * .62, by = b.y - b.r * .62; UI.circ(bx, by, 10, '#D9AE4F'); UI.txt(String(n), bx, by, 12, COL.icon, 'center', 800); };
+    const meDown = mArrow.id != null;
+    ctx.globalAlpha = dim; arrow(B.melee, meDown, true, false); UI.I.sword(B.melee.x, B.melee.y, B.melee.r * 1.1, COL.fg); ctx.globalAlpha = 1;
+    for (const [n, b] of [[1, B.skill], [2, B.skill2]]) {
+      const me = drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (drag && !me ? dim : 1);
+      arrow(b, me, false, false); UI.txt(String(n), b.x, b.y + 1, 26, COL.fg, 'center', 900); badge(b, sLeft(n)); ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 1.5초 동안 은빛
     if (aim && aim.drag) {   // 취소 원: 버튼 둘레 (반지름 + 14) · 들어오면 밝아져요
       const b = aim.b, cr = b.r + 14, on = aim.cancel;
       ctx.save(); ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : 'rgba(15,17,22,.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, cr, 0, Math.PI * 2); ctx.fill();

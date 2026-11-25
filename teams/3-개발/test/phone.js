@@ -14,7 +14,7 @@ const { chromium, devices } = require('playwright');
   await p.evaluate(() => { G.sel = 14; }); await p.waitForTimeout(100); xy = await hit('confirm'); if (xy) await p.touchscreen.tap(...xy);
   await p.waitForFunction(() => G.scene === 'play', null, { timeout: 15000 }); await p.waitForTimeout(500);
   await p.evaluate(() => { G.run.spawnT = 99; G.msgs = []; });
-  const B = await p.evaluate(() => { const U = Math.min(innerWidth / 844, innerHeight / 390), VW = innerWidth / U, VH = innerHeight / U; return { U, skill: [VW * .75, VH * .56], skill2: [VW * .89, VH * .43], invuln: [VW * .61, VH * .7], melee: [VW * .87, VH * .72] }; });
+  const B = await p.evaluate(() => { const U = document.getElementById('game').getBoundingClientRect().width / UI.VW, P = G.btnPos(), o = { U }; for (const k of ['melee', 'skill', 'skill2', 'invuln']) o[k] = [P[k].x, P[k].y]; return o; });   // 폰 오른쪽 큰 원 + 화살표 4개 (GDD 0-18) 자리
   const tapB = k => p.touchscreen.tap(B[k][0] * B.U, B[k][1] * B.U);
   const before = await p.evaluate(() => ({ x: G.hero.x }));
   // 조이스틱: 왼쪽 아래 끌기 (CDP 터치 이벤트)
