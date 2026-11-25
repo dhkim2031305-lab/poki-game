@@ -56,8 +56,8 @@
   const seeded = s => () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 
   // 돈 → 능력치 (balance.md)
-  const stats = m => {
-    const M = Math.max(0, m), F = 0.4 + 0.6 * M / 100, S = 0.7 + 0.3 * M / 100;
+  const stats = (m, c) => {
+    const M = Math.max(0, m), top = c && c.rank === 1 ? BAL.TOP1 : null, F = (0.4 + 0.6 * M / 100) * (top ? top.F : 1), S = (0.7 + 0.3 * M / 100) * (top ? top.S : 1);
     return { hp: Math.round(BAL.BASE.hp * F), melee: BAL.BASE.melee * F, ranged: BAL.BASE.ranged * F, speed: BAL.BASE.speed * S, F, S };
   };
 
@@ -107,7 +107,7 @@
     startRound(true);
   }
   function startRound(first) {
-    const r = G.run, c = G.country, wave = BAL.WAVES[r.round - 1], st = stats(r.money);
+    const r = G.run, c = G.country, wave = BAL.WAVES[r.round - 1], st = stats(r.money, c);
     r.wave = wave; r.st = st; r.roundT = 0; r.spawned = 0; r.grunts = 0; r.jumpers = 0; r.spawnT = 0.8; r.killsRound = 0; r.bossSpawned = false;
     r.itemIdx = 0; r.invuln = BAL.INVULN_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
     G.hero = {
