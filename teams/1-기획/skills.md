@@ -86,37 +86,49 @@
 - 쓰는 것: 누구나 아는 응원·기합·일상 표현, 짧은 관용구예요.
 - 뺀 것: 실존 인물의 말, 영화·노래 가사, 전쟁 구호, 정치 슬로건, 종교 문구, 다른 나라를 비꼬는 말, 욕설이에요.
 - 같은 언어를 쓰는 나라끼리는 표현이 겹치지 않게 골랐어요. 영어 5개국, 스페인어 4개국, 독일어 3개국이 모두 달라요.
-- **출처는 아직 확인하지 않았어요.** 모두 "확인 필요"예요. 원어민 사전이나 웹 검색으로 확인한 뒤 확정해요.
+- **확인 (2026-11-25)**: 서브에이전트로 웹을 검색해 확인했어요. 15개는 직접 검색했고, 15개는 아주 흔한 기본 표현이라 사전 주소만 적었어요("검색 안 함"). 결과는 OK 22개, 주의 6개, 교체 권장 2개예요.
 
-| 순위 | 나라 | 외침 (그 나라 말) | 한국어 뜻 | 왜 유명한가 | 출처 |
+| 순위 | 나라 | 외침 (그 나라 말) | 한국어 뜻 | 왜 유명한가 | 확인 (2026-11-25) | 근거 | 출처 |
+|---|---|---|---|---|---|---|---|
+| 1 | 룩셈부르크 | Hopp Lëtzebuerg! | 힘내라 룩셈부르크! | 스포츠 응원에서 흔히 외치는 말이에요 | **OK** | "hopp"는 재촉하는 감탄사예요. 같은 제목 노래는 못 찾았어요 | https://shop.duden.de/ |
+| 2 | 아일랜드 | Come on! | 가자! / 힘내! | 아일랜드 영어에서 응원할 때 가장 흔히 써요 | **주의** | 쓰이지만 미국 "Let's go!"와 느낌이 겹쳐 아일랜드다움이 약해요 | https://www.allaboutirish.ie/blog/Getting-on-with-it |
+| 3 | 스위스 | Hopp Schwiiz! | 힘내라 스위스! | 스위스 경기 응원의 대표 구호예요 | **주의(낮음)** | 응원 구호예요. 같은 제목 노래가 있으니 노래 가사·음원은 쓰지 않아요 | https://www.swissinfo.ch/eng/culture/forza-forza-hopp-schwiiz-allez-allez-the-official-football-hits-of-the-swiss-national-team/5186450 |
+| 4 | 미국 | Let's go! | 가자! | 미국 응원에서 가장 흔한 말이에요 | **OK** | 가장 흔한 응원 표현 (검색 안 함) | https://en.wiktionary.org/wiki/let%27s_go |
+| 5 | 네덜란드 | Zet 'm op! | 해내자! / 밀어붙여! | "힘내"라는 뜻의 일상 표현이에요 (응원가 "Hup Holland Hup"은 노래 제목이라 뺐어요) | **OK** | "힘내/해내" (검색 안 함) | https://en.wiktionary.org/wiki/zet_%27m_op |
+| 6 | 덴마크 | Kom så! | 자, 가자! | 덴마크 사람들이 기합 넣을 때 흔히 써요 | **OK** | 응원에 쓰는 "자, 가자" (검색 안 함) | https://en.wiktionary.org/wiki/kom_s%C3%A5 |
+| 7 | 오스트리아 | Auf geht's! | 자, 시작하자! | 오스트리아·남부 독일어권에서 흔히 써요 | **OK** | "자, 가자" (검색 안 함) | https://en.wiktionary.org/wiki/auf_geht%27s |
+| 8 | 호주 | She'll be right! | 괜찮을 거야! | "다 잘될 거야"라는 호주 특유의 말이에요 | **교체** | 응원이 아니라 안심하는 말이고, 안전 분야에서 "안일함"의 대명사로 비판받아요 | https://en.wikipedia.org/wiki/She%27ll_be_right |
+| 9 | 독일 | Los geht's! | 가자! | 독일어에서 가장 흔한 "시작하자" 표현이에요 | **OK** | "가자" (검색 안 함) | https://en.wiktionary.org/wiki/los_geht%27s |
+| 10 | 스웨덴 | Heja! | 힘내! | 스웨덴 응원 구호예요 | **OK** | 응원 감탄사로 사전에 있어요 | https://en.wiktionary.org/wiki/heja |
+| 11 | 캐나다 | Giv'er! | 전력으로 해! | "있는 힘껏 하라"는 캐나다 속어예요 | **OK** | 캐나다 영어 사전에 "전력을 다해"로 있어요 | https://dchp.arts.ubc.ca/entries/give'r |
+| 12 | 핀란드 | Sisu! | 끈기! | 포기하지 않는 핀란드식 정신을 뜻하는 유명한 말이에요 | **교체** | 명사(근성)라 외치는 말이 아니고, 겨울전쟁 때문에 전쟁·민족주의 색이 있어요 | https://en.wikipedia.org/wiki/Sisu |
+| 13 | 프랑스 | Allez ! | 가자! / 힘내! | 프랑스 응원에서 가장 흔한 말이에요 | **OK** | 가장 흔한 응원 (검색 안 함) | https://en.wiktionary.org/wiki/allez |
+| 14 | 이탈리아 | Andiamo! | 가자! | 일상에서 흔한 "가자"예요 ("Forza Italia"는 정당 이름이라 뺐어요) | **OK** | "가자" (검색 안 함) | https://en.wiktionary.org/wiki/andiamo |
+| 15 | 한국 | 파이팅! | 힘내! | 한국에서 응원할 때 가장 흔히 써요 | **OK** | 일상 응원어 (검색 안 함) | https://en.wiktionary.org/wiki/%ED%8C%8C%EC%9D%B4%ED%8C%85 |
+| 16 | 스페인 | ¡Vamos! | 가자! | 스페인어권 응원에서 가장 흔한 말이에요 | **OK** | "가자" (검색 안 함) | https://en.wiktionary.org/wiki/vamos |
+| 17 | 체코 | Do toho! | 해 보자! | 체코에서 "덤벼 보자"는 뜻으로 흔히 써요 | **OK** | "해 봐" (검색 안 함) | https://en.wiktionary.org/wiki/do_toho |
+| 18 | 이스라엘 | !יאללה (Yalla!) | 어서! / 가자! | 이스라엘 일상에서 아주 흔히 쓰는 말이에요 | **OK** | 히브리어 일상어로 가장 흔한 "어서/가자"예요 | https://forward.com/israel/351432/seven-phrases-the-arabic-that-israeli-jews-use-every-day/ |
+| 19 | 리투아니아 | Pirmyn! | 앞으로! | "앞으로 나아가자"는 뜻의 기합이에요 | **OK** | "앞으로" 부사예요. 정당·단체 구호 근거는 없어요 | https://babelfree.com/dictionary/lt/meaning-of-pirmyn |
+| 20 | 뉴질랜드 | Kia kaha! | 굳세어라! | 마오리어 표현이지만 뉴질랜드 영어에서도 널리 써요 | **주의** | 일상 "힘내"지만, 2차대전 마오리 대대 군가 후렴이고 육군 연대 표어예요. 마오리어 사용은 문화 도용 논란 가능성이 있어요 | https://www.tpk.govt.nz/en/mo-te-puni-kokiri/kokiri-magazine/kokiri-2-2007/songs-of-the-maori-battalion |
+| 21 | 일본 | 頑張れ！ (Ganbare!) | 힘내! | 일본에서 응원할 때 가장 흔히 써요 | **OK** | 기본 응원어 (검색 안 함) | https://en.wiktionary.org/wiki/%E9%A0%91%E5%BC%B5%E3%82%8C |
+| 22 | 포르투갈 | Vamos lá! | 자, 가자! | 포르투갈에서 흔한 "가자" 표현이에요 | **OK** | "자, 가자" (검색 안 함) | https://en.wiktionary.org/wiki/vamos_l%C3%A1 |
+| 23 | 폴란드 | Dajesz! | 할 수 있어! | "해낼 수 있어"라는 뜻의 폴란드 젊은 층 말이에요 | **OK** | 구어 응원 "할 수 있어"예요. 사전 근거는 약해요 | https://infinitelexicon.pages.dev/dajesz |
+| 24 | 헝가리 | Hajrá! | 힘내! | 헝가리 응원 구호예요 | **OK** | 단독으로 써요. "Hajrá Magyarország"는 정당 연설 구호라 붙이지 않아요 | https://index.hu/belfold/fidesz0402pp/ |
+| 25 | 슬로바키아 | Poďme! | 가자! | 슬로바키아어의 흔한 "가자"예요 (체코 "Do toho!"와 겹치지 않게 골랐어요) | **OK** | "가자"예요. 같은 이름 정당은 못 찾았어요 | https://en.wiktionary.org/wiki/po%C4%8Fme |
+| 26 | 그리스 | Πάμε! (Páme!) | 가자! | 그리스어에서 가장 흔한 "가자"예요 | **주의(낮음)** | 일상 "가자"예요. 대문자 ΠΑΜΕ는 노동단체 이름이라 소문자로만 써요 | https://en.wikipedia.org/wiki/All-Workers_Militant_Front |
+| 27 | 튀르키예 | Haydi! | 어서! / 가자! | 튀르키예어의 흔한 기합이에요 | **OK** | "come on" 감탄사예요. 구어로는 "Hadi!"가 더 흔해요 | https://en.wiktionary.org/wiki/hayde |
+| 28 | 칠레 | ¡Vamos que se puede! | 가자, 할 수 있어! | 칠레 응원에서 흔히 외쳐요 | **주의** | "Se puede"는 대선 구호였고, 우파 연합 이름이 "Chile Vamos"예요 | https://en.wikipedia.org/wiki/Chile_Vamos |
+| 29 | 멕시코 | ¡Ándale! | 어서! / 서둘러! | 멕시코 스페인어의 대표 표현이에요 | **주의** | 일상어지만, 영어권에서는 고정관념 논란이 있는 만화 캐릭터 대사로 유명해요 | https://en.wikipedia.org/wiki/Speedy_Gonzales |
+| 30 | 콜롬비아 | ¡Hágale! | 해 버려! | "해 봐, 밀어붙여"라는 콜롬비아 특유의 말이에요 | **OK** | 콜롬비아 대표 격려 표현이에요. 연구 논문도 있어요 | https://www.redalyc.org/journal/4765/476556824017/476556824017.pdf |
+
+### 바꾸기 후보 [제안 · 사용자 확인 대기]
+| 순위 | 나라 | 지금 | 바꾸면 | 이유 | 출처 |
 |---|---|---|---|---|---|
-| 1 | 룩셈부르크 | Hopp Lëtzebuerg! | 힘내라 룩셈부르크! | 스포츠 응원에서 흔히 외치는 말이에요 | 확인 필요 |
-| 2 | 아일랜드 | Come on! | 가자! / 힘내! | 아일랜드 영어에서 응원할 때 가장 흔히 써요 | 확인 필요 |
-| 3 | 스위스 | Hopp Schwiiz! | 힘내라 스위스! | 스위스 경기 응원의 대표 구호예요 | 확인 필요 |
-| 4 | 미국 | Let's go! | 가자! | 미국 응원에서 가장 흔한 말이에요 | 확인 필요 |
-| 5 | 네덜란드 | Zet 'm op! | 해내자! / 밀어붙여! | "힘내"라는 뜻의 일상 표현이에요 (응원가 "Hup Holland Hup"은 노래 제목이라 뺐어요) | 확인 필요 |
-| 6 | 덴마크 | Kom så! | 자, 가자! | 덴마크 사람들이 기합 넣을 때 흔히 써요 | 확인 필요 |
-| 7 | 오스트리아 | Auf geht's! | 자, 시작하자! | 오스트리아·남부 독일어권에서 흔히 써요 | 확인 필요 |
-| 8 | 호주 | She'll be right! | 괜찮을 거야! | "다 잘될 거야"라는 호주 특유의 말이에요 | 확인 필요 |
-| 9 | 독일 | Los geht's! | 가자! | 독일어에서 가장 흔한 "시작하자" 표현이에요 | 확인 필요 |
-| 10 | 스웨덴 | Heja! | 힘내! | 스웨덴 응원 구호예요 | 확인 필요 |
-| 11 | 캐나다 | Giv'er! | 전력으로 해! | "있는 힘껏 하라"는 캐나다 속어예요 | 확인 필요 |
-| 12 | 핀란드 | Sisu! | 끈기! | 포기하지 않는 핀란드식 정신을 뜻하는 유명한 말이에요 | 확인 필요 |
-| 13 | 프랑스 | Allez ! | 가자! / 힘내! | 프랑스 응원에서 가장 흔한 말이에요 | 확인 필요 |
-| 14 | 이탈리아 | Andiamo! | 가자! | 일상에서 흔한 "가자"예요 ("Forza Italia"는 정당 이름이라 뺐어요) | 확인 필요 |
-| 15 | 한국 | 파이팅! | 힘내! | 한국에서 응원할 때 가장 흔히 써요 | 확인 필요 |
-| 16 | 스페인 | ¡Vamos! | 가자! | 스페인어권 응원에서 가장 흔한 말이에요 | 확인 필요 |
-| 17 | 체코 | Do toho! | 해 보자! | 체코에서 "덤벼 보자"는 뜻으로 흔히 써요 | 확인 필요 |
-| 18 | 이스라엘 | !יאללה (Yalla!) | 어서! / 가자! | 이스라엘 일상에서 아주 흔히 쓰는 말이에요 | 확인 필요 |
-| 19 | 리투아니아 | Pirmyn! | 앞으로! | "앞으로 나아가자"는 뜻의 기합이에요 | 확인 필요 |
-| 20 | 뉴질랜드 | Kia kaha! | 굳세어라! | 마오리어 표현이지만 뉴질랜드 영어에서도 널리 써요 | 확인 필요 |
-| 21 | 일본 | 頑張れ！ (Ganbare!) | 힘내! | 일본에서 응원할 때 가장 흔히 써요 | 확인 필요 |
-| 22 | 포르투갈 | Vamos lá! | 자, 가자! | 포르투갈에서 흔한 "가자" 표현이에요 | 확인 필요 |
-| 23 | 폴란드 | Dajesz! | 할 수 있어! | "해낼 수 있어"라는 뜻의 폴란드 젊은 층 말이에요 | 확인 필요 |
-| 24 | 헝가리 | Hajrá! | 힘내! | 헝가리 응원 구호예요 | 확인 필요 |
-| 25 | 슬로바키아 | Poďme! | 가자! | 슬로바키아어의 흔한 "가자"예요 (체코 "Do toho!"와 겹치지 않게 골랐어요) | 확인 필요 |
-| 26 | 그리스 | Πάμε! (Páme!) | 가자! | 그리스어에서 가장 흔한 "가자"예요 | 확인 필요 |
-| 27 | 튀르키예 | Haydi! | 어서! / 가자! | 튀르키예어의 흔한 기합이에요 | 확인 필요 |
-| 28 | 칠레 | ¡Vamos que se puede! | 가자, 할 수 있어! | 칠레 응원에서 흔히 외쳐요 | 확인 필요 |
-| 29 | 멕시코 | ¡Ándale! | 어서! / 서둘러! | 멕시코 스페인어의 대표 표현이에요 | 확인 필요 |
-| 30 | 콜롬비아 | ¡Hágale! | 해 버려! | "해 봐, 밀어붙여"라는 콜롬비아 특유의 말이에요 | 확인 필요 |
+| 8 | 호주 | She'll be right! | **Give it a burl!** ("한번 해 봐!") | 응원이 아니라 안심하는 말이에요. 바꿀 말은 호주 속어 사전에 있어요 | https://www.vu.edu.au/about-vu/news-events/study-space/australian-slang-dictionary |
+| 12 | 핀란드 | Sisu! | **Tsemppiä!** ("힘내!") | 외치는 응원이고 전쟁 연상이 없어요 | https://sublearn.com/learn/fi/phrases/tsemppi%C3%A4 |
+| 29 | 멕시코 | ¡Ándale! | **¡Échale ganas!** ("최선을 다해!") | 고정관념 캐릭터 연상이 없어요 | https://www.spanishdict.com/translate/%C3%A9chale%20ganas |
+| 28 | 칠레 | ¡Vamos que se puede! | **¡Dale, po!** ("자, 가자!") | 정치 구호 연상을 피해요. 검색은 안 해서 칠레 사람 확인이 필요해요 | — |
+| 2 | 아일랜드 | Come on! | **G'wan!** ("가 봐! 힘내!") | 아일랜드 영어의 일상 격려예요. 시트콤 유행어처럼 반복하지 않고 한 번만 써요 | https://www.allaboutirish.ie/blog/Getting-on-with-it |
+| 20 | 뉴질랜드 | Kia kaha! | 유지 또는 **Good on ya!** | 유지하면 표기를 정확히 하고 희화화하지 않아요. "Good on ya!"는 "잘했어"라는 뜻이라 응원 느낌은 약해요 | https://www.ajpark.com/insights/its-not-trendy-if-its-appropriating/ |
+
+- 쓸 때 규칙: 헝가리는 "Hajrá!"만 써요(나라 이름을 붙이지 않아요). 그리스는 대문자 표기를 쓰지 않아요. 스위스 "Hopp Schwiiz"는 노래 음원이나 가사를 쓰지 않아요.
