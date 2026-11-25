@@ -145,7 +145,7 @@ const CUR='₩';
 const NAMES=['luxembourg','ireland','switzerland','usa','netherlands','denmark','austria','australia','germany','sweden','canada','finland','france','italy','korea','spain','czechia','israel','lithuania','newzealand','japan','portugal','poland','hungary','slovakia','greece','turkiye','chile','mexico','colombia'];
 const IMG={};let loaded=0;function img(n){return IMG[n];}
 const CURS='GBP CHF EUR USD CAD AUD NZD ILS PLN CNY DKK SEK MXN CZK TRY JPY HUF KRW CLP COP'.split(' ');
-const EXTRA=['korea-lg','sprite-korea','alien-grunt','alien-shooter','alien-boss','room',...CURS.map(c=>'cur-'+c)];
+const EXTRA=['title-bg','korea-lg','sprite-korea','alien-grunt','alien-shooter','alien-boss','room',...CURS.map(c=>'cur-'+c)];
 NAMES.forEach(n=>{const im=new Image();im.onload=()=>{IMG['sheet-'+n]=im;};im.src='img/sheet/'+n+'.webp';});
 [...NAMES,...EXTRA].forEach(n=>{const im=new Image();im.onload=()=>{IMG[n]=im;if(++loaded===NAMES.length+EXTRA.length)drawSelect();};im.src='img/'+n+'.webp';});
 function sprite(x,n,cx,footY,h,mo={}){const im=IMG[n];if(!im)return;const w=im.width*h/im.height;
@@ -306,11 +306,11 @@ function moneyPile(x,cx,base,wid,hgt,seed,t){
   if(!reduce)for(let i=0;i<6;i++){const ph=(t*.8+rnd(seed+i*11))%1,u=rnd(seed+i*13)*2-1;const px=cx+u*wid/2*.8,py=base-hgt*Math.pow(1-Math.abs(u),1.6)*(.6+rnd(i)*.4);x.globalAlpha=Math.sin(ph*Math.PI);star(x,px,py,4,7,1.5,'#FFF6D6');x.globalAlpha=1;}
 }
 function drawTitle(t){const x=ctxOf('c-title');x.fillStyle=C.bg;x.fillRect(0,0,W,H);
-  if(IMG.room){x.globalAlpha=.55;x.drawImage(IMG.room,0,0,W,H);x.globalAlpha=1;}x.fillStyle='rgba(10,8,6,.45)';x.fillRect(0,0,W,H);
+  if(IMG['title-bg']){const ih=W*720/1280;x.drawImage(IMG['title-bg'],0,H-ih,W,ih);}else if(IMG.room){x.globalAlpha=.55;x.drawImage(IMG.room,0,0,W,H);x.globalAlpha=1;}
   const gl=x.createRadialGradient(W/2,H*1.05,40,W/2,H*1.05,520);gl.addColorStop(0,'rgba(255,190,80,.45)');gl.addColorStop(1,'rgba(255,190,80,0)');x.fillStyle=gl;x.fillRect(0,0,W,H);
   // 떨어지는 동전
   if(!reduce)for(let i=0;i<22;i++){const sp=40+rnd(i)*50,y=((t*sp+rnd(i*3)*H*1.4)%(H*1.4))-40,px=rnd(i*9)*W;coin(x,px,y,4+rnd(i*2)*4,.25+.2*Math.abs(Math.sin(t*4+i)));}
-  moneyPile(x,W*.17,H*1.02,380,230,1,t);moneyPile(x,W*.83,H*1.02,380,230,500,t);moneyPile(x,W/2,H*1.1,520,70,900,t);
+  if(!IMG['title-bg']){moneyPile(x,W*.17,H*1.02,380,230,1,t);moneyPile(x,W*.83,H*1.02,380,230,500,t);}
   // 떠 있는 화폐 CI (달러·유로·파운드·엔·원·위안)
   [['USD',.1,.2,0],['EUR',.27,.12,1.3],['GBP',.36,.42,2.1],['JPY',.64,.42,.7],['KRW',.73,.12,1.9],['CNY',.9,.2,2.6]].forEach(([c,u,v,ph])=>{const im=IMG['cur-'+c];if(!im)return;
     const bob=reduce?0:Math.sin(t*1.6+ph)*6,rot=reduce?0:Math.sin(t*1.1+ph)*.08,w=64,h=w*im.height/im.width,cx=W*u,cy=H*v+bob;
@@ -319,7 +319,7 @@ function drawTitle(t){const x=ctxOf('c-title');x.fillStyle=C.bg;x.fillRect(0,0,W
     if(!reduce){const q=(t*.7+ph)%1;x.globalAlpha=Math.sin(q*Math.PI);star(x,cx+w*.35,cy-h*.4,4,6,1.5,'#FFF6D6');x.globalAlpha=1;}});
   const sh=x.createRadialGradient(W/2,H*.26,20,W/2,H*.26,300);sh.addColorStop(0,'rgba(10,8,6,.55)');sh.addColorStop(1,'rgba(10,8,6,0)');x.fillStyle=sh;x.fillRect(0,0,W,H*.6);
   alienA(x,(120+t*30)%(W+80)-40,96,16,t);alienB(x,W-((200+t*45)%(W+80))+40,300,12,Math.PI);alienA(x,(560+t*22)%(W+80)-40,330,12,-t);
-  [['germany',.1,.93],['usa',.24,.86],['japan',.76,.86],['france',.9,.93]].forEach(([n,u,f],i)=>sprite(x,n,W*u,H*f,150,M.idle(t,i*1.7)));
+  [['germany',.09,.86],['usa',.23,.8],['japan',.77,.8],['france',.91,.86]].forEach(([n,u,f],i)=>sprite(x,n,W*u,H*f,150,M.idle(t,i*1.7)));
   x.save();x.shadowColor='rgba(0,0,0,.9)';x.shadowBlur=14;txt(x,'A World Where Only',W/2,H*.2,30,C.fg,'center',800);txt(x,'the Strong Survive',W/2,H*.2+36,30,C.fg,'center',800);x.restore();
   txt(x,'나라를 고르면 그 나라 말로 바뀌어요 (GDD 0-3)',W/2,H*.2+64,11,C.muted,'center',500);
   btnMain(x,W/2,H*.7,44,'play');

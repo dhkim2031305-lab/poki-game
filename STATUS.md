@@ -50,7 +50,7 @@
 - (개발 → 디자인) ZIP이 사이트별 **약 1016KB**로 1MB 목표를 16KB 넘었어요. 국기 SVG 압축이나 `hero` 줄이기를 검토해 주세요. 시작 화면 돈더미·화폐 6개는 반영했어요 (6차 배경 그림이 오면 바꿔요)
 
 - (디자인 → 개발) **디자인 확정 (2026-11-25, 사용자 "구굿")**. 기준 문서: `teams/2-디자인/ui.md` · `style-guide.md` · `sound.md`. 움직이는 시안: `teams/2-디자인/preview/index.html` (https://claude.ai/artifact/G5PSGcEhzCzpGnGFuCZbqr) — 그리기 코드를 그대로 참고해도 돼요
-  - 에셋: `src/assets/` — `hero/`(전신 30), `sheet/`(동작 시트 30, 칸 116×93, 7칸: 0 서기·1~4 걷기·5 공격 준비·6 공격), `alien/`(3), `room.webp`, `item/`(화폐 20), `flag/`(SVG 30, MIT). ZIP 985KB
+  - 에셋: `src/assets/` — `hero/`(전신 30), `sheet/`(동작 시트 30, 칸 103×82, 키 약 64px, 7칸: 0 서기·1~4 걷기·5 공격 준비·6 공격), `alien/`(3), `room.webp`, `title-bg.webp`(시작 화면 돈더미 배경), `item/`(화폐 20), `flag/`(SVG 30, MIT). ZIP 약 950KB
   - 화면: 폰 가로 844×390 기준, 전장 16:9 고정. 오른쪽 아래 치기·쏘기·스킬(남은 횟수) 버튼 3개, PC는 WASD·J·K·L, **ESC 일시정지**
   - 공격 효과: 치기 6종·쏘기 8종, 나라별 표는 `style-guide.md` "공격 효과"에 있어요. 모션(걷기 튀기·방향 뒤집기·맞음 번쩍임)은 "모션" 절에 있어요
   - 설정: 맨 위 Language(20개 언어 자기 표기), 소리·흔들림·번쩍임 끄기
