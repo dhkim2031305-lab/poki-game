@@ -57,7 +57,7 @@
     BASE: { hp: 100, melee: 15, ranged: 8, speed: 220 },
     TOP1: { F: 2, S: 1.2 },   // 1위만 압도적으로: 체력·공격·스킬 ×2, 이동 ×1.2, 돈이 줄어도 끝까지 (사용자 "1위는 압도적으로 쌔게" → "2배", 2026-11-25)
     MELEE_CD: 0.4, RANGED_CD: 0.3,
-    SKILL_TIME: 0.5,              // 무적 0.5초
+    SKILL_TIME: 1.5,              // 무적 1.5초 (사용자 "무적 1.5초로 바꿔", GDD 0-15)
     SKILL_PER_RUN: 5,             // 고유 스킬 한 판 5번 (사용자 "스킬은 모든 라운드에서 총 5번")
     SKILL_SHARED: false,          // false = 1번·2번 **각각** 5번 (사용자 "1. 각각 5번") · true면 합쳐서 5번
     INVULN_PER_ROUND: 2,          // 무적은 라운드마다 2번 (사용자 "무적스킬은 라운드당 2번")
@@ -83,18 +83,18 @@
   // type: dash 돌진 · area 범위 · barrage 연사 · guard 방어 · zone 설치 / shout: 그 나라에서 유명한 말 (번역 안 함)
   const SK = (type, shout, mod = {}) => ({ type, shout, mod });   // mod = 나라별 특징 (기획 승인 뒤 채워요)
   const SKILLS = [
-    SK('dash', 'Hopp Lëtzebuerg!'), SK('area', "G'wan!"), SK('guard', 'Hopp Schwiiz!'), SK('barrage', "Let's go!"), SK('barrage', "Zet 'm op!"),
-    SK('guard', 'Kom så!'), SK('dash', "Auf geht's!"), SK('barrage', 'Give it a burl!'), SK('area', "Los geht's!"), SK('dash', 'Heja!'),
-    SK('barrage', "Giv'er!"), SK('dash', 'Tsemppiä!'), SK('area', 'Allez !'), SK('guard', 'Andiamo!'), SK('zone', '파이팅!'),
+    SK('dash', 'Hopp Lëtzebuerg!'), SK('area', "G'wan!"), SK('zone', 'Hopp Schwiiz!'), SK('barrage', "Let's go!"), SK('barrage', "Zet 'm op!"),
+    SK('dash', 'Kom så!'), SK('dash', "Auf geht's!"), SK('barrage', 'Give it a burl!'), SK('area', "Los geht's!"), SK('dash', 'Heja!'),
+    SK('barrage', "Giv'er!"), SK('dash', 'Tsemppiä!'), SK('area', 'Allez !'), SK('zone', 'Andiamo!'), SK('zone', '파이팅!'),
     SK('dash', '¡Vamos!'), SK('zone', 'Do toho!'), SK('barrage', 'יאללה!'), SK('dash', 'Pirmyn!'), SK('zone', 'Good on ya!'),
     SK('dash', '頑張れ！'), SK('area', 'Vamos lá!'), SK('dash', 'Dajesz!'), SK('barrage', 'Hajrá!'), SK('area', 'Poďme!'),
-    SK('guard', 'Πάμε!'), SK('area', 'Haydi!'), SK('area', '¡Dale, po!'), SK('dash', '¡Échale ganas!'), SK('area', '¡Hágale!'),
+    SK('area', 'Πάμε!'), SK('area', 'Haydi!'), SK('area', '¡Dale, po!'), SK('dash', '¡Échale ganas!'), SK('area', '¡Hágale!'),
   ];
   COUNTRIES.forEach((c, i) => { c.skill = SKILLS[i]; });
 
   // 두 번째 고유 스킬 — teams/1-기획/skills2.md (이름·유형 확정 2026-11-25) · 외침 = texts.md skill2.shout ("내가 돈이 없지 가오가 없나"를 그 나라 말로)
   const SKILLS2 = [
-    SK('guard', "Je suis peut-être fauché, mais j'ai ma fierté !"),
+    SK('area', "Je suis peut-être fauché, mais j'ai ma fierté !"),
     SK('dash', "I may be broke, but I've got my pride!"),
     SK('barrage', 'Ich bin vielleicht pleite, aber ich hab meinen Stolz!'),
     SK('zone', "I may be broke, but I've got my pride!"),
@@ -103,8 +103,8 @@
     SK('area', 'Ich bin vielleicht pleite, aber ich hab meinen Stolz!'),
     SK('zone', "I may be broke, but I've got my pride!"),
     SK('dash', 'Ich bin vielleicht pleite, aber ich hab meinen Stolz!'),
-    SK('guard', 'Jag må vara pank, men jag har min stolthet!'),
-    SK('guard', "I may be broke, but I've got my pride!"),
+    SK('zone', 'Jag må vara pank, men jag har min stolthet!'),
+    SK('zone', "I may be broke, but I've got my pride!"),
     SK('zone', 'Rahaa ei ole, mutta ylpeyttä on!'),
     SK('dash', "Je suis peut-être fauché, mais j'ai ma fierté !"),
     SK('barrage', 'Sarò anche al verde, ma ho il mio orgoglio!'),
@@ -112,7 +112,7 @@
     SK('area', '¡Estaré sin un duro, pero tengo mi orgullo!'),
     SK('area', 'Možná nemám peníze, ale mám svou hrdost!'),
     SK('dash', 'אולי אין לי כסף, אבל יש לי כבוד!'),
-    SK('guard', 'Gal ir neturiu pinigų, bet turiu savigarbą!'),
+    SK('barrage', 'Gal ir neturiu pinigų, bet turiu savigarbą!'),
     SK('dash', "I may be broke, but I've got my pride!"),
     SK('area', '金はなくても、プライドはある！'),
     SK('barrage', 'Posso estar teso, mas tenho o meu orgulho!'),
@@ -122,7 +122,7 @@
     SK('dash', 'Μπορεί να μην έχω λεφτά, αλλά έχω αξιοπρέπεια!'),
     SK('dash', 'Param olmayabilir ama gururum var!'),
     SK('zone', '¡Estaré sin plata, pero tengo mi orgullo!'),
-    SK('guard', '¡Estaré sin lana, pero tengo mi orgullo!'),
+    SK('area', '¡Estaré sin lana, pero tengo mi orgullo!'),
     SK('dash', '¡Estaré sin plata, pero tengo mi orgullo!'),
   ];
   COUNTRIES.forEach((c, i) => { c.skill2 = SKILLS2[i]; });
@@ -130,35 +130,35 @@
   // 스킬 60개 고유 특징 — teams/1-기획/skills-unique.md (확정 2026-11-25, 사용자 "이대로 확정") · [1번, 2번]
   // k = 특징 꼬리표 (game.js SKILL_FN이 읽어요), mul·div 등 = 표의 피해 칸 그대로 (기준 피해 80 × F)
   const SKILL_MOD = {
-    luxembourg: [{ k: 'dashInv', mul: .9, inv: 1 }, { k: 'reflect', ratio: .5 }],
+    luxembourg: [{ k: 'dashInv', mul: .9, inv: 1 }, { k: 'fear', mul: .5, t: 1 }],
     ireland: [{ k: 'pull', mul: .8 }, { k: 'zigzag', mul: .9 }],
-    switzerland: [{ k: 'spikes', div: 6 }, { k: 'pierce', div: 5 }],
+    switzerland: [{ k: 'trap', mul: 1.2, life: 6 }, { k: 'pierce', div: 5 }],
     usa: [{ k: 'bounce', div: 4 }, { k: 'rings', div: 3 }],
     netherlands: [{ k: 'lastHit', div: 8, last: .4, n: 5 }, { k: 'blink', mul: .9 }],
-    denmark: [{ k: 'advance', mul: .5 }, { k: 'grow', mul1: .6, mul2: .4 }],
+    denmark: [{ k: 'mark', mul: .6, t: 2, x: 2 }, { k: 'grow', mul1: .6, mul2: .4 }],
     austria: [{ k: 'prints', mul: .7, div: 8 }, { k: 'twoRings', mul: .5 }],
     australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 4 }],
     germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
-    sweden: [{ k: 'clones', mul: .7 }, { k: 'counter', mul: .8 }],
-    canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'omni', time: 1.5 }],
+    sweden: [{ k: 'clones', mul: .7 }, { k: 'ring6', mul: .3, max: 3 }],
+    canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'gather', mul: .9, life: 1.5 }],
     finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 6 }],
     france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
-    italy: [{ k: 'walkGuard' }, { k: 'stepThrust', div: 5 }],
+    italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 5 }],
     korea: [{ k: 'sky', div: 3 }, { k: 'spread3', div: 6 }],
     spain: [{ k: 'focus', first: 1.6, rest: .3 }, { k: 'spinMove', mul: .8 }],
     czechia: [{ k: 'half', div: 8 }, { k: 'widen', mul: .35 }],
     israel: [{ k: 'lob', div: 4 }, { k: 'returnDash', mul: .4 }],
-    lithuania: [{ k: 'long', mul: .7 }, { k: 'root' }],
+    lithuania: [{ k: 'long', mul: .7 }, { k: 'javelin3', mul: .35 }],
     newzealand: [{ k: 'speedZone', div: 8 }, { k: 'seeds', mul: .4, seed: .2 }],
     japan: [{ k: 'iai', mul: .5, cut: .5 }, { k: 'chain3', mul: .4 }],
     portugal: [{ k: 'gust', mul: .6 }, { k: 'splash', div: 6, sdiv: 12 }],
     poland: [{ k: 'accel', from: .5, to: 1 }, { k: 'pole', mul: .8 }],
     hungary: [{ k: 'arcs8', div: 8, n: 8, time: .8 }, { k: 'invHit', mul: .8, per: .2, max: 1 }],
     slovakia: [{ k: 'crack', mul: .9 }, { k: 'ricochet', mul: .3, n: 3 }],
-    greece: [{ k: 'shove', mul: .5, bump: .4 }, { k: 'spearEnd', mul: .6, spear: .4 }],
+    greece: [{ k: 'phalanx', mul: .7, weak: .3, t: 3 }, { k: 'spearEnd', mul: .6, spear: .4 }],
     turkiye: [{ k: 'orbit', div: 5 }, { k: 'curve', mul: .9 }],
     chile: [{ k: 'lift', mul: .5 }, { k: 'vortex', div: 4 }],
-    mexico: [{ k: 'leap', mul: 1 }, { k: 'toss', mul: .5 }],
+    mexico: [{ k: 'leap', mul: 1 }, { k: 'wings', mul: .45 }],
     colombia: [{ k: 'roar', mul: .3 }, { k: 'echo', mul: .5, clone: .4 }],
   };
   COUNTRIES.forEach(c => { const m = SKILL_MOD[c.key]; if (m) { c.skill.mod = m[0]; c.skill2.mod = m[1]; } });
