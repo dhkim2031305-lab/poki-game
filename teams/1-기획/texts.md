@@ -53,7 +53,7 @@
 | `bankrupt.again.02` | 광고 본다고 부자 되는 거 아니에요. | Watching ads won't make you rich. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `bankrupt.again.03` | 통장은 그대로예요. | Your bank balance hasn't changed. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `continue.ad` | 이런다고 없던 돈이 생길까? | Think this will make money appear out of nowhere? | 광고를 보고 이어 갈 때 | 확정 |
-| `skill.shout` | {나라}! {스킬}! | {country}! {skill}! | 스킬 쓸 때 외침 · 글자 + 목소리 · {스킬}에 아래 스킬 이름이 들어가요 | [제안] (외침 방식 미정) |
+| `skill.shout` | (나라별) `skills.md` "skill-shout" 표의 그 나라 말 | (나라별, 번역 안 함) | 스킬 쓸 때 외침 · 글자 + 목소리 · **번역하지 않고 그 나라 말 그대로** 보여 줘요. 다른 언어 설정에서는 한 줄 뜻풀이를 작게 덧붙일 수 있어요 [제안] | 확정 (2026-11-25, 외침 방식) |
 | `skill.name.01` | 사자 문장 돌격 | Lion Crest Charge | 룩셈부르크 스킬 이름 (돌진) | [제안] |
 | `skill.name.02` | 회오리 도끼 | Whirlwind Axe | 아일랜드 스킬 이름 (범위) | [제안] |
 | `skill.name.03` | 창벽 | Pike Wall | 스위스 스킬 이름 (방어) | [제안] |
