@@ -464,7 +464,12 @@
     if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     h.rangedCd = BAL.RANGED_CD; h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx);
     const rk = G.country.ranged;
-    G.shots.push({ kind: rk, x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED, vy: dy * TEMP.SHOT_SPEED, dmg: st.ranged * atkMul(), life: 1.6, age: 0 });
+    const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
+    G.shots.push({ kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null });
+    if (quake) {   // 체코 (사용자 확정): 도리깨를 내리쳐 땅을 따라 은빛 충격파 — 칼은 손에, 내려찍기 궤적·바닥음
+      G.fx.push({ kind: 'melee', m: 'smash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('smash') });
+      AUDIO.play('impSmash'); if (settings.shake) G.shake = Math.max(G.shake, 1.5);
+    }
     if (rk === 'water') G.fx.push({ kind: 'splash', x: h.x + dx * 18, y: h.y - 24 + dy * 8, t: 0, life: 0.2 });
     if (rk === 'wave') { AUDIO.play('swing'); G.fx.push({ kind: 'melee', m: G.country.melee === 'bigslash' ? 'bigslash' : 'slash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('slash') * .8 }); }   // 검기: 칼을 휘두르는 궤적 + 검기
     if (rk === 'bullet') G.fx.push({ kind: 'muzzle', x: h.x + dx * 18, y: h.y - 24 + dy * 8, a: Math.atan2(dy, dx), t: 0, life: 0.35 });
@@ -487,21 +492,31 @@
   }
   // n = 1: 나라별 고유 스킬 (우클릭 2번 / L / 스킬 버튼) · n = 2: 두 번째 스킬 (좌클릭 2번 / ; ) — 기획팀 설계 중이라 자리만
   // 횟수: 1번·2번 합쳐 한 판에 5번 (라운드마다 안 채워져요)
+  // 유형별 스킬 함수 — 나라별 특징은 sk.mod(데이터)로 받아요 (사용자 "나라들 전부 스킬이 달라야해요": 기획 초안·승인 뒤에 특징을 채워요)
+  // o = { sk, n(1·2번), dmg, ang, dx, dy, mod }
+  const SKILL_FN = {
+    dash(o) { G.hero.dash = { t: 0, dx: o.dx, dy: o.dy, dmg: o.dmg, hit: new Set(), gT: 0, mod: o.mod }; },
+    area(o) {
+      const h = G.hero;
+      for (const a of G.aliens) { if (a.dead || a.entering) continue; const ex = a.x - h.x, ey = a.y - h.y, d = Math.hypot(ex, ey) || 1; if (d < SKB.AREA_R + a.r * .5) damage(a, o.dmg, ex / d, ey / d, true, { finisher: true }); }
+      G.fx.push({ kind: 'skill', type: 'area', x: h.x, y: h.y, t: 0, life: .5 });
+      G.hitstop = Math.max(G.hitstop || 0, .05);
+    },
+    barrage(o) { G.hero.barrage = { t: 0, n: 0, dmg: o.dmg / SKB.BARRAGE_DIV, mod: o.mod }; },
+    guard(o) { G.hero.guard = { t: 0, a: o.ang, dmg: o.dmg, hit: new Set(), mod: o.mod }; },
+    zone(o) {
+      const h = G.hero, f = FIELD.floor;
+      G.zones.push({ x: clamp(h.x + o.dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + o.dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK, dmg: o.dmg / SKB.ZONE_DIV,
+        arrows: o.n === 1 && G.country.ranged === 'arrow', slow: o.n === 2 && G.country.key === 'finland', mod: o.mod });   // 한국 화살비 · 핀란드 눈 함정(느리게)
+    },
+  };
   function useSkill(n = 1) {
     const r = G.run, h = G.hero;
     if (!r || sLeft(n) <= 0 || h.dead || h.dash || h.barrage || h.guard) return;
     r.skillsLeft[BAL.SKILL_SHARED ? 1 : n]--;
     const sk = skillOf(G.country, n), dmg = SKB.DMG * r.st.F;
-    const ang = Math.atan2(h.dir.y, h.dir.x), dx = Math.cos(ang), dy = Math.sin(ang), f = FIELD.floor;
-    if (sk.type === 'dash') h.dash = { t: 0, dx, dy, dmg, hit: new Set(), gT: 0 };
-    else if (sk.type === 'area') {
-      for (const a of G.aliens) { if (a.dead || a.entering) continue; const ex = a.x - h.x, ey = a.y - h.y, d = Math.hypot(ex, ey) || 1; if (d < SKB.AREA_R + a.r * .5) damage(a, dmg, ex / d, ey / d, true, { finisher: true }); }
-      G.fx.push({ kind: 'skill', type: 'area', x: h.x, y: h.y, t: 0, life: .5 });
-      G.hitstop = Math.max(G.hitstop || 0, .05);
-    }
-    else if (sk.type === 'barrage') h.barrage = { t: 0, n: 0, dmg: dmg / SKB.BARRAGE_DIV };
-    else if (sk.type === 'guard') h.guard = { t: 0, a: ang, dmg, hit: new Set() };
-    else if (sk.type === 'zone') G.zones.push({ x: clamp(h.x + dx * TEMP.SKILL_ZONE_AHEAD, f.x0 + 40, f.x1 - 40), y: clamp(h.y + dy * TEMP.SKILL_ZONE_AHEAD * .8, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK, dmg: dmg / SKB.ZONE_DIV, arrows: n === 1 && G.country.ranged === 'arrow', slow: n === 2 && G.country.key === 'finland' });   // 한국 화살비 · 핀란드 눈 함정(느리게)
+    const ang = Math.atan2(h.dir.y, h.dir.x);
+    SKILL_FN[sk.type]({ sk, n, dmg, ang, dx: Math.cos(ang), dy: Math.sin(ang), mod: sk.mod || {} });
     // 외침: 그 나라에서 유명한 말 (번역 안 함) + 스킬 이름(설정 언어)
     G.msgs = G.msgs.filter(m => !m.shout);
     G.msgs.push({ text: sk.shout, sub: t_((n === 2 ? 'skill2.name.' : 'skill.name.') + String(G.country.rank).padStart(2, '0')), t: n === 2 ? 1.6 : 1.2, life0: n === 2 ? 1.6 : 1.2, shout: true, rtl: G.country.lang === 'he' });   // 2번 외침은 길어서 1.6초
@@ -524,7 +539,7 @@
       const b = h.barrage; b.t += dt;
       while (b.n < SKB.BARRAGE_N && b.t >= b.n * SKB.BARRAGE_TIME / SKB.BARRAGE_N) {
         const a = Math.atan2(h.dir.y, h.dir.x) + ((b.n % 3) - 1) * .06, dx = Math.cos(a), dy = Math.sin(a), kind = BARRAGE_SHOT[G.country.ranged] || 'streak';
-        G.shots.push({ kind, x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.25, vy: dy * TEMP.SHOT_SPEED * 1.25, dmg: b.dmg, life: 1.4, age: 0, skill: true });
+        G.shots.push({ kind, x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.25, vy: dy * TEMP.SHOT_SPEED * 1.25, dmg: b.dmg, life: 1.4, age: 0, skill: true, hits: kind === 'boomerang' ? new Set() : null });
         G.fx.push({ kind: 'skill', type: 'barrage', x: h.x + dx * 26, y: h.y - 24 + dy * 10, h0: 24 - dy * 10, a, t: 0, life: .22 });
         h.rangedT = .2; h.aimShot = a; h.atkT = .12; b.n++;
         AUDIO.play('attack');
@@ -763,7 +778,23 @@
     // 우리 탄
     for (const s of G.shots) {
       s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.age += dt;
-      if (s.x < f.x0 - 10 || s.x > f.x1 + 10 || s.y < f.y0 - 10 || s.y > f.y1 + 10) s.life = 0;
+      if (s.kind === 'boomerang') {   // 호주 (사용자 확정): 던지고 돌아와요 — 갈 때·올 때 모두 맞히고 같은 외계인은 왕복에서 최대 2번
+        const out = s.x < f.x0 || s.x > f.x1 || s.y < f.y0 || s.y > f.y1;
+        if (!s.back && (s.age > .42 || out)) { s.back = true; s.hits = new Set(); }
+        if (s.back) {
+          const ex = h.x - s.x, ey = h.y - s.y, d = Math.hypot(ex, ey) || 1, sp = TEMP.SHOT_SPEED * 1.05;
+          s.vx += (ex / d * sp - s.vx) * Math.min(1, dt * 9); s.vy += (ey / d * sp - s.vy) * Math.min(1, dt * 9);
+          if (d < 20 || s.age > 3) s.life = 0; else s.life = Math.max(s.life, .1);
+        }
+        s.x = clamp(s.x, f.x0 - 10, f.x1 + 10); s.y = clamp(s.y, f.y0 - 10, f.y1 + 10);
+      }
+      else if (s.x < f.x0 - 10 || s.x > f.x1 + 10 || s.y < f.y0 - 10 || s.y > f.y1 + 10) s.life = 0;
+      if (s.hits) {   // 꿰뚫는 탄(부메랑·충격파): 지나가며 맞히고, 한 번 지날 때 같은 외계인은 한 번만
+        for (const a of G.aliens) if (s.life > 0 && !a.dead && !s.hits.has(a) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + (s.kind === 'quake' ? 16 : 8)) ** 2) {
+          s.hits.add(a); const v = Math.hypot(s.vx, s.vy) || 1; damage(a, s.dmg, s.vx / v, s.vy / v, s.kind === 'quake');
+        }
+        continue;
+      }
       if (s.life <= 0 && s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 });
       for (const a of G.aliens) if (s.life > 0 && !a.dead && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); s.life = 0; if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
     }
@@ -861,6 +892,7 @@
   const FIELD_SCENES = new Set(['play', 'roundPanel', 'ending', 'ad']);
   const BACK3D = new Set(['select', 'result']);
   function draw() {
+    FX.flat = use3d ? .62 : .35;
     ctx.setTransform(DPR * U, 0, 0, DPR * U, 0, 0);
     UI.hits = [];
     if (use3d && R3D.lost) { use3d = false; R3D.show(false); }   // 3D가 죽으면(메모리 등) 그 자리에서 2D로
@@ -1082,7 +1114,7 @@
     }
     drawSkills((x, y, fn) => fn()); drawJumps((x, y, fn) => fn());
     for (const s of G.shots) {
-      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;   // 투석은 포물선
+      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : s.kind === 'quake' ? -22 : 0;   // 충격파는 바닥에   // 투석은 포물선
       softShadow(s.x, s.y, 7, 2.5, .28);   // 날아가는 것 아래 바닥 그림자 (높이가 보여요)
       FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key);
     }
@@ -1191,7 +1223,7 @@
     }
     drawSkills(at);   // 점프 예고 원은 위에서 바닥 무늬로 그렸어요
     for (const s of G.shots) {
-      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : 0;
+      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / .5) * Math.PI) * 22 : s.kind === 'quake' ? -22 : 0;   // 충격파는 바닥에
       at(s.x, s.y, () => FX.drawShot(s.kind, s.x, s.y - 22 - lift, Math.atan2(s.vy, s.vx), s.age, G.country.key));
     }
     for (const s of G.eshots) at(s.x, s.y, () => { ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); });

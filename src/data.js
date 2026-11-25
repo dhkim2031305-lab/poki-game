@@ -25,7 +25,7 @@
     C('italy', 'it', 62530, 39.6, 'it', 'EUR', '€', 'Italia', 'Italy', '이탈리아', 'thrust', 'wave'),
     C('korea', 'kr', 61227, 38.8, 'ko', 'KRW', '₩', '한국', 'Korea', '한국', 'slash', 'arrow'),
     C('spain', 'es', 58189, 36.9, 'es', 'EUR', '€', 'España', 'Spain', '스페인', 'slash', 'wave'),
-    C('czechia', 'cz', 57723, 36.6, 'cs', 'CZK', 'Kč', 'Česko', 'Czechia', '체코', 'smash', 'mace'),
+    C('czechia', 'cz', 57723, 36.6, 'cs', 'CZK', 'Kč', 'Česko', 'Czechia', '체코', 'smash', 'quake'),   // 체코: 도리깨 내려찍기 충격파 (사용자 확정 GDD 0-12)
     C('israel', 'il', 57357, 36.3, 'he', 'ILS', '₪', 'ישראל', 'Israel', '이스라엘', 'slash', 'sling'),
     C('lithuania', 'lt', 56261, 35.7, 'lt', 'EUR', '€', 'Lietuva', 'Lithuania', '리투아니아', 'thrust', 'polearm'),
     C('newzealand', 'nz', 55692, 35.3, 'en', 'NZD', '$', 'New Zealand', 'New Zealand', '뉴질랜드', 'thrust', 'polearm'),
@@ -80,7 +80,7 @@
 
   // 나라별 고유 스킬 — teams/1-기획/skills.md (전부 확정 2026-11-25) · 순위 순서
   // type: dash 돌진 · area 범위 · barrage 연사 · guard 방어 · zone 설치 / shout: 그 나라에서 유명한 말 (번역 안 함)
-  const SK = (type, shout) => ({ type, shout });
+  const SK = (type, shout, mod = {}) => ({ type, shout, mod });   // mod = 나라별 특징 (기획 승인 뒤 채워요)
   const SKILLS = [
     SK('dash', 'Hopp Lëtzebuerg!'), SK('area', "G'wan!"), SK('guard', 'Hopp Schwiiz!'), SK('barrage', "Let's go!"), SK('barrage', "Zet 'm op!"),
     SK('guard', 'Kom så!'), SK('dash', "Auf geht's!"), SK('barrage', 'Give it a burl!'), SK('area', "Los geht's!"), SK('dash', 'Heja!'),

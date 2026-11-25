@@ -71,6 +71,19 @@
 
   // 쏘기 8종: 날아가는 것 그리기 (dir = 날아가는 방향, t = 시간)
   const SHOT = {
+    // 충격파 (체코 도리깨, 사용자 확정): 땅을 따라 나가는 은빛 물결 — 바닥 높이에 납작하게 (FX.flat = 바닥 원 납작 비율)
+    quake(x, px, py, dir, t) {
+      const fl = FX.flat || .35, k = Math.min(1, t / .62);
+      x.save(); x.translate(px, py); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
+      for (let i = 0; i < 3; i++) {
+        const r = 18 + i * 9 + k * 10, a = .95 - i * .22;
+        x.globalAlpha = a * (1 - k * .45); x.strokeStyle = i === 1 ? PALE + '.9)' : i ? GLOW : '#FFFFFF'; x.lineWidth = 5 - i * 1.3;
+        x.beginPath(); x.ellipse(-i * 6 * Math.cos(dir), -i * 6 * Math.sin(dir) * fl, r, r * fl, 0, dir - 1.1, dir + 1.1); x.stroke();
+      }
+      x.globalAlpha = .7 * (1 - k); x.fillStyle = '#B1A599';   // 튀는 흙
+      for (let i = 0; i < 7; i++) { const a = dir + (i - 3) * .3, r = 24 + ((t * 70 + i * 5) % 12); x.fillRect(Math.cos(a) * r - 1, Math.sin(a) * r * fl - 3 - ((t * 40 + i * 3) % 5), 2.2, 2.2); }
+      x.restore();
+    },
     // 검기 (검 나라 쏘기, 사용자 확정): 초승달 은빛 — 흰 가운데 + 은 #C9CED6 / 옅은 금 테두리, 날아가며 조금 커져요
     wave(x, px, py, dir, t) {
       const k = 1 + Math.min(.35, t * 1.2), R = 15 * k;
