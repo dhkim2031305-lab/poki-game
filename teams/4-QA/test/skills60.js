@@ -27,16 +27,21 @@ const { chromium } = require('playwright');
     });
     await p.waitForTimeout(100);
     await p.evaluate(() => { window.__t = performance.now(); window.__cb(window.__t); });
+    // GDD 0-17: PC는 커서 자리. 2D 844×390에서 화면 = 전장 + (75.33, 0). 예전과 같은 자리에 커서를 둬서 수치가 그대로인지 봐요
+    const aimPt = await p.evaluate(n => { const sk = n === 2 ? G.country.skill2 : G.country.skill, k = (sk.mod || {}).k, h = G.hero;
+      const by = { crack: 240, spinMove: 150, lob: 150, javelin3: 270 }; if (by[k]) return [h.x + by[k], h.y];
+      if (sk.type === 'area') return [h.x, h.y]; if (sk.type === 'zone') return [h.x + 120, h.y]; if (sk.type === 'dash') return [h.x + 260, h.y]; return [h.x + 340, h.y]; }, n);
+    if (render === '2d') { const fx = (844 - 1280 * 390 / 720) / 2; await p.mouse.move(aimPt[0] + fx - 30, aimPt[1] + 5); await p.mouse.move(aimPt[0] + fx, aimPt[1]); }
     const left0 = await p.evaluate(() => G.run.skillsLeft.slice());
     await p.keyboard.press(n === 2 ? 'Semicolon' : 'KeyL');
-    await p.evaluate(() => __step(14));
+    await p.evaluate(() => __step(14)); const zdbg = await p.evaluate(() => JSON.stringify({ z: G.zones.map(z => [Math.round(z.x), Math.round(z.y)]), h: [Math.round(G.hero.x), Math.round(G.hero.y)] }));
     await p.screenshot({ path: `${OUT}/sk-${String(ci + 1).padStart(2, '0')}-${n}.png`, clip: { x: 60, y: 40, width: 560, height: 320 } });
     await p.evaluate(() => __step(400));
     const r = await p.evaluate(() => ({ key: G.country.key, ko: G.country.ko, type: (n => n)(null), F: G.run.st.F, trk: __trk, left: G.run.skillsLeft.slice(), msgs: G.msgs.length }));
     r.n = n; r.left0 = left0; r.errs = errs;
     const u = 80 * r.F; r.mult = Object.fromEntries(Object.entries(r.trk.dmg).map(([k, v]) => [k, +(v / u).toFixed(3)]));
     res.push(r);
-    console.log(`${ci + 1} ${r.ko} ${n}번 F=${r.F.toFixed(3)} 배수=${JSON.stringify(r.mult)} 제어=${JSON.stringify(Object.fromEntries(Object.entries(r.trk.ctl).map(([k, v]) => [k, Object.entries(v).filter(([, x]) => x > 0).map(([c, x]) => c + ':' + x.toFixed(2)).join(' ')]).filter(([, s]) => s)))} 무적최대=${r.trk.heroSkillT.toFixed(2)} 남은=${r.left0}→${r.left}${errs.length ? ' ERR ' + errs.join('|') : ''}`);
+    console.log(`${ci + 1} ${r.ko} ${n}번 F=${r.F.toFixed(3)} 배수=${JSON.stringify(r.mult)} 제어=${JSON.stringify(Object.fromEntries(Object.entries(r.trk.ctl).map(([k, v]) => [k, Object.entries(v).filter(([, x]) => x > 0).map(([c, x]) => c + ':' + x.toFixed(2)).join(' ')]).filter(([, s]) => s)))} 무적최대=${r.trk.heroSkillT.toFixed(2)} 남은=${r.left0}→${r.left}${process.env.ZDBG ? ' ' + zdbg : ''}${errs.length ? ' ERR ' + errs.join('|') : ''}`);
     await p.close();
   }
   require('fs').writeFileSync(`${OUT}/skills60.json`, JSON.stringify(res, null, 1));

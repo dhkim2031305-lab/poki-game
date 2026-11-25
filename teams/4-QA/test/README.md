@@ -5,7 +5,7 @@
 
 | 파일 | 하는 일 | 예 |
 |---|---|---|
-| `skills60.js` | 30개국 × 스킬 1·2번 실행 → 외계인별 피해(80×F 배수)·제어 시간·무적·남은 횟수 | `node skills60.js OUT 8080 [0,16]` (나라 번호 0~29) |
+| `skills60.js` | 30개국 × 스킬 1·2번 실행 → 외계인별 피해(80×F 배수)·제어 시간·무적·남은 횟수. 2d면 커서를 예전과 같은 자리(돌진 앞 260·범위 장수 자리·설치 앞 120)에 둬요 | `node skills60.js OUT 8080 0,16 2d` (나라 번호 0~29) |
 | `boss-control.js` | 제어 스킬(핀란드1·리투아니아2·칠레1·콜롬비아1)이 보스에 0.3초 멈춤만 거는지 | `node boss-control.js` |
 | `hero-effects.js` | 이탈리아1·캐나다2·뉴질랜드1 이동, 체코1 피해 절반, 프랑스2 벽 충돌 | `node hero-effects.js` |
 | `controls.js` | PC 더블클릭·좌우 동시·L ; Space 횟수, 폰 버튼 크기·두 번 누르기 | `node controls.js OUT 8080 2d` |
@@ -20,4 +20,5 @@
 | `new9.js` | 방어 대체: 덴마크1 표식 2배·그리스1 약화 +30%·스웨덴2 테두리 넘을 때만 | `node new9.js` |
 | `quake3d.js` | 체코 충격파가 3D·2D에서 보이는지 프레임별 캡처 | `node quake3d.js OUT` |
 | `phone-first.js` | 폰 첫 터치 전 화면·치기+쏘기 같이 = 무적·3D PC 더블클릭 | `node phone-first.js OUT` |
+| `aim.js` | GDD 0-17 스킬 자리 지정: PC 커서·전장 밖·폰 끌기/취소/톡·유형별·특수 스킬, 조준 표시 캡처 | `node aim.js OUT` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
