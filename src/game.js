@@ -820,11 +820,15 @@
   // ---- 8방향 몸 + 무기 360도 (7차 그림, 사용자 결정 "8방향 그림 + 무기 360도") ----
   // 몸: 조준 각도를 8방향으로 나눠 5칸 중 하나(왼쪽은 뒤집기). 무기: 손 위치에서 조준 각도대로 돌려요
   const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향
-  const W_LEN = 0.95;     // 무기 길이 = 장수 키 × 0.95
+  const W_LEN = 0.8;      // 무기 길이 = 장수 키 × 0.8 (디자인팀 7차 규격: 192px 그림 → 칸 90px)
+  // 손 위치 (칸 128×128 좌표, 발 = (64,124)) · 칸마다 무기를 몸 앞/뒤 어디에 그릴지 (디자인팀 c8ed6d9)
+  const HAND = [[47, 86, false], [86, 85, false], [64, 86, false], [82, 86, true], [88, 84, true]];   // ①아래 ②오른쪽아래 ③오른쪽 ④오른쪽위(뒤) ⑤위(뒤)
+  const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
   const THROWN = k => FX.THROWN(k) || k === 'boomerang';
   function weaponAngle(h, a) {
     // 치기: 예비동작(뒤로) → 스윙(반대쪽까지) → 마무리(돌아옴). 찌르기는 각도 대신 앞뒤로 밀어요
-    const s = h.swing; if (!s) return { a, push: 0 };
+    const s = h.swing;
+    if (!s) return { a: h.rangedT > 0 ? a : a + (Math.cos(a) >= 0 ? REST : -REST), push: 0 };   // 쉴 때는 30° 아래로
     const mk = G.country.melee, side = Math.cos(s.ang) >= 0 ? 1 : -1, t1 = SWING.wind, t2 = t1 + SWING.strike;
     const ease = k => 1 - Math.pow(1 - k, 3);
     if (mk === 'thrust' || mk === 'rapid') {
@@ -859,7 +863,7 @@
     if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py, a, Math.cos(a) < 0, .65); ctx.restore(); return; }   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
     const im = UI.img['weapon/' + c.key];
     if (im && im.naturalWidth) {
-      const sc = len / 188;
+      const sc = len / 192;   // 그림 폭 192 → len
       ctx.translate(px, py); ctx.rotate(a); if (Math.cos(a) < 0) ctx.scale(1, -1);
       ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 (4, 80)
     }
@@ -873,9 +877,10 @@
     if (bm.rot && flip !== mo.flip) bm.rot = -bm.rot;
     const dead = h.dead || (G.scene === 'ending' && G.ending.fell);
     const w = weaponAngle(h, aim);
-    // 손 위치: 몸 가운데 높이, 보는 쪽으로 조금
-    const hx = h.x + (mo.ox || 0) + Math.cos(aim) * 7 + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) - 26 + Math.sin(aim) * 4 + Math.sin(w.a) * w.push * .8;
-    const behind = Math.sin(w.a) < -0.35;   // 무기가 위를 향하면 몸 뒤에
+    // 손 위치: 칸 좌표를 게임 크기로 (왼쪽 방향은 x → 128 − x)
+    const kk = 60 / 112, hd = HAND[cell], hdx = (hd[0] - 64) * kk * (flip ? -1 : 1), hdy = (hd[1] - 124) * kk;
+    const hx = h.x + (mo.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
+    const behind = hd[2];   // 오른쪽위·위를 볼 때는 몸 뒤에
     if (!dead && behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
     UI.dirBody(c.key, cell, h.x, h.y, 60, bm);
     if (!dead && !behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
