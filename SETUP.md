@@ -86,6 +86,8 @@ npm run dev                    # http://localhost:8080 → 사이트 고르는 �
 npm run build                  # 모든 사이트 ZIP: dist/poki.zip, crazygames.zip, gamedistribution.zip, web.zip
 npm run build -- poki          # 한 사이트만
 npm run build -- poki web      # 여러 개
+npm run build:single           # 한 파일 HTML: dist/single.html (그림·스크립트를 모두 넣은 web판, 약 10.6MB)
+npm run build:single -- --preview   # 미리보기용 dist/single-preview.html (2D/3D 비교 버튼 + 진단 표시)
 ```
 
 개발 서버 주소:
@@ -189,3 +191,9 @@ npm run build -- poki web      # 여러 개
 - `src/render3d.js` 추가, `index.html`에 `vendor/three.min.js`·`render3d.js` 추가, `style.css`에 두 캔버스 겹치기
 - 기존 2D 렌더러는 그대로 남김 (`?render=2d`)
 - ZIP 약 5.95MB (Three.js +약 160KB 압축 기준)
+
+### 2026-11-25 — 한 파일 빌드 (개발팀)
+- iOS Claude 앱은 여러 파일로 된 아티팩트를 못 열어요(사용자 확인 "ㅇㅇ 된다 아이폰에서"). 그래서 `tools/build-single.js`(`npm run build:single`)를 추가했어요. 팀장 `teams/3-개발/single-file-inline.py`를 Node로 옮긴 거예요
+- 방법: 그림을 data URI로 `window.__A`에 넣고, `<img>.src`에 'assets/...'를 넣으면 data URI로 바꿔 줘요. CSS·JS는 인라인, 어댑터는 web
+- 미리보기는 앞으로 한 파일판(https://claude.ai/artifact/Vui7cvNYFfNhZrdAP5Ruh1) 기준이에요. 아티팩트 한 파일 한도 16MB를 넘으면 빌드가 ⚠ 경고해요
+- 진단 표시: 정식 빌드는 주소에 `?debug=1`, 미리보기판은 항상 켜져 있어요. 시험용 주소 `?nofilter`(canvas filter 없는 척) · `?maxtex=2048`(텍스처 한도) · `?render=2d`

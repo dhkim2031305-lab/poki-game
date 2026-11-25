@@ -5,6 +5,7 @@
   "description": "Poki HTML5 game starter",
   "scripts": {
     "dev": "node tools/server.js",
-    "build": "node tools/build.js"
+    "build": "node tools/build.js",
+    "build:single": "node tools/build-single.js"
   }
 }
