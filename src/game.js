@@ -555,6 +555,7 @@
     h.rangedCd = BAL.RANGED_CD / atkSpd(); h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
     const rk = G.country.ranged;
     const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
+    if (rk === 'arrow') { const T = clamp(BAL.RANGED_CD / atkSpd() * .5, .05, .10); h.bowM = { t: 0, T, ang: Math.atan2(dy, dx), dx, dy, boost: h.boostT > 0, dmg: st.ranged * atkMul() }; return; }   // 한국 활 (style-guide "한국 활 당기기"): 당기기 0.10초(연사면 간격 × 0.5, 최소 0.05) → 놓기
     if (THROW_ANIM[rk]) { h.throwM = { t: 0, ang: Math.atan2(dy, dx), dx, dy, kind: rk, k: h.boostT > 0 ? BAL.INVULN_ATK_SPEED : 1, boost: h.boostT > 0, dmg: st.ranged * atkMul(), hist: [], arc: [] }; h.handEmpty = false; return; }   // 창·도끼 (사용자 "창, 도끼만 바꿔"): 젖히기 → 놓기, 탄은 놓는 순간
     const tip = weaponTip(Math.atan2(dy, dx));   // 무기 끝 (style-guide "원거리 공격 동작"): 판정 자리는 그대로, 그림만 무기 끝에서 출발
     G.shots.push(fromTip({ boost: h.boostT > 0, kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null }, tip, quake));
@@ -1411,7 +1412,7 @@
     h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
     if (rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3) { const l = Math.hypot(rstick.x, rstick.y); h.dir = { x: rstick.x / l, y: rstick.y / l }; }   // 오른쪽 손잡이를 밀면 조준 쪽을 봐요
     if (h.rangedT > 0) h.rangedT -= dt;
-    updateThrow(h, dt); if (h.handEmpty && !h.throwM && (h.rangedCd <= 0 || h.swing)) h.handEmpty = false;   // 쿨타임이 끝나면 무기가 다시 손에
+    updateThrow(h, dt); updateBow(h, dt); if (h.handEmpty && !h.throwM && (h.rangedCd <= 0 || h.swing)) h.handEmpty = false;   // 쿨타임이 끝나면 무기가 다시 손에
     // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
     if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
     h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.boostT = Math.max(0, (h.boostT || 0) - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
@@ -2069,6 +2070,7 @@
         mo.rot = (mo.flip ? -1 : 1) * (s.t < t1 ? -.1 : .14 * Math.max(0, lunge) / 6);
       }
     }
+    else if (h.bowM && !h.bowM.rel && !reduceMotion) { const k = Math.min(1, h.bowM.t / h.bowM.T); mo.ox = -Math.cos(h.bowM.ang) * k; frame = 5; }   // 활 당기는 동안 몸 1px 뒤로
     else if (h.throwM) { const p = throwPose(h), ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); frame = p.ph === 'wind' ? 5 : 6; mo.ox = ca * p.lean; mo.oy = sa * p.lean * .6; mo.rot = p.rot; mo.sx = p.sx; mo.sy = p.sy; }   // 던지기: 몸 기울기·회전·늘였다 줄이기
     else if (h.atkT > 0 && FX.GUN[c.key]) { frame = 6; const e = G.t - (h.shotT == null ? -9 : h.shotT); if (!reduceMotion && e < .06) mo.ox = -Math.cos(h.aimShot || 0) * (1 - e / .06); }   // 총: 반동은 몸 1px 뒤로만, 기울지 않아요
     else if (h.atkT > 0) { frame = h.atkT > .14 ? 5 : 6; if (!reduceMotion) { mo.rot = (mo.flip ? -1 : 1) * .16 * Math.sin((1 - h.atkT / .22) * Math.PI); mo.sx = 1.04; mo.sy = 1.04; } }
@@ -2123,6 +2125,7 @@
     const len = 60 * wLen(c);
     ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
     // 활·투석기: 쏜 직후 잠깐 그 장비를 들어요
+    if (ranged === 'arrow' && (h.rangedT > 0 || h.bowM)) { drawBow(h); ctx.restore(); return; }   // 한국: 몸 앞 14px 가슴 높이에 세워 들고 당겨요
     if (rangedImg && h.rangedT > 0) {
       const im = UI.img['weapon/' + rangedImg];
       if (im && im.naturalWidth) {
@@ -2143,6 +2146,52 @@
       ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 = 폭×0.0208, 높이×0.5 (192×160 기준 (4,80), 288×240이면 (6,120)) · 그리는 크기는 그림 크기와 무관
     }
     ctx.restore();
+  }
+  // ---- 한국 활 당기기 (style-guide "한국 활 당기기", 사용자 "지금 활 당기는거 안보여") ----
+  // 활 그림(288×240 → 192 칸 기준): 활 등이 위(조준 쪽), 시위가 아래(장수 쪽). 양 끝 (±78, +24.7), 활 등 −25.3 (가운데 기준)
+  const BOW = { H: 64, tipU: 78, tipV: 24.7, back: -25.3 };
+  let bowNoStr = null;   // 그림에 그려진 곧은 시위를 지운 사본 (시위는 코드로 V자)
+  function bowImg() {
+    const im = UI.img['weapon/korea-ranged']; if (!im || !im.naturalWidth) return null;
+    if (!bowNoStr || bowNoStr.src !== im) { const c = mkCv(im.naturalWidth, im.naturalHeight), x = c.getContext('2d'), k = im.naturalWidth / 288; x.drawImage(im, 0, 0); x.clearRect(52 * k, 150 * k, 184 * k, 12 * k); bowNoStr = { c, src: im }; }
+    return bowNoStr.c;
+  }
+  function bowFrame(h) {   // 활 가운데 · 축 (u = 활 길이 방향, v = 장수 쪽) · 당김 · 크기
+    const m = h.bowM, ang = m ? m.ang : (h.aimShot != null ? h.aimShot : Math.atan2(h.dir.y, h.dir.x)), ca = Math.cos(ang), sa = Math.sin(ang), sc = BOW.H / 192;
+    let pull = 0, sx = 1, wob = 1, snapT = null;
+    if (m && !m.rel) { const k = Math.min(1, m.t / m.T); pull = 10 * (1 - Math.pow(1 - k, 2)); sx = 1 - .1 * k; }
+    else if (m && m.rel) { const e = m.t - m.T; pull = e < .03 ? 10 * (1 - e / .03) : 0; snapT = e; wob = e < .08 ? 1.08 - .08 * e / .08 : 1; }
+    const cx = h.x + ca * 14, cy = h.y - 32 + sa * 14 * .6;
+    return { ang, ca, sa, sc, cx, cy, pull, sx, wob, snapT, u: { x: -sa, y: ca }, v: { x: -ca, y: -sa } };
+  }
+  const bowPt = (f, U, V) => ({ x: f.cx + f.u.x * U * f.wob + f.v.x * V, y: f.cy + f.u.y * U * f.wob + f.v.y * V });
+  function drawBow(h) {
+    const f = bowFrame(h), im = bowImg(), sc = f.sc;
+    ctx.save(); ctx.translate(f.cx, f.cy); ctx.rotate(f.ang + Math.PI / 2); ctx.scale(f.wob, f.wob * f.sx);   // 당기면 가로(조준 축) 0.9배 · 놓으면 1.08 → 1
+    if (im) ctx.drawImage(im, -96 * sc, -80 * sc, 192 * sc, 160 * sc); ctx.restore();
+    const tipV = BOW.tipV * sc * f.sx, nock = bowPt(f, 0, tipV + f.pull), t1 = bowPt(f, -BOW.tipU * sc, tipV), t2 = bowPt(f, BOW.tipU * sc, tipV);
+    ctx.save(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(t1.x, t1.y); ctx.lineTo(nock.x, nock.y); ctx.lineTo(t2.x, t2.y); ctx.stroke();   // 시위: 흰 1.5px 선 2개 (V자)
+    const m = h.bowM;
+    if (m && !m.rel) {   // 시위에 걸린 화살 28px (촉이 활 앞으로)
+      const hx = nock.x + f.ca * 28, hy = nock.y + f.sa * 28;
+      ctx.strokeStyle = '#8A5A2B'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(nock.x, nock.y); ctx.lineTo(hx - f.ca * 5, hy - f.sa * 5); ctx.stroke();
+      ctx.fillStyle = '#D9D2C5'; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - f.ca * 7 - f.sa * 3.5, hy - f.sa * 7 + f.ca * 3.5); ctx.lineTo(hx - f.ca * 7 + f.sa * 3.5, hy - f.sa * 7 - f.ca * 3.5); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(nock.x - f.sa * 3, nock.y + f.ca * 3); ctx.lineTo(nock.x + f.ca * 6, nock.y + f.sa * 6); ctx.lineTo(nock.x + f.sa * 3, nock.y - f.ca * 3); ctx.stroke();
+    }
+    if (f.snapT != null && f.snapT < .05) { ctx.globalAlpha = 1 - f.snapT / .05; UI.circ(nock.x, nock.y, 4, '#FFFFFF'); }   // 놓는 순간 시위 가운데 흰 섬광 지름 8
+    ctx.restore();
+  }
+  function updateBow(h, dt) {
+    const m = h.bowM; if (!m) return;
+    m.t += dt;
+    if (!m.rel && m.t >= m.T) {
+      const f = bowFrame(h), nock = bowPt(f, 0, BOW.tipV * f.sc * f.sx + f.pull), sp = TEMP.SHOT_SPEED;
+      const sh = { boost: m.boost, kind: 'arrow', x: h.x + m.dx * 16, y: h.y + m.dy * 16, vx: m.dx * sp, vy: m.dy * sp, dmg: m.dmg, life: 1.6, age: 0, hits: null };
+      const px = nock.x + f.ca * 22, py = nock.y + f.sa * 22;   // 걸려 있던 화살 자리에서 (탄 그림 꼬리가 시위 쪽)
+      sh.ox = px - sh.x; sh.oy = py - (sh.y - 22); sh.tx = nock.x; sh.ty = nock.y;
+      G.shots.push(sh); m.rel = true; AUDIO.play('attack');
+    }
+    if (m.rel && m.t >= m.T + .1) h.bowM = null;
   }
   // ---- 창·도끼 던지기 (style-guide "원거리 공격 동작 — 손이 움직이는 느낌", 사용자 "창, 도끼만 바꿔") ----
   // 젖히기 0.08초 → 휘두름·놓기 0.06초 → 따라가기 0.12초 (무적 중 공속 2.5배면 ÷2.5) · 창은 가장 앞에서, 도끼는 조준 각을 지날 때 놓아요
