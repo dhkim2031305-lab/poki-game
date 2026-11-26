@@ -24,7 +24,7 @@ for it in items:
     src = os.path.join(D, it['id'] + '.raw'); open(src, 'wb').write(raw)
     inp = ['-f', 's16le', '-ar', '24000', '-ac', '1'] if 'L16' in mt or 'pcm' in mt else []
     subprocess.run(['ffmpeg', '-y', '-v', 'error', *inp, '-i', src, '-af',
-        'silenceremove=start_periods=1:start_threshold=-45dB:stop_periods=1:stop_threshold=-45dB:stop_duration=0.3,loudnorm=I=-16:TP=-1.5',
+        'silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-16:TP=-1.5',   # 뒤 무음만 잘라요 (stop_periods는 말 사이 쉼에서 뒤를 통째로 잘랐어요)
         '-ac', '1', '-ar', '24000', '-b:a', '32k', out], check=True)
     os.remove(src)
     dur = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out], capture_output=True, text=True).stdout.strip()
