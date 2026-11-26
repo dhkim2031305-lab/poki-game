@@ -554,6 +554,7 @@
     h.rangedCd = BAL.RANGED_CD / atkSpd(); h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
     const rk = G.country.ranged;
     const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
+    if (THROW_ANIM[rk]) { h.throwM = { t: 0, ang: Math.atan2(dy, dx), dx, dy, kind: rk, k: h.boostT > 0 ? BAL.INVULN_ATK_SPEED : 1, boost: h.boostT > 0, dmg: st.ranged * atkMul(), hist: [], arc: [] }; h.handEmpty = false; return; }   // 창·도끼 (사용자 "창, 도끼만 바꿔"): 젖히기 → 놓기, 탄은 놓는 순간
     const tip = weaponTip(Math.atan2(dy, dx));   // 무기 끝 (style-guide "원거리 공격 동작"): 판정 자리는 그대로, 그림만 무기 끝에서 출발
     G.shots.push(fromTip({ boost: h.boostT > 0, kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null }, tip, quake));
     if (quake) {   // 체코 (사용자 확정): 도리깨를 내리쳐 땅을 따라 은빛 충격파 — 칼은 손에, 내려찍기 궤적·바닥음
@@ -948,7 +949,8 @@
     }
     drawShotS1(s, lift);
   }
-  function shotKind(kind, x, y, a, age) {
+  function shotKind(kind, x, y, a, age, spin0) {
+    if (spin0 != null) age += spin0 / 22;   // 도끼: 놓을 때 손에 든 각도에서 돌기 시작 (FX SPIN.axe 22)
     const bi = (kind === 'beam' || kind === 'bullet') && bulletImg(G.country.key);
     if (bi) return FX.cell(bi, 4, 1 + Math.floor(age / .05) % 2, x - Math.cos(a) * 19.8, y - Math.sin(a) * 19.8, a, 64);   // 탄 A·B 0.05초마다 번갈아, 64px
     FX.drawShot(kind, x, y, a, age, G.country.key);
@@ -956,9 +958,9 @@
   function drawShotS1(s, lift) {
     const y = s.y - 22 - lift, a = Math.atan2(s.vy, s.vx);
     if (s.tailCol) { const v = Math.hypot(s.vx, s.vy) || 1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = s.tailCol; ctx.globalAlpha = .55; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.vx / v * 34, y - s.vy / v * 34); ctx.stroke(); ctx.globalAlpha = .9; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); }   // 스킬 탄 빛 꼬리 (나라 색)
-    if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); shotKind(s.kind, s.x, y, a, s.age); ctx.restore(); }
-    else shotKind(s.kind, s.x, y, a, s.age);
-    if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; shotKind(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
+    if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); shotKind(s.kind, s.x, y, a, s.age, s.spin0); ctx.restore(); }
+    else shotKind(s.kind, s.x, y, a, s.age, s.spin0);
+    if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; shotKind(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age, s.spin0); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
   }
   // ---- 스킬 이펙트 (코드로 그림, 흰 + 은 #C9CED6 / 옅은 금 #E8D9A8) ----
   const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
@@ -1408,6 +1410,7 @@
     h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
     if (rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3) { const l = Math.hypot(rstick.x, rstick.y); h.dir = { x: rstick.x / l, y: rstick.y / l }; }   // 오른쪽 손잡이를 밀면 조준 쪽을 봐요
     if (h.rangedT > 0) h.rangedT -= dt;
+    updateThrow(h, dt); if (h.handEmpty && !h.throwM && (h.rangedCd <= 0 || h.swing)) h.handEmpty = false;   // 쿨타임이 끝나면 무기가 다시 손에
     // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
     if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
     h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.boostT = Math.max(0, (h.boostT || 0) - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
@@ -2060,6 +2063,7 @@
         mo.rot = (mo.flip ? -1 : 1) * (s.t < t1 ? -.1 : .14 * Math.max(0, lunge) / 6);
       }
     }
+    else if (h.throwM) { const p = throwPose(h), ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); frame = p.ph === 'wind' ? 5 : 6; mo.ox = ca * p.lean; mo.oy = sa * p.lean * .6; mo.rot = p.rot; mo.sx = p.sx; mo.sy = p.sy; }   // 던지기: 몸 기울기·회전·늘였다 줄이기
     else if (h.atkT > 0 && FX.GUN[c.key]) { frame = 6; const e = G.t - (h.shotT == null ? -9 : h.shotT); if (!reduceMotion && e < .06) mo.ox = -Math.cos(h.aimShot || 0) * (1 - e / .06); }   // 총: 반동은 몸 1px 뒤로만, 기울지 않아요
     else if (h.atkT > 0) { frame = h.atkT > .14 ? 5 : 6; if (!reduceMotion) { mo.rot = (mo.flip ? -1 : 1) * .16 * Math.sin((1 - h.atkT / .22) * Math.PI); mo.sx = 1.04; mo.sy = 1.04; } }
     else if (h.moving) { frame = reduceMotion ? 0 : 1 + Math.floor(h.walkT * 8) % 4; if (!reduceMotion) { const p = Math.abs(Math.sin(h.walkT * 11)); mo.oy = -p * 2; mo.rot = clamp(h.dir.x * .1, -.12, .12); } }
@@ -2124,7 +2128,7 @@
       }
     }
     // 던진 직후엔 손이 비어요 (무기가 날아가는 중)
-    if (THROWN(ranged) && h.rangedT > 0.12) { ctx.restore(); return; }
+    if (THROW_ANIM[ranged] ? (h.handEmpty && !h.swing) : (THROWN(ranged) && h.rangedT > 0.12)) { ctx.restore(); return; }   // 던진 뒤엔 손이 비어요
     if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py - 4, a, Math.cos(a) < 0, GUN_SC); ctx.restore(); return; }   // 4px 위로 손에 붙여요 · 총검 포함 32px   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
     const im = UI.img['weapon/' + c.key];
     if (im && im.naturalWidth) {
@@ -2133,6 +2137,45 @@
       ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 = 폭×0.0208, 높이×0.5 (192×160 기준 (4,80), 288×240이면 (6,120)) · 그리는 크기는 그림 크기와 무관
     }
     ctx.restore();
+  }
+  // ---- 창·도끼 던지기 (style-guide "원거리 공격 동작 — 손이 움직이는 느낌", 사용자 "창, 도끼만 바꿔") ----
+  // 젖히기 0.08초 → 휘두름·놓기 0.06초 → 따라가기 0.12초 (무적 중 공속 2.5배면 ÷2.5) · 창은 가장 앞에서, 도끼는 조준 각을 지날 때 놓아요
+  const THROW_ANIM = { polearm: 1, axe: 1 };
+  const TW = { wind: .08, swing: .06, follow: .12 }, AXE_FROM = -130 * Math.PI / 180, AXE_TO = 20 * Math.PI / 180;
+  const easeO = q => 1 - Math.pow(1 - q, 3);
+  const THROW_REL = { polearm: TW.wind + TW.swing, axe: TW.wind + TW.swing * (1 - Math.cbrt(1 - (-AXE_FROM) / (AXE_TO - AXE_FROM))) };
+  function throwPose(h) {   // 무기 각 a, 무기 축 밀기 push, 위로 oy, 손 이동 hand, 몸 lean/rot/sx/sy
+    const m = h.throwM; if (!m) return null;
+    const t = m.t, side = Math.cos(m.ang) >= 0 ? 1 : -1, rm = reduceMotion ? .5 : 1;
+    const ph = t < TW.wind ? 'wind' : t < TW.wind + TW.swing ? 'swing' : 'follow', q = ph === 'wind' ? t / TW.wind : ph === 'swing' ? (t - TW.wind) / TW.swing : Math.min(1, (t - TW.wind - TW.swing) / TW.follow), e = easeO(q);
+    let a = m.ang, push = 0, oy = 0;
+    if (m.kind === 'polearm') { push = ph === 'wind' ? -12 * q : ph === 'swing' ? -12 + 26 * e : 14; oy = ph === 'wind' ? -6 * q : ph === 'swing' ? -6 * (1 - q) : 0; }   // 뒤로 12·위로 6 당김 → 앞으로 14
+    else a = m.ang + side * (ph === 'wind' ? AXE_FROM * q : ph === 'swing' ? AXE_FROM + (AXE_TO - AXE_FROM) * e : AXE_TO);   // 머리 뒤 −130° → +20°
+    const hand = (ph === 'wind' ? -4 * q : ph === 'swing' ? -4 + 8 * e : 4 * (1 - q)) * rm;   // 손이 뒤로 4 → 앞으로 4
+    const lean = (ph === 'wind' ? -2 * q : ph === 'swing' ? -2 + 5 * e : 3 * (1 - q)) * rm;   // 몸: 조준 반대 2 → 조준 쪽 3 → 제자리
+    const rot = (ph === 'wind' ? -3 * q : ph === 'swing' ? -3 + 6 * e : 3 * (1 - q)) * Math.PI / 180 * side * rm;
+    const sq = ph === 'wind' ? q : ph === 'swing' ? 1 - 2 * e : -(1 - q);   // 1 = 웅크림(1.02·0.96), −1 = 뻗음(0.97·1.04)
+    const sx = 1 + (sq > 0 ? .02 * sq : .03 * sq) * rm, sy = 1 - .04 * sq * rm;
+    return { ph, q, a, push, oy, hand, lean, rot, sx, sy, released: m.released };
+  }
+  // 손 자리·무기 각 (drawHero8과 같은 계산) → 놓는 순간 그 자리·각도에서 날아가요
+  function throwGrip(h) {
+    const p = throwPose(h), c = G.country, o = ((Math.round(h.throwM.ang / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
+    const kk = 60 / 112, hd = HAND[cell], ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang);
+    const hx = h.x + ca * p.lean + (hd[0] - 64) * kk * (flip ? -1 : 1) + Math.cos(p.a) * p.push + ca * p.hand, hy = h.y + sa * p.lean * .6 + (hd[1] - 124) * kk + Math.sin(p.a) * p.push * .8 + p.oy + sa * p.hand * .6;
+    return { hx, hy, a: p.a, len: 60 * wLen(c) };
+  }
+  function updateThrow(h, dt) {
+    const m = h.throwM; if (!m) return;
+    m.t += dt * m.k;
+    if (!m.released && m.t >= THROW_REL[m.kind]) {
+      const g = throwGrip(h), sp = TEMP.SHOT_SPEED, cx = g.hx + Math.cos(g.a) * g.len * .48, cy = g.hy + Math.sin(g.a) * g.len * .48;   // 손에 그려지던 무기 가운데
+      const sh = { boost: m.boost, kind: m.kind, x: h.x + m.dx * 16, y: h.y + m.dy * 16, vx: m.dx * sp, vy: m.dy * sp, dmg: m.dmg, life: 1.6, age: 0, hits: null };
+      sh.ox = cx - sh.x; sh.oy = cy - (sh.y - 22);   // 판정 자리는 그대로, 그림만 손에서 출발해 0.12초에 날아가는 줄로
+      if (m.kind === 'axe') { sh.spin0 = g.a; sh.big = g.len / 52; }   // 도끼: 놓을 때 각도에서 돌기 시작, 손에 든 크기 그대로
+      G.shots.push(sh); m.released = true; m.relT = G.t; h.handEmpty = true; AUDIO.play('attack');
+    }
+    if (m.t >= TW.wind + TW.swing + TW.follow + .1) h.throwM = null;   // 휘두름 호가 사라질 때까지
   }
   // 무기 끝 (style-guide "원거리 공격 동작"): 손 위치(HAND) + 조준 방향 × 무기 길이 × 0.95 · 총은 총구, 활은 시위 자리
   function weaponTip(aim, ext = 0) {
@@ -2144,6 +2187,18 @@
   }
   // 탄 그림이 무기 끝에서 출발해 0.12초 동안 원래 날아가는 줄로 합쳐져요 (판정 자리는 그대로) · 충격파는 바닥 높이 그대로
   function fromTip(s, tip, ground) { s.ox = tip.x - s.x; s.oy = ground ? 0 : tip.y - (s.y - 22); s.tx = tip.x; s.ty = ground ? s.y : tip.y; return s; }
+  function throwTrail(h, c, hx, hy, a, tp, alpha) {
+    const m = h.throwM, L = 60 * wLen(c);
+    if (tp.ph === 'swing' && !m.released) {   // 휘두르는 0.06초: 앞 프레임 각도로 2개 더(투명도 0.35·0.17) + 무기 끝이 지나간 길 기록
+      if (!reduceMotion) m.hist.slice(-2).reverse().forEach((p, i) => drawWeapon(h, c, h.x + p.hx, h.y + p.hy, p.a, (alpha == null ? 1 : alpha) * (i ? .17 : .35)));
+      m.hist.push({ hx: hx - h.x, hy: hy - h.y, a }); m.arc.push({ x: hx - h.x + Math.cos(a) * L, y: hy - h.y + Math.sin(a) * L, t: m.t });
+    }
+    if (!reduceMotion && m.arc.length > 1) {   // 흰 얇은 호 3px, 투명도 0.55, 0.1초
+      ctx.save(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      for (let i = 1; i < m.arc.length; i++) { const p0 = m.arc[i - 1], p1 = m.arc[i], al = .55 * (1 - (m.t - p1.t) / .1); if (al <= 0) continue; ctx.globalAlpha = al; ctx.beginPath(); ctx.moveTo(h.x + p0.x, h.y + p0.y); ctx.lineTo(h.x + p1.x, h.y + p1.y); ctx.stroke(); }
+      ctx.restore();
+    }
+  }
   // 걷기 (9차 그림): 서기 → A → 서기 → B, 초당 8칸. 걷기 칸 = 방향×2 + (A 0, B 1)
   function bodyFrame(h, cell) {
     const wi = UI.img['walk/' + G.country.key];
@@ -2158,10 +2213,13 @@
     const bm = Object.assign({}, mo, { flip });
     if (bm.rot && flip !== mo.flip) bm.rot = -bm.rot;
     const dead = h.dead || (G.scene === 'ending' && G.ending.fell);
-    const w = weaponAngle(h, aim);
+    const tp = !h.swing && h.throwM ? throwPose(h) : null;
+    const w = tp ? { a: tp.a, push: tp.push } : weaponAngle(h, aim);
     // 손 위치: 128칸 기준 좌표를 게임 크기로 (그림이 192칸이어도 비율이 같아요 · 왼쪽 방향은 x → 128 − x)
     const kk = 60 / 112, hd = HAND[cell], hdx = (hd[0] - 64) * kk * (flip ? -1 : 1), hdy = (hd[1] - 124) * kk;
-    const hx = h.x + (mo.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
+    let hx = h.x + (mo.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
+    if (tp) { const ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); hx += ca * tp.hand; hy += tp.oy + sa * tp.hand * .6; }
+    if (tp && !dead) throwTrail(h, c, hx, hy, w.a, tp, mo.alpha);   // 잔상 2개 + 휘두름 호
     const behind = hd[2];   // 오른쪽위·위를 볼 때는 몸 뒤에
     if (!dead && behind) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
     const bf = bodyFrame(h, cell);
