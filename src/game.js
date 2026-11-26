@@ -498,13 +498,15 @@
     thrust: { hitK: .4, stop: .026, snd: 'impThrust' }, rapid: { hitK: .4, stop: .026, snd: 'impThrust' },
     smash: { hitK: .45, stop: .05, snd: 'impSmash', dust: true }, spin: { hitK: .25, stop: .03, snd: 'impSlash' },
   };
-  const wp = () => WP[G.country.melee] || WP.slash;
+  const WP_GUN = { hitK: .4, stop: .035, snd: 'impThrust', gun: true };   // 총검 (style-guide "미국 공격 고치기"): 멈춤 0.035초 + 1.5px 흔들림
+  const wp = () => (FX.GUN[G.country.key] ? WP_GUN : WP[G.country.melee] || WP.slash);
   function meleeStrike() {
     const h = G.hero, st = G.run.st, sw = h.swing, P = wp();
     const dmg = st.melee * atkMul(), ang0 = sw.ang;
     const mk = G.country.melee, life = FX.meleeTime(mk);
     // 궤적은 가장 강한 칸(6칸 중 3번째)이 명중 프레임에 보이게 그 칸부터 재생해요
-    G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, h0: 26 - Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
+    if (P.gun) { const tp = weaponTip(ang0, 12); sfx('bayonet', tp.x, tp.y, .06, { h0: h.y - tp.y, a: ang0 }); }   // 총검 끝 흰 짧은 섬광
+    else G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, h0: 26 - Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
     const hits = [];
     for (const a of G.aliens) {
       const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
@@ -527,6 +529,7 @@
     const t0 = hits[0];
     // 히트스톱: 한 번만, 무기별 차등 · 보스 결정타는 길게 + 잠깐 느리게
     G.hitstop = killBoss ? .065 : P.stop;
+    if (P.gun && settings.shake) G.shake = Math.max(G.shake, 1.5);
     if (killBoss) G.slow = .12;
     // 카메라 킥 (리뷰 9): 큰 베기·보스급만, 공격축으로 2px 밀었다 돌아와요 (흔들림 끄기 존중은 그릴 때)
     if (P.kick || killBoss || t0.a.type === 'boss') G.kick = { x: t0.nx, y: t0.ny, t: 0 };
@@ -557,7 +560,10 @@
     }
     if (rk === 'water') G.fx.push({ kind: 'splash', x: h.x + dx * 18, y: h.y - 24 + dy * 8, t: 0, life: 0.2 });
     if (rk === 'wave') { AUDIO.play('swing'); G.fx.push({ kind: 'melee', m: G.country.melee === 'bigslash' ? 'bigslash' : 'slash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('slash') * .8 }); }   // 검기: 칼을 휘두르는 궤적 + 검기
-    if (rk === 'bullet') G.fx.push({ kind: 'muzzle', x: tip.x, y: tip.y, h0: h.y - tip.y, a: Math.atan2(dy, dx), t: 0, life: 0.35 });   // 총구에서 번쩍
+    if (FX.GUN[G.country.key]) {   // 총구에서 번쩍 (미국 하늘 별 · 핀란드 금 불꽃 + 연기) · 핀란드는 탄피가 옆으로 튀어 떨어져요
+      G.fx.push({ kind: 'muzzle', key: G.country.key, x: tip.x, y: tip.y, h0: h.y - tip.y, a: Math.atan2(dy, dx), t: 0, life: 0.4 });
+      if (G.country.key === 'finland') sfx('casing', tip.x - dx * 14, tip.y, .4, { h0: h.y - tip.y, side: dx >= 0 ? -1 : 1 });
+    }
     AUDIO.play('attack');
   }
   // ---- 나라별 고유 스킬 (skills.md 확정): 유형 5개 · 라운드마다 2회 · 쓰는 동안 0.5초 무적 · 피해 40 × F ----
@@ -893,7 +899,7 @@
     for (const z of G.zones) {   // 설치: 지름 180 구역 3초
       z.t += dt;
       if (z.k === 'rings') {   // 미국 2: 1초마다 퍼지는 고리가 지나가며 맞혀요
-        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing += 1; }
+        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing += 1; sfx('beatRings', z.x, z.y, .6); }   // 0 / 0.22 / 0.44초 작은 고리 + 가운데 빨강
         for (const rg of z.rings) { const r = (z.t - rg.t0) / .6 * SKB.ZONE_D / 2; if (r > SKB.ZONE_D / 2 + 10) continue;
           hitCircle(z.x, z.y, r + 8, z.base / z.mod.div, { skip: rg.hit, heavy: false, main: false, test: (a, ex, ey, d) => d > r - 14 }); }
         continue;
@@ -1144,6 +1150,18 @@
   function drawSkillFx(e, k) {   // G.fx 의 스킬 효과
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
     const done = () => ctx.restore();
+    if (e.type === 'bayonet') {   // 총검 끝 흰 짧은 찌르기 섬광 14px
+      ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3 * (1 - k) + 1; ctx.beginPath(); ctx.moveTo(e.x - Math.cos(e.a) * 4, e.y - Math.sin(e.a) * 4); ctx.lineTo(e.x + Math.cos(e.a) * 10, e.y + Math.sin(e.a) * 10); ctx.stroke(); return done();
+    }
+    if (e.type === 'redFlash') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 4, '#F2452E'); UI.circ(e.x, e.y, 1.6, '#FFFFFF'); return done(); }   // 지름 8px
+    if (e.type === 'casing') {   // 핀란드 탄피: 금색 3×1.6, 옆으로 튀어 0.4초에 바닥으로
+      ctx.globalCompositeOperation = 'source-over'; const t = e.t, x = e.x + e.side * 40 * t, y = e.y - 30 * t + 220 * t * t; ctx.translate(x, Math.min(y, e.y + e.h0)); ctx.rotate(t * 25); ctx.fillStyle = '#D9AE4F'; ctx.fillRect(-1.5, -.8, 3, 1.6); return done();
+    }
+    if (e.type === 'beatRings') {   // 미국 2: 0 / 0.22 / 0.44초에 고리 하나씩 (0.14초 반지름 8→55) + 박자마다 가운데 빨강 0.04초
+      for (const b of [0, .22, .44]) { const q = (e.t - b) / .14; if (q < 0 || q > 1) continue; ctx.globalAlpha = 1 - q; ctx.strokeStyle = q < .5 ? SKW : '#F2452E'; ctx.lineWidth = 2.5; gEll(e.x, e.y, 8 + 47 * q); ctx.stroke(); }
+      for (const b of [0, .22, .44]) if (e.t >= b && e.t < b + .04) { ctx.globalAlpha = .9; ctx.fillStyle = '#F2452E'; gEll(e.x, e.y - 2, 9); ctx.fill(); }
+      return done();
+    }
     if (e.type === 'pull') {   // 안으로 감기는 나선 3줄
       for (let j = 0; j < 3; j++) { ctx.globalAlpha = (1 - k) * .85; ctx.strokeStyle = j ? SKS : SKW; ctx.lineWidth = 3 - j * .6; ctx.beginPath();
         for (let i = 0; i <= 30; i++) { const q = i / 30, r = SKB.AREA_R * (1 - q) * (1 - k * .6), ang = j * 2.1 + q * 4 + k * 5; ctx.lineTo(e.x + Math.cos(ang) * r, e.y + Math.sin(ang) * r * GK()); } ctx.stroke(); }
@@ -1314,14 +1332,15 @@
     // 피격 실루엣 (리뷰 4): 흰 0.025초 → 몸 색 외곽선 0.07초 · 공격축으로 눌렸다 복원 0.1초
     a.flash = 0.025; a.edgeT = 0.095; a.hitT = 0.1; a.hitAx = Math.abs(nx) >= Math.abs(ny) ? 'x' : 'y';
     // 넉백 (리뷰 2): 처음 0.04초는 쫓아오기를 15%로 눌러 실제로 밀려나요 → 35ms에 약 5px, 이후 3~4px 더
-    const kb = a.type === 'boss' ? 60 : heavy ? 200 : 120;
+    const kb = a.type === 'boss' ? 60 : heavy ? 200 : o.gun ? 50 : 120;   // 총알은 2px만 밀렸다 돌아와요
     a.kb = { x: nx * kb, y: ny * kb }; a.stun = a.type === 'boss' ? 0.02 : 0.04;
     // 접촉점 (리뷰 3): 몸 가운데에서 공격이 들어온 쪽으로 6~10px
     const cy = a.y - (a.type === 'boss' ? 50 : 20), off = Math.min(10, a.r * .5 + 2);
     const cx = a.x - nx * off, cyy = cy - ny * off * .6;
     const h0 = a.y - cyy;   // 3D: 바닥에서 높이
     if (main) G.fx.push({ kind: 'core', x: cx, y: cyy, h0, t: 0, life: .1 });   // 흰 코어 0.025초 + 옅은 금 꼬리
-    G.fx.push({ kind: 'hit', x: cx, y: cyy, h0, dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), alpha: main ? 1 : .5, t: 0, life: heavy ? 0.14 : 0.12 });
+    if (o.gun) G.fx.push({ kind: 'gunHit', key: o.gun, x: cx, y: cyy, h0, dir: Math.atan2(ny, nx), t: 0, life: .12 });   // 총알: 하늘색(미국)·금빛(핀란드) 튀김
+    else G.fx.push({ kind: 'hit', x: cx, y: cyy, h0, dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), alpha: main ? 1 : .5, t: 0, life: heavy ? 0.14 : 0.12 });
     // 방향성 파편 (리뷰 8): 몸 색 2~4개, 공격 방향 ±35°
     shardBurst(cx, cyy, Math.atan2(ny, nx), alienCol(a), main ? 3 : 2, o.finisher ? 1.2 : 1, 0, h0);
     if (!heavy) AUDIO.play('hit');
@@ -1489,7 +1508,7 @@
         if (s.bounce > 0) {   // 미국 1: 방 벽에 한 번 튕겨요
           s.bounce--; if (s.x < f.x0 - 10 || s.x > f.x1 + 10) s.vx = -s.vx; if (s.y < f.y0 - 10 || s.y > f.y1 + 10) s.vy = -s.vy;
           s.x = clamp(s.x, f.x0 - 9, f.x1 + 9); s.y = clamp(s.y, f.y0 - 9, f.y1 + 9);
-          G.fx.push({ kind: 'hit', x: s.x, y: s.y - 22, h0: 22, dir: Math.atan2(s.vy, s.vx), big: false, col: '#C9CED6', alpha: .6, t: 0, life: .1 });
+          sfx('redFlash', s.x, s.y - 22, .06, { h0: 22 });   // 미국 1: 벽에 튕기는 자리 빨강 섬광 8px
         } else s.life = 0;
       }
       if (s.life <= 0 && s.lob != null) { hitCircle(s.x, s.y, 30, s.lob, { heavy: false }); sfx('ringOut', s.x, s.y, .3, { r: 30 }); }   // 떨어진 자리 작은 원
@@ -1502,7 +1521,8 @@
         continue;
       }
       if (s.life <= 0 && s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 });
-      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); if (s.tailCol) sfx('pop', a.x, a.y, .15, { col: s.tailCol }); s.life = 0; if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
+      const gunK = (s.kind === 'beam' || s.kind === 'bullet') && FX.GUN[G.country.key] ? G.country.key : null;
+      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED, false, { gun: gunK }); if (s.tailCol) sfx('pop', a.x, a.y, .15, { col: s.tailCol }); s.life = 0; if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
     }
     G.shots = G.shots.filter(s => s.life > 0);
     G.aliens = G.aliens.filter(a => !a.dead);
@@ -1811,7 +1831,8 @@
       else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
       else if (e.kind === 'corpse') { const q = Math.min(1, k), mo = { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }; if (e.cell != null) UI.cellSprite(e.img, 15, e.cell, e.x, e.y + 2, e.hgt, mo); else UI.sprite(e.img, e.x, e.y + 2, e.hgt, mo); }
       else if (e.kind === 'groundRing') { ctx.save(); ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
-      else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
+      else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key);
+      else if (e.kind === 'gunHit') { if (settings.flash) FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); }
       else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }   // 번쩍임 끄면 외곽선·파편으로만
       else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
@@ -1835,7 +1856,7 @@
   // ---- 2.5D (B안, 사용자 "b안"): 바닥·벽·문은 3D, 장수·외계인·화폐는 판(빌보드), 효과·HUD는 2D를 원근에 맞춰 위에 겹쳐요 ----
   const HERO_BOX = { l: 80, t: 104, w: 160, h: 144, k: 2 };          // 장수 판: 발 기준 왼쪽 80 · 위 104 (무기 포함) · 2배 해상도
   const GROUND_BOX = { w: 76, h: 30, k: 2, stretch: 2.1 };           // 발밑 빛·화폐 고리 (2D 납작 타원을 바닥에 맞게 세로로 늘려요)
-  const FX_H0 = { melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0, ghost: 0, skill: 0, jumpLand: 0 };   // 효과가 뜨는 높이 (바닥에서)
+  const FX_H0 = { gunHit: 20, melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0, ghost: 0, skill: 0, jumpLand: 0 };   // 효과가 뜨는 높이 (바닥에서)
   let heroCv = null, heroTex = null, groundCv = null, groundTex = null;
   const itemCv = [], itemTex = [], jumpCv = [], jumpTex = [];
   const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -1919,7 +1940,8 @@
         else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }
         else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
         else if (e.kind === 'groundRing') { ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); }
-        else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t);
+        else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key);
+      else if (e.kind === 'gunHit') { if (settings.flash) FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); }
         else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }
         else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
         else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); }
@@ -2020,7 +2042,8 @@
     else if (h.swing) {
       const s = h.swing, t1 = SWING.wind, t2 = t1 + SWING.strike, ca = Math.cos(s.ang), sa = Math.sin(s.ang);
       let lunge;
-      if (s.t < t1) { frame = 5; lunge = -3 * (s.t / t1); }
+      if (FX.GUN[c.key]) { frame = s.t < .06 ? 5 : 6; lunge = s.t < .06 ? -1 * s.t / .06 : s.t < .11 ? -1 + 4 * (s.t - .06) / .05 : s.t < .23 ? 3 * (1 - (s.t - .11) / .12) : 0; }   // 총검: 내지를 때 몸 3px 앞으로
+      else if (s.t < t1) { frame = 5; lunge = -3 * (s.t / t1); }
       else if (s.t < t2) { frame = 6; const k = (s.t - t1) / SWING.strike; lunge = -3 + 9 * (1 - Math.pow(1 - k, 3)); }
       else { frame = 6; lunge = 6 * (1 - (s.t - t2) / SWING.follow); }
       if (!reduceMotion) {
@@ -2030,6 +2053,7 @@
         mo.rot = (mo.flip ? -1 : 1) * (s.t < t1 ? -.1 : .14 * Math.max(0, lunge) / 6);
       }
     }
+    else if (h.atkT > 0 && FX.GUN[c.key]) { frame = 6; const e = G.t - (h.shotT == null ? -9 : h.shotT); if (!reduceMotion && e < .06) mo.ox = -Math.cos(h.aimShot || 0) * (1 - e / .06); }   // 총: 반동은 몸 1px 뒤로만, 기울지 않아요
     else if (h.atkT > 0) { frame = h.atkT > .14 ? 5 : 6; if (!reduceMotion) { mo.rot = (mo.flip ? -1 : 1) * .16 * Math.sin((1 - h.atkT / .22) * Math.PI); mo.sx = 1.04; mo.sy = 1.04; } }
     else if (h.moving) { frame = reduceMotion ? 0 : 1 + Math.floor(h.walkT * 8) % 4; if (!reduceMotion) { const p = Math.abs(Math.sin(h.walkT * 11)); mo.oy = -p * 2; mo.rot = clamp(h.dir.x * .1, -.12, .12); } }
     else if (!reduceMotion) mo.sy = 1 + Math.sin(t * 2.2) * .015;
@@ -2051,13 +2075,16 @@
   const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
   const GUN_REST = 0.175; // 총은 쉴 때 아래로 10°만 (style-guide "총 모션", 사용자 "총검술 몰라?")
   const THROWN = k => FX.THROWN(k) || k === 'boomerang';
+  const GUN_SC = 32 / 46;   // 코드 총 길이 46 → 32px (style-guide "미국 공격 고치기")
   function weaponAngle(h, a) {
     // 치기: 예비동작(뒤로) → 스윙(반대쪽까지) → 마무리(돌아옴). 찌르기는 각도 대신 앞뒤로 밀어요
     const s = h.swing;
     if (FX.GUN[G.country.key]) {   // 미국·핀란드 총: 쏘기↔쉬기 각도를 0.15초 동안 부드럽게, 연사 중엔 쉬기로 안 돌아가요
       const tgt = s || h.rangedT > 0 || h.barrage ? 0 : 1, dtd = Math.min(.1, Math.max(0, G.t - (h.gunLast == null ? G.t : h.gunLast))); h.gunLast = G.t;
       h.gunK = h.gunK == null ? tgt : h.gunK + Math.sign(tgt - h.gunK) * Math.min(Math.abs(tgt - h.gunK), dtd / .15);
-      if (!s) { const e = G.t - (h.shotT == null ? -9 : h.shotT); return { a: a + (Math.cos(a) >= 0 ? GUN_REST : -GUN_REST) * h.gunK, push: e < .06 ? -3 * (1 - e / .06) : 0 }; }   // 반동: 총 축 뒤로 3px, 0.06초
+      if (!s) { const e = G.t - (h.shotT == null ? -9 : h.shotT); return { a: a + (Math.cos(a) >= 0 ? GUN_REST : -GUN_REST) * h.gunK, push: e < .06 ? -4 * (1 - e / .06) : 0 }; }   // 반동: 총 축 뒤로 4px, 0.06초 (위로 안 들려요)
+      const p = s.t < .06 ? -4 * s.t / .06 : s.t < .11 ? -4 + 16 * (1 - Math.pow(1 - (s.t - .06) / .05, 3)) : s.t < .23 ? 12 * (1 - (s.t - .11) / .12) : 0;   // 총검: 0.06초 4px 당김 → 0.05초 12px 내지름 → 0.12초 복귀
+      return { a: s.ang, push: p };
     }
     if (!s) return { a: h.rangedT > 0 ? a : a + (Math.cos(a) >= 0 ? REST : -REST), push: 0 };   // 쉴 때는 30° 아래로
     const mk = G.country.melee, side = Math.cos(s.ang) >= 0 ? 1 : -1, t1 = SWING.wind, t2 = t1 + SWING.strike;
@@ -2091,7 +2118,7 @@
     }
     // 던진 직후엔 손이 비어요 (무기가 날아가는 중)
     if (THROWN(ranged) && h.rangedT > 0.12) { ctx.restore(); return; }
-    if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py, a, Math.cos(a) < 0, .65); ctx.restore(); return; }   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
+    if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py - 4, a, Math.cos(a) < 0, GUN_SC); ctx.restore(); return; }   // 4px 위로 손에 붙여요 · 총검 포함 32px   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
     const im = UI.img['weapon/' + c.key];
     if (im && im.naturalWidth) {
       const sc = len / 192;   // 그림 폭 192 → len
@@ -2101,10 +2128,10 @@
     ctx.restore();
   }
   // 무기 끝 (style-guide "원거리 공격 동작"): 손 위치(HAND) + 조준 방향 × 무기 길이 × 0.95 · 총은 총구, 활은 시위 자리
-  function weaponTip(aim) {
+  function weaponTip(aim, ext = 0) {
     const h = G.hero, c = G.country, o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
     const kk = 60 / 112, hd = HAND[cell], hx = h.x + (hd[0] - 64) * kk * (flip ? -1 : 1), hy = h.y + (hd[1] - 124) * kk, ca = Math.cos(aim), sa = Math.sin(aim);
-    if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * 30, y: hy + sa * 30 };   // 코드 총: 길이 46 × 0.65 ≈ 30
+    if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * (32 + ext), y: hy - 4 + sa * (32 + ext) };   // 코드 총: 32px, 손보다 4px 위
     if (c.ranged === 'arrow') return { x: hx + ca * 8, y: hy + sa * 6 };   // 활 가운데(시위 자리)
     const L = 60 * wLen(c) * .95; return { x: hx + ca * L, y: hy + sa * L };
   }

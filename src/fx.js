@@ -109,8 +109,16 @@
       x.strokeStyle = g; x.lineWidth = 4; x.beginPath(); x.moveTo(-30, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#FFFFFF'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(-8, 0); x.lineTo(6, 0); x.stroke(); x.restore(); },
     arrow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-34, 0); x.lineTo(-12, 0); x.stroke(); x.strokeStyle = '#8A5A2B'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-12, 0); x.lineTo(10, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(14, 0); x.lineTo(8, -3.5); x.lineTo(8, 3.5); x.fill(); x.fillStyle = '#F2E3C6'; x.fillRect(-13, -3, 5, 2); x.fillRect(-13, 1, 5, 2); x.restore(); },
     crossbow(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-26, 0); x.lineTo(-6, 0); x.stroke(); x.fillStyle = '#5A3429'; x.fillRect(-6, -2, 14, 4); x.fillStyle = '#C9C9C9'; x.beginPath(); x.moveTo(13, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
-    bullet(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); const g = x.createLinearGradient(-40, 0, 4, 0); g.addColorStop(0, PALE + '0)'); g.addColorStop(1, 'rgba(255,255,255,.9)'); x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(-40, 0); x.lineTo(2, 0); x.stroke(); UI.circ(3, 0, 2.8, '#FFFFFF'); x.restore(); },
-    beam(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.lineCap = 'round'; x.strokeStyle = GLOW; x.lineWidth = 6; x.shadowColor = GLOW; x.shadowBlur = 3; x.beginPath(); x.moveTo(-46, 0); x.lineTo(6, 0); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 3; x.shadowBlur = 0; x.stroke(); x.restore(); },
+    // 총알 (style-guide "미국 공격 고치기 + 총알 모양"): 핀란드 = 금빛 탄두 4×3 + 옅은 금 예광 18px
+    bullet(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.lineCap = 'round';
+      const g = x.createLinearGradient(-18, 0, 0, 0); g.addColorStop(0, 'rgba(255,230,160,0)'); g.addColorStop(1, 'rgba(255,230,160,.85)'); x.strokeStyle = g; x.lineWidth = 1.6; x.beginPath(); x.moveTo(-18, 0); x.lineTo(0, 0); x.stroke();
+      x.fillStyle = '#FFE6A0'; x.beginPath(); x.ellipse(0, 0, 2, 1.5, 0, 0, Math.PI * 2); x.fill(); x.restore(); },
+    // 미국 에너지탄 = 흰 탄두 6×4 + 하늘색 빛무리 지름 9 + 하늘색 꼬리 24px (뒤로 갈수록 가늘고 투명)
+    beam(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter';
+      x.fillStyle = 'rgba(95,180,238,.55)'; x.beginPath(); x.moveTo(0, -2.6); x.lineTo(-24, -.3); x.lineTo(-24, .3); x.lineTo(0, 2.6); x.closePath();
+      const g = x.createLinearGradient(-24, 0, 0, 0); g.addColorStop(0, 'rgba(95,180,238,0)'); g.addColorStop(1, 'rgba(95,180,238,.8)'); x.fillStyle = g; x.fill();
+      const h = x.createRadialGradient(0, 0, 0, 0, 0, 4.5); h.addColorStop(0, 'rgba(95,180,238,.9)'); h.addColorStop(1, 'rgba(95,180,238,0)'); x.fillStyle = h; x.beginPath(); x.arc(0, 0, 4.5, 0, Math.PI * 2); x.fill();
+      x.globalCompositeOperation = 'source-over'; x.fillStyle = '#FFFFFF'; x.beginPath(); x.ellipse(0, 0, 3, 2, 0, 0, Math.PI * 2); x.fill(); x.restore(); },
     axe(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 22); x.fillStyle = '#6B4A2E'; x.fillRect(-1.5, -11, 3, 22); x.fillStyle = '#C9CDD3'; x.beginPath(); x.moveTo(1, -11); x.quadraticCurveTo(13, -6, 9, 4); x.lineTo(1, -3); x.fill(); x.restore(); },
     spear(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.strokeStyle = '#6B4A2E'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-30, 0); x.lineTo(8, 0); x.stroke(); x.fillStyle = '#D9D2C5'; x.beginPath(); x.moveTo(18, 0); x.lineTo(7, -4); x.lineTo(7, 4); x.fill(); x.restore(); },
     boomerang(x, px, py, dir, t) { x.save(); x.translate(px, py); x.rotate(t * 26); x.strokeStyle = '#C9A24A'; x.lineWidth = 5; x.lineCap = 'round'; x.beginPath(); x.arc(0, 6, 11, -2.6, -.5); x.stroke(); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.stroke(); x.restore(); },
@@ -142,7 +150,16 @@
     for (let i = 0; i < 8; i++) { const a = -Math.PI * (i / 7) - .1, d = 6 + q * 20; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d * .8 + q * q * 14, 2.4 - q, i % 2 ? '#FFFFFF' : '#5BC0FF'); }
     x.restore();
   }
-  function muzzle(x, px, py, dir, q) {
+  function muzzle(x, px, py, dir, q, key) {
+    if (key === 'usa') {   // 하늘색 별 4갈래 14px + 흰 점, 0.035초
+      if (q < 0 || q > .035) return; x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; star(x, 0, 0, 4, 7, 1.8, '#5FB4EE'); UI.circ(0, 0, 2, '#FFFFFF'); x.restore(); return;
+    }
+    if (key === 'finland') {   // 옅은 금 3갈래 불꽃 10px 0.04초 + 회색 연기 한 줌 0.4초
+      if (q < 0 || q > .4) return;
+      if (q < .04) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgba(255,230,160,.95)';
+        for (const a of [-.45, 0, .45]) { x.beginPath(); x.moveTo(0, -1.4); x.lineTo(Math.cos(a) * (a ? 7 : 10), Math.sin(a) * (a ? 7 : 10)); x.lineTo(0, 1.4); x.fill(); } x.restore(); }
+      const f = 1 - q / .4; x.save(); x.globalAlpha = .45 * f; UI.circ(px + Math.cos(dir) * 4 * q / .4, py - 3 - q * 14, 3 + q * 12, 'rgba(160,160,160,.7)'); x.restore(); return;
+    }
     if (q < 0 || q > .35) return;
     const f = 1 - q / .35;
     x.save(); x.globalAlpha = f; star(x, px, py, 6, 7 * f + 2, 2.5, GLOW); star(x, px, py, 6, 4 * f + 1, 1.5, '#FFFFFF'); x.restore();
@@ -150,6 +167,13 @@
   }
   // 맞음: 흰 별 + 외계인 색 파편 6개
   // 타격 섬광: 둥근 빛 + 큰 흰 별 + 공격 방향으로 튀는 줄 3개 + 외계인 색 파편
+  // 총알 맞음: 미국 = 하늘색 튀김 원(3→8px, 0.12초) + 빨강 점 3개 · 핀란드 = 금빛 튀김 + 불꽃 점 3개
+  function gunHit(x, px, py, q, key, dir = 0) {
+    if (q < 0 || q > 1) return; const f = 1 - q, usa = key === 'usa';
+    x.save(); x.globalAlpha = f; x.strokeStyle = usa ? '#5FB4EE' : '#FFE6A0'; x.lineWidth = 2; x.beginPath(); x.arc(px, py, 3 + 5 * q, 0, Math.PI * 2); x.stroke();
+    for (let i = -1; i <= 1; i++) { const a = dir + Math.PI + i * .7, d = 4 + q * 10; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d + q * q * 4, 1.3, usa ? '#F2452E' : '#FFB347'); }
+    x.restore();
+  }
   function hit(x, px, py, q, col, dir = 0, big) {
     if (q < 0 || q > 1) return;
     const s = big ? 1.5 : 1, f = 1 - q;
@@ -246,7 +270,7 @@
     drawHitAny(px, py, q, col, dir, big, green, alpha = 1, size) { if (!sheet('hit', q, px, py, dir || 0, size || (big ? 24 : 20), .75 * alpha, green)) hit(UI.x, px, py, q, col, dir, big); },
     GUN,
     drawGun(key, px, py, ang, flipY, sc = 1) { const g = GUN[key]; if (!g) return false; const x = UI.x; x.save(); x.translate(px, py); x.rotate(ang); x.scale(sc, flipY ? -sc : sc); g(x); x.restore(); return true; },
-    MELEE, SHOT, muzzle, hit, splash,
+    MELEE, SHOT, muzzle, hit, gunHit, splash,
     // 궤적 수명 (리뷰 6): 베기 0.12 · 큰 베기 0.15 · 찌르기 0.08 · 내려찍기 0.13 · 회전 0.21
     meleeTime: k => ({ slash: .12, bigslash: .15, thrust: .08, rapid: .16, smash: .13, spin: .21 }[k] || .12),
     drawMelee(kind, cx, cy, dir, p) { (MELEE[kind] || MELEE.slash)[1](UI.x, cx, cy, dir, p); },
