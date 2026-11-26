@@ -1648,7 +1648,7 @@
       case 'loading': return drawLoading();
       case 'title': return drawTitle();
       case 'select': return drawSelect();
-      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); if (G.paused && !G.hold) drawPause(); return;
+      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); drawInvTimer(); if (G.paused && !G.hold) drawPause(); return;
       case 'roundPanel': drawField(); drawHUD(); drawRoundPanel(); return;
       case 'ending': drawField(); drawEnding(); return;
       case 'result': return drawResult();
@@ -2036,7 +2036,9 @@
     const money = r ? Math.max(0, r.money) : 50;
     // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
     if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }
-    if (h.boostT > 0 && !reduceMotion) { const sp = G.t * 2.5 * 2; ctx.save(); ctx.strokeStyle = '#C9CED6'; ctx.lineWidth = 2; ctx.globalAlpha = h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0 ? .85 : .2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, sp + i * 2.09, sp + i * 2.09 + 1.3); ctx.stroke(); } ctx.restore(); }   // 무적 중: 발밑 은 고리(지름 44)가 평소의 2.5배 속도로 돌아요   // 넓은 그림자 + 발밑 진한 그림자
+    if (h.boostT > 0) { const q = Math.min(1, h.boostT / BAL.SKILL_TIME), red = h.boostT <= .4; ctx.save(); ctx.lineCap = 'round';   // 무적 남은 시간 (style-guide C안): 발밑 고리가 12시부터 시계 방향으로 남은 만큼, 0.4초 남으면 빨강
+      ctx.strokeStyle = 'rgba(201,206,214,.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = red ? '#FF6B6B' : '#C9CED6'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * q); ctx.stroke(); ctx.restore(); }
     { const ga = .25 + .65 * Math.min(1, money / 100);   // 돈 비율만큼 발밑 금빛 (납작한 판 대신 퍼지는 빛)
       ctx.save(); ctx.translate(h.x, h.y); ctx.scale(1, .32); ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); g.addColorStop(0, `rgba(255,209,102,${ga * .75})`); g.addColorStop(.55, `rgba(255,209,102,${ga * .35})`); g.addColorStop(1, 'rgba(255,209,102,0)');
@@ -2351,11 +2353,12 @@
     const h = G.hero, r = G.run, drag = aim && aim.drag, dim = drag ? .35 : 1;
     ctx.globalAlpha = dim; UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(255,255,255,.12)', 'rgba(255,255,255,.35)', 2);
     UI.circ(B.stick.x + rstick.x * (STICK_R - 26), B.stick.y + rstick.y * (STICK_R - 26), 26, rstick.id != null ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.5)', null, 0); ctx.globalAlpha = 1;
-    const arrow = (b, me, gold, glow) => {   // 바깥쪽 끝이 뾰족한 진한 판
+    const arrow = (b, me, gold, glow, fillQ) => {   // 바깥쪽 끝이 뾰족한 진한 판 · fillQ: 아래에서 위로 은 55% 채움 (무적 남은 비율)
       const R = b.r; ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a);
       ctx.beginPath(); ctx.moveTo(-R, -R); ctx.lineTo(R * .45, -R); ctx.lineTo(R, 0); ctx.lineTo(R * .45, R); ctx.lineTo(-R, R); ctx.closePath();
-      ctx.fillStyle = glow ? 'rgba(201,206,214,.55)' : 'rgba(20,22,34,.82)'; ctx.fill();
-      ctx.strokeStyle = me ? '#E8D9A8' : gold ? '#E8D9A8' : 'rgba(255,255,255,.7)'; ctx.lineWidth = me ? 3 : 2; ctx.stroke(); ctx.restore();
+      ctx.fillStyle = glow && fillQ == null ? 'rgba(201,206,214,.55)' : 'rgba(20,22,34,.82)'; ctx.fill();
+      if (fillQ != null) { ctx.save(); ctx.clip(); ctx.rotate(-b.a); ctx.fillStyle = 'rgba(201,206,214,.55)'; ctx.fillRect(-R * 1.5, R - R * 2 * fillQ, R * 3, R * 2 * fillQ); ctx.restore(); }
+      ctx.strokeStyle = me ? '#E8D9A8' : gold ? '#E8D9A8' : fillQ != null ? '#C9CED6' : 'rgba(255,255,255,.7)'; ctx.lineWidth = me ? 3 : 2; ctx.stroke(); ctx.restore();
     };
     const badge = (b, n) => { const bx = b.x + b.r * .62, by = b.y - b.r * .62; UI.circ(bx, by, 10, '#D9AE4F'); UI.txt(String(n), bx, by, 12, COL.icon, 'center', 800); };
     const meDown = mArrow.id != null;
@@ -2364,7 +2367,7 @@
       const me = drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (drag && !me ? dim : 1);
       arrow(b, me, false, false); UI.txt(String(n), b.x, b.y + 1, 26, COL.fg, 'center', 900); badge(b, sLeft(n)); ctx.globalAlpha = 1;
     }
-    ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 3초 동안 은빛
+    ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0, h.boostT > 0 ? Math.min(1, h.boostT / BAL.SKILL_TIME) : null); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 2초 동안 은 채움이 남은 만큼 줄어요
     if (aim && aim.drag) {   // 취소 원: 버튼 둘레 (반지름 + 14) · 들어오면 밝아져요
       const b = aim.b, cr = b.r + 14, on = aim.cancel;
       ctx.save(); ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : 'rgba(15,17,22,.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, cr, 0, Math.PI * 2); ctx.fill();
@@ -2381,7 +2384,16 @@
     if (use3d && R3D.built) { const p = R3D.proj(h.x, h.y); return { x: fb.x + p.x * fb.s, y: fb.y + (p.y - 70 * p.s) * fb.s }; }
     return { x: fb.x + h.x * fb.s, y: fb.y + (h.y - 70) * fb.s };
   }
+  let shoutBox = null;
+  function drawInvTimer() {   // 무적 남은 초: 머리 위 16px, 0.1초 단위, 굵게 11px 흰색 + 어두운 띠 28×13 · 0.4초부터 빨강 + 두근 (style-guide C안)
+    const h = G.hero; if (!h || !(h.boostT > 0) || h.dead) return;
+    const hd = heroHead(), red = h.boostT <= .4, p = red && !reduceMotion ? 1 + .25 * Math.abs(Math.sin(h.boostT * Math.PI * 5)) : 1;
+    let y = hd.y - 16;
+    if (shoutBox && hd.x > shoutBox.x0 - 20 && hd.x < shoutBox.x1 + 20 && y + 7 > shoutBox.y0 && y - 7 < shoutBox.y1) y = shoutBox.y1 + 12;   // 외침 말풍선과 겹치면 그 아래로
+    ctx.save(); ctx.translate(hd.x, y); ctx.scale(p, p); UI.rr(-14, -6.5, 28, 13, 4, 'rgba(10,11,15,.62)'); UI.txt((Math.ceil(h.boostT * 10) / 10).toFixed(1), 0, .5, 11, red ? '#FF6B6B' : '#FFFFFF', 'center', 900); ctx.restore();
+  }
   function drawMsgs() {
+    shoutBox = null;
     for (const m of G.msgs) {
       const a = Math.min(1, m.t / .3);
       ctx.globalAlpha = a;
@@ -2391,7 +2403,7 @@
         const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
         UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, UI.x.measureText(m.text).width + 36));
         const HUD_B = VH * .17 + 16, x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22 - 18 * p < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + 18 * p, VH - 40);   // 위 HUD(체력·남은 외계인·일시정지)를 가리면 장수 발밑으로
-        UI.rr(x - w / 2, y - 18 * p, w, (m.sub ? 50 : 36) * p, 10, 'rgba(10,11,15,.62)');
+        UI.rr(x - w / 2, y - 18 * p, w, (m.sub ? 50 : 36) * p, 10, 'rgba(10,11,15,.62)'); shoutBox = { x0: x - w / 2, x1: x + w / 2, y0: y - 18 * p, y1: y - 18 * p + (m.sub ? 50 : 36) * p };
         if (m.rtl) ctx.direction = 'rtl';
         UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, w - 28);
         ctx.direction = 'ltr';
