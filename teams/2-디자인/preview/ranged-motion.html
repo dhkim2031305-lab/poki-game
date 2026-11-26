@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>원거리 공격 동작</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p{color:var(--sub);margin:0 0 12px;max-width:980px}
+.card{background:var(--card);border-radius:12px;padding:10px;margin-bottom:12px;overflow-x:auto}
+.card h2{font-size:14px;margin:0 0 6px}.card p{margin:6px 0 0;font-size:13px}
+canvas{display:block}
+</style></head><body>
+<h1>원거리 공격 동작 시안 (프레임 묶음)</h1>
+<p>몸 그림은 멈춘 그림이라, 무기 회전·손 위치 이동·몸 기울기·늘였다 줄이기·무기 잔상으로 "손이 움직이는" 느낌을 내요. 빨간 점 = 탄·검기·던진 무기가 생기는 자리(무기 끝). 오른쪽을 향해 쏘는 기준이에요.</p>
+<div id="R"></div>
+<script>
+const WH='#FFFFFF',SV='#C9CED6',GD='#E8D9A8';
+const ACTS=[
+ {t:'던지기 · 창 (리투아니아·뉴질랜드·그리스·스위스·폴란드)',d:'창을 조준 방향 그대로 뒤로 12px 당기고 위로 6px 올림(0.08초) → 앞으로 14px 내지름(0.06초), 가장 앞에서 손을 떠나요. 창은 돌지 않고 곧게 날아가요.',k:'spear'},
+ {t:'던지기 · 도끼 (아일랜드·덴마크·캐나다·슬로바키아)',d:'도끼를 머리 뒤로 젖힘(조준 −130°, 0.08초) → 위에서 앞으로 크게 휘둘러(+20°까지, 0.06초) 조준 각도를 지나는 순간 놓아요. 날아가며 돌아요.',k:'axe'},
+ {t:'던지기 · 부메랑 (호주)',d:'옆으로 젖힘(조준 +100°) → 옆으로 휘둘러 놓기. 되돌아오면 장수 30px 안에서 손을 내밀어 받아요(무기가 1.2배로 톡 나타났다 1배, 은빛 반짝).',k:'boom'},
+ {t:'검기 (15개국)',d:'치기와 같은 휘두르기(예비 0.07 → 베기 0.09). 칼끝이 조준 각도를 지나는 순간 칼끝 자리에서 검기가 떨어져 나가요.',k:'wave'},
+ {t:'충격파 (체코 도리깨)',d:'도리깨를 높이 들었다 내리찍기. 도리깨 머리가 바닥(발 높이 선)에 닿는 자리에서 충격파가 땅을 따라 나가요.',k:'quake'},
+ {t:'총 (미국·핀란드)',d:'총은 수평 유지(확정 총 모션). 쏘는 순간 총구에서 섬광 + 탄, 총은 축 뒤로 3px 반동(0.06초), 몸도 1px 뒤로.',k:'gun'},
+ {t:'활 (한국)',d:'시위를 당김(0.10초: 화살이 뒤로 8px, 활이 가로로 0.92배 휨) → 놓기: 화살이 활 가운데에서 나가고, 활이 1.06배로 떨렸다 돌아와요(0.08초).',k:'bow'},
+ {t:'투석 (이스라엘)',d:'손 위에서 투석 주머니를 한 바퀴 돌림(반지름 14px, 0.14초, 은빛 원 궤적) → 주머니가 조준 방향 접선이 되는 순간 그 자리에서 돌이 나가요.',k:'sling'},
+];
+const F=6,CW=130,CH=120;
+function body(x,ox,oy,sx,sy,rot){x.save();x.translate(40+ox,96+oy);x.rotate(rot||0);x.scale(sx,sy);
+ x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(0,4,16,5,0,0,7);x.fill();
+ x.fillStyle='#7d5a44';x.fillRect(-9,-38,18,30);x.fillStyle='#d9b38c';x.beginPath();x.arc(0,-46,8,0,7);x.fill();x.fillStyle='#9aa3b5';x.fillRect(-9,-57,18,7);
+ x.fillStyle='#3a3f52';x.fillRect(-8,-8,7,10);x.fillRect(1,-8,7,10);x.restore()}
+function weapon(x,k,hx,hy,a,len,alpha){x.save();x.globalAlpha=alpha;x.translate(hx,hy);x.rotate(a);
+ x.strokeStyle='#8a6a48';x.lineWidth=3;x.beginPath();x.moveTo(-4,0);x.lineTo(len*.75,0);x.stroke();
+ x.fillStyle='#d8dde6';
+ if(k==='spear'){x.beginPath();x.moveTo(len*.75,-4);x.lineTo(len,0);x.lineTo(len*.75,4);x.fill()}
+ else if(k==='axe'){x.beginPath();x.moveTo(len*.7,0);x.quadraticCurveTo(len*.95,-12,len*.85,-16);x.lineTo(len*.72,-4);x.fill()}
+ else if(k==='boom'){x.strokeStyle='#d8dde6';x.lineWidth=5;x.beginPath();x.moveTo(0,0);x.lineTo(len*.5,-10);x.lineTo(len,0);x.stroke()}
+ else if(k==='wave'){x.strokeStyle='#e6ebf2';x.lineWidth=4;x.beginPath();x.moveTo(4,0);x.lineTo(len,0);x.stroke();x.fillRect(0,-5,4,10)}
+ else if(k==='quake'){x.strokeStyle='#999';x.lineWidth=2;x.beginPath();x.moveTo(len*.75,0);x.lineTo(len,0);x.stroke();x.fillStyle='#cfd5de';x.beginPath();x.arc(len,0,6,0,7);x.fill()}
+ x.restore()}
+function gun(x,hx,hy,push){x.save();x.translate(hx+push,hy);x.fillStyle='#1F2E5C';x.fillRect(-4,-3,36,7);x.fillStyle='#C9CED6';x.fillRect(32,-1,6,3);x.fillStyle='#5a3a22';x.fillRect(-10,-2,8,7);x.restore()}
+function dot(x,px,py){x.fillStyle='#ff4d4d';x.beginPath();x.arc(px,py,4,0,7);x.fill();x.strokeStyle='#fff';x.lineWidth=1;x.stroke()}
+function arcTrail(x,hx,hy,r,a0,a1){x.save();x.strokeStyle='rgba(255,255,255,.55)';x.lineWidth=3;x.beginPath();x.arc(hx,hy,r,Math.min(a0,a1),Math.max(a0,a1));x.stroke();x.restore()}
+const LABEL=['쉬기','젖히기(0.08)','휘두름(0.03)','놓는 순간','따라가기','돌아옴'];
+ACTS.forEach(A=>{const d=document.createElement('div');d.className='card';d.innerHTML=`<h2>${A.t}</h2><canvas width="${F*CW}" height="${CH+18}"></canvas><p>${A.d}</p>`;document.getElementById('R').appendChild(d);
+ const x=d.querySelector('canvas').getContext('2d');
+ for(let f=0;f<F;f++){x.save();x.translate(f*CW,18);x.fillStyle='#2b2a33';x.fillRect(2,0,CW-4,CH);
+  x.fillStyle='#9aa0b4';x.font='11px system-ui';x.fillText(A.k==='bow'?['쉬기','당기기','당기기 끝','놓는 순간','떨림','돌아옴'][f]:A.k==='gun'?['쉬기','조준','조준','쏘는 순간','반동 복귀','쉬기'][f]:A.k==='sling'?['쉬기','돌리기 1/4','돌리기 1/2','놓는 순간','따라가기','돌아옴'][f]:A.k==='boom'&&f==5?'받기':LABEL[f],6,-5);
+  const lean=[0,-2,0,3,2,0][f],sq=[[1,1],[1.02,.96],[.99,1.02],[.97,1.04],[.99,1.01],[1,1]][f];
+  body(x,lean,0,sq[0],sq[1],[0,-.05,0,.06,.03,0][f]);
+  const hx=50+lean,hy=62;const len=44;
+  if(A.k==='spear'){const pb=[0,-12,-4,14,6,0][f],up=[0,-6,-3,0,0,0][f];
+   if(f<=3)weapon(x,'spear',hx+pb,hy+up,0,len,1);if(f===2)weapon(x,'spear',hx-8,hy-5,0,len,.3);
+   if(f===3)dot(x,hx+pb+len,hy);if(f>=3){x.save();x.globalAlpha=.9;weapon(x,'spear',hx+pb+[0,0,0,0,40,80][f],hy,0,len,1);x.restore()}}
+  if(A.k==='axe'||A.k==='boom'){const k=A.k,ang=(k==='axe'?[.5,-2.27,-1.0,0,.35,.5]:[.5,1.75,.9,0,-.35,.5])[f];
+   if(f<=3){if(f>=2)for(let g=1;g<=2;g++)weapon(x,k,hx,hy,ang+(k==='axe'?-.35:.35)*g,len,.35/g);weapon(x,k,hx,hy,ang,len,1);}
+   if(f===2)arcTrail(x,hx,hy,len,ang,(k==='axe'?-2.27:1.75));
+   if(f===3)dot(x,hx+len,hy);
+   if(f===4){x.save();x.translate(hx+len+30,hy);x.rotate(2);weapon(x,k,0,0,0,len*.8,1);x.restore()}
+   if(f===5&&k==='boom'){weapon(x,k,hx,hy,.5,len*1.1,1);x.strokeStyle=SV;x.lineWidth=2;x.beginPath();x.arc(hx+20,hy,14,0,7);x.stroke()}
+   if(f===5&&k==='axe'){}}
+  if(A.k==='wave'){const ang=[.5,-1.15,-.5,0,.9,.5][f];if(f>=2&&f<=4)for(let g=1;g<=2;g++)weapon(x,'wave',hx,hy,ang-.3*g,len,.35/g);weapon(x,'wave',hx,hy,ang,len,1);
+   if(f>=2&&f<=3)arcTrail(x,hx,hy,len,-1.15,ang);
+   if(f===3){dot(x,hx+len,hy)}if(f>=3){const ox=[0,0,0,0,26,52][f];x.save();x.strokeStyle=GD;x.lineWidth=4;x.beginPath();x.arc(hx+len-10+ox,hy,16,-1,1);x.stroke();x.restore()}}
+  if(A.k==='quake'){const ang=[.5,-1.7,-.6,.7,.7,.5][f];weapon(x,'quake',hx,hy-4,ang,len,1);
+   if(f===3){const px=hx+Math.cos(.7)*len,py=hy-4+Math.sin(.7)*len;dot(x,px,py)}
+   if(f>=3){const r=[0,0,0,8,22,36][f];x.strokeStyle=SV;x.lineWidth=2;x.beginPath();x.ellipse(hx+Math.cos(.7)*len+r,96,r*.9+4,4,0,0,7);x.stroke()}}
+  if(A.k==='gun'){const push=[0,0,0,-3,-1,0][f];gun(x,hx,hy,push);if(f===3){x.fillStyle=WH;x.beginPath();x.arc(hx+40+push,hy,6,0,7);x.fill();dot(x,hx+40+push,hy+8)}
+   if(f>=3){x.fillStyle=WH;x.fillRect(hx+46+[0,0,0,0,20,44][f],hy-1,14,3)}}
+  if(A.k==='bow'){const pull=[0,4,8,0,0,0][f],bs=[1,.96,.92,1.06,1.02,1][f];x.save();x.translate(hx+8,hy);x.scale(bs,1);x.strokeStyle='#8a6a48';x.lineWidth=3;x.beginPath();x.arc(-10,0,22,-1.1,1.1);x.stroke();x.restore();
+   x.strokeStyle='#ddd';x.lineWidth=1;x.beginPath();x.moveTo(hx+8+Math.cos(-1.1)*22*bs-10,hy-20);x.lineTo(hx+8-pull-2,hy);x.lineTo(hx+8+Math.cos(1.1)*22*bs-10,hy+20);x.stroke();
+   if(f<=2){x.strokeStyle='#e8d9a8';x.lineWidth=2;x.beginPath();x.moveTo(hx+8-pull-2,hy);x.lineTo(hx+34-pull,hy);x.stroke()}
+   if(f===3)dot(x,hx+18,hy);if(f>=3){x.strokeStyle='#e8d9a8';x.lineWidth=2;const o=[0,0,0,10,34,60][f];x.beginPath();x.moveTo(hx+14+o,hy);x.lineTo(hx+38+o,hy);x.stroke()}}
+  if(A.k==='sling'){const cx=hx,cy=hy-16,a=[Math.PI/2,Math.PI,-Math.PI/2,0,0,Math.PI/2][f];
+   x.strokeStyle='rgba(201,206,214,.5)';x.lineWidth=2;if(f>=1&&f<=3){x.beginPath();x.arc(cx,cy,14,0,7);x.stroke()}
+   const px=cx+Math.cos(a)*14,py=cy+Math.sin(a)*14;x.strokeStyle='#a08060';x.lineWidth=1.5;if(f<=3||f===5){x.beginPath();x.moveTo(hx,hy);x.lineTo(px,py);x.stroke();x.fillStyle='#bbb';x.beginPath();x.arc(px,py,4,0,7);x.fill()}
+   if(f===3)dot(x,px,py-8);if(f>=4){x.fillStyle='#bbb';x.beginPath();x.arc(px+[0,0,0,0,26,0][f],py,4,0,7);x.fill()}}
+  x.restore()}
+});
+</script></body></html>
