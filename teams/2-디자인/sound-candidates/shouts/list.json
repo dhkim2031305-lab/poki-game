@@ -1,0 +1,362 @@
+[
+ {
+  "id": "01-luxembourg-1",
+  "lang": "French",
+  "country": "Luxembourg",
+  "text": "Hopp Lëtzebuerg!"
+ },
+ {
+  "id": "01-luxembourg-2",
+  "lang": "French",
+  "country": "Luxembourg",
+  "text": "Je suis peut-être fauché, mais j'ai ma fierté !"
+ },
+ {
+  "id": "02-ireland-1",
+  "lang": "English",
+  "country": "Ireland",
+  "text": "G'wan!"
+ },
+ {
+  "id": "02-ireland-2",
+  "lang": "English",
+  "country": "Ireland",
+  "text": "I may be broke, but I've got my pride!"
+ },
+ {
+  "id": "03-switzerland-1",
+  "lang": "German",
+  "country": "Switzerland",
+  "text": "Hopp Schwiiz!"
+ },
+ {
+  "id": "03-switzerland-2",
+  "lang": "German",
+  "country": "Switzerland",
+  "text": "Ich bin vielleicht pleite, aber ich hab meinen Stolz!"
+ },
+ {
+  "id": "04-usa-1",
+  "lang": "English",
+  "country": "United States",
+  "text": "Let's go!"
+ },
+ {
+  "id": "04-usa-2",
+  "lang": "English",
+  "country": "United States",
+  "text": "I may be broke, but I've got my pride!"
+ },
+ {
+  "id": "05-netherlands-1",
+  "lang": "Dutch",
+  "country": "Netherlands",
+  "text": "Zet 'm op!"
+ },
+ {
+  "id": "05-netherlands-2",
+  "lang": "Dutch",
+  "country": "Netherlands",
+  "text": "Ik ben misschien blut, maar ik heb mijn trots!"
+ },
+ {
+  "id": "06-denmark-1",
+  "lang": "Danish",
+  "country": "Denmark",
+  "text": "Kom så!"
+ },
+ {
+  "id": "06-denmark-2",
+  "lang": "Danish",
+  "country": "Denmark",
+  "text": "Jeg er måske flad, men jeg har min stolthed!"
+ },
+ {
+  "id": "07-austria-1",
+  "lang": "German",
+  "country": "Austria",
+  "text": "Auf geht's!"
+ },
+ {
+  "id": "07-austria-2",
+  "lang": "German",
+  "country": "Austria",
+  "text": "Ich bin vielleicht pleite, aber ich hab meinen Stolz!"
+ },
+ {
+  "id": "08-australia-1",
+  "lang": "English",
+  "country": "Australia",
+  "text": "Give it a burl!"
+ },
+ {
+  "id": "08-australia-2",
+  "lang": "English",
+  "country": "Australia",
+  "text": "I may be broke, but I've got my pride!"
+ },
+ {
+  "id": "09-germany-1",
+  "lang": "German",
+  "country": "Germany",
+  "text": "Los geht's!"
+ },
+ {
+  "id": "09-germany-2",
+  "lang": "German",
+  "country": "Germany",
+  "text": "Ich bin vielleicht pleite, aber ich hab meinen Stolz!"
+ },
+ {
+  "id": "10-sweden-1",
+  "lang": "Swedish",
+  "country": "Sweden",
+  "text": "Heja!"
+ },
+ {
+  "id": "10-sweden-2",
+  "lang": "Swedish",
+  "country": "Sweden",
+  "text": "Jag må vara pank, men jag har min stolthet!"
+ },
+ {
+  "id": "11-canada-1",
+  "lang": "English",
+  "country": "Canada",
+  "text": "Giv'er!"
+ },
+ {
+  "id": "11-canada-2",
+  "lang": "English",
+  "country": "Canada",
+  "text": "I may be broke, but I've got my pride!"
+ },
+ {
+  "id": "12-finland-1",
+  "lang": "Finnish",
+  "country": "Finland",
+  "text": "Tsemppiä!"
+ },
+ {
+  "id": "12-finland-2",
+  "lang": "Finnish",
+  "country": "Finland",
+  "text": "Rahaa ei ole, mutta ylpeyttä on!"
+ },
+ {
+  "id": "13-france-1",
+  "lang": "French",
+  "country": "France",
+  "text": "Allez !"
+ },
+ {
+  "id": "13-france-2",
+  "lang": "French",
+  "country": "France",
+  "text": "Je suis peut-être fauché, mais j'ai ma fierté !"
+ },
+ {
+  "id": "14-italy-1",
+  "lang": "Italian",
+  "country": "Italy",
+  "text": "Andiamo!"
+ },
+ {
+  "id": "14-italy-2",
+  "lang": "Italian",
+  "country": "Italy",
+  "text": "Sarò anche al verde, ma ho il mio orgoglio!"
+ },
+ {
+  "id": "15-korea-1",
+  "lang": "Korean",
+  "country": "Korea",
+  "text": "파이팅!"
+ },
+ {
+  "id": "15-korea-2",
+  "lang": "Korean",
+  "country": "Korea",
+  "text": "내가 돈이 없지 가오가 없나!"
+ },
+ {
+  "id": "16-spain-1",
+  "lang": "Spanish",
+  "country": "Spain",
+  "text": "¡Vamos!"
+ },
+ {
+  "id": "16-spain-2",
+  "lang": "Spanish",
+  "country": "Spain",
+  "text": "¡Estaré sin un duro, pero tengo mi orgullo!"
+ },
+ {
+  "id": "17-czechia-1",
+  "lang": "Czech",
+  "country": "Czechia",
+  "text": "Do toho!"
+ },
+ {
+  "id": "17-czechia-2",
+  "lang": "Czech",
+  "country": "Czechia",
+  "text": "Možná nemám peníze, ale mám svou hrdost!"
+ },
+ {
+  "id": "18-israel-1",
+  "lang": "Hebrew",
+  "country": "Israel",
+  "text": "יאללה!"
+ },
+ {
+  "id": "18-israel-2",
+  "lang": "Hebrew",
+  "country": "Israel",
+  "text": "אולי אין לי כסף, אבל יש לי כבוד!"
+ },
+ {
+  "id": "19-lithuania-1",
+  "lang": "Lithuanian",
+  "country": "Lithuania",
+  "text": "Pirmyn!"
+ },
+ {
+  "id": "19-lithuania-2",
+  "lang": "Lithuanian",
+  "country": "Lithuania",
+  "text": "Gal ir neturiu pinigų, bet turiu savigarbą!"
+ },
+ {
+  "id": "20-newzealand-1",
+  "lang": "English",
+  "country": "New Zealand",
+  "text": "Good on ya!"
+ },
+ {
+  "id": "20-newzealand-2",
+  "lang": "English",
+  "country": "New Zealand",
+  "text": "I may be broke, but I've got my pride!"
+ },
+ {
+  "id": "21-japan-1",
+  "lang": "Japanese",
+  "country": "Japan",
+  "text": "頑張れ！"
+ },
+ {
+  "id": "21-japan-2",
+  "lang": "Japanese",
+  "country": "Japan",
+  "text": "金はなくても、プライドはある！"
+ },
+ {
+  "id": "22-portugal-1",
+  "lang": "Portuguese",
+  "country": "Portugal",
+  "text": "Vamos lá!"
+ },
+ {
+  "id": "22-portugal-2",
+  "lang": "Portuguese",
+  "country": "Portugal",
+  "text": "Posso estar teso, mas tenho o meu orgulho!"
+ },
+ {
+  "id": "23-poland-1",
+  "lang": "Polish",
+  "country": "Poland",
+  "text": "Dajesz!"
+ },
+ {
+  "id": "23-poland-2",
+  "lang": "Polish",
+  "country": "Poland",
+  "text": "Może nie mam kasy, ale mam honor!"
+ },
+ {
+  "id": "24-hungary-1",
+  "lang": "Hungarian",
+  "country": "Hungary",
+  "text": "Hajrá!"
+ },
+ {
+  "id": "24-hungary-2",
+  "lang": "Hungarian",
+  "country": "Hungary",
+  "text": "Lehet, hogy nincs pénzem, de büszkeségem az van!"
+ },
+ {
+  "id": "25-slovakia-1",
+  "lang": "Slovak",
+  "country": "Slovakia",
+  "text": "Poďme!"
+ },
+ {
+  "id": "25-slovakia-2",
+  "lang": "Slovak",
+  "country": "Slovakia",
+  "text": "Možno nemám peniaze, ale hrdosť mám!"
+ },
+ {
+  "id": "26-greece-1",
+  "lang": "Greek",
+  "country": "Greece",
+  "text": "Πάμε!"
+ },
+ {
+  "id": "26-greece-2",
+  "lang": "Greek",
+  "country": "Greece",
+  "text": "Μπορεί να μην έχω λεφτά, αλλά έχω αξιοπρέπεια!"
+ },
+ {
+  "id": "27-turkiye-1",
+  "lang": "Turkish",
+  "country": "Türkiye",
+  "text": "Haydi!"
+ },
+ {
+  "id": "27-turkiye-2",
+  "lang": "Turkish",
+  "country": "Türkiye",
+  "text": "Param olmayabilir ama gururum var!"
+ },
+ {
+  "id": "28-chile-1",
+  "lang": "Spanish",
+  "country": "Chile",
+  "text": "¡Dale, po!"
+ },
+ {
+  "id": "28-chile-2",
+  "lang": "Spanish",
+  "country": "Chile",
+  "text": "¡Estaré sin plata, pero tengo mi orgullo!"
+ },
+ {
+  "id": "29-mexico-1",
+  "lang": "Spanish",
+  "country": "Mexico",
+  "text": "¡Échale ganas!"
+ },
+ {
+  "id": "29-mexico-2",
+  "lang": "Spanish",
+  "country": "Mexico",
+  "text": "¡Estaré sin lana, pero tengo mi orgullo!"
+ },
+ {
+  "id": "30-colombia-1",
+  "lang": "Spanish",
+  "country": "Colombia",
+  "text": "¡Hágale!"
+ },
+ {
+  "id": "30-colombia-2",
+  "lang": "Spanish",
+  "country": "Colombia",
+  "text": "¡Estaré sin plata, pero tengo mi orgullo!"
+ }
+]
