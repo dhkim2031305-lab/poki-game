@@ -35,6 +35,8 @@
 | `end.clear.title` | 클리어! | Clear! | 1위가 6라운드를 깼을 때 제목. 장수는 안 쓰러지고, 아래에 `end.after.*` 10개 중 하나 (GDD 0-4 "가") | 확정 (2026-11-26) |
 | `end.far.title` | 여기까지 | This Far | 2~15위가 6라운드를 깼을 때 제목 (클리어도 실패도 아님) | 확정 (2026-11-26) |
 | `end.far.01` | 당신은 뭐든 할 수 있어요! …이 나라로는 빼고요. 진짜 클리어는 다른 나라로 해 보세요. | You can do anything! …Except with this country. For a real clear, try another one. | 2~15위 6라운드 클리어 화면 문구. 장수는 서 있어요 (GDD 0-4 "2번") | 확정 (2026-11-26) · 18개 언어는 번역 단계 |
+| `end.time` | 걸린 시간 {t}초 | Time {t}s | 6라운드를 깬 끝 화면(클리어!·여기까지)에 걸린 시간. {t} = 소수 첫째 자리 (예: 142.3) · 파산 화면엔 없음 (GDD 0-4) | 제안 (표시 방식 "가"면 이것만) |
+| `end.time.min` | 걸린 시간 {m}분 {s}초 | Time {m}m {s}s | 60초가 넘을 때 (표시 방식 "나"). {s} = 소수 첫째 자리 (예: 2분 22.3초) · 60초 아래는 `end.time` | 제안 (추천 "나") |
 | `end.after.01` | 쉽게 깼네요. 이번엔 어려운 나라로 해 보세요. | That was easy. Try a harder country next time. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
 | `end.after.02` | 축하해요. 좋은 나라를 골랐네요. 그게 실력은 아니지만요. | Congrats. You picked a good country. That's not skill, though. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
 | `end.after.03` | 어떤 나라는 같은 맵에서 3라운드도 못 가요. 한번 해 볼래요? | Some countries can't even reach Round 3 on the same map. Want to try? | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
