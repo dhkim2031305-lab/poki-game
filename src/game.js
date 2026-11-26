@@ -77,9 +77,11 @@
       });
     });
   }
+  const BULLET_IMG = { usa: 'fx/bullet-usa', finland: 'fx/bullet-fin' };   // 가로 4칸(128): ① 총구 섬광 ② 탄 A ③ 탄 B ④ 맞을 때 튀김 · 가산 합성
+  const bulletImg = key => { const n = BULLET_IMG[key], im = n && UI.img[n]; return im && im.naturalWidth ? n : null; };
   function countryAssets(c) {
     const l = ['dir/' + c.key, 'walk/' + c.key];
-    if (!FX.GUN[c.key]) l.push('weapon/' + c.key);
+    if (!FX.GUN[c.key]) l.push('weapon/' + c.key); else l.push(BULLET_IMG[c.key]);   // 총알 그림 (디자인 54fe35d)
     if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
     if (c.ranged === 'sling') l.push('weapon/israel-ranged');
     for (const t of new Set([c.skill.type, c.skill2.type, 'area'])) l.push('skill/fx-' + t);   // 그 나라 스킬 두 개의 이펙트만
@@ -946,12 +948,17 @@
     }
     drawShotS1(s, lift);
   }
+  function shotKind(kind, x, y, a, age) {
+    const bi = (kind === 'beam' || kind === 'bullet') && bulletImg(G.country.key);
+    if (bi) return FX.cell(bi, 4, 1 + Math.floor(age / .05) % 2, x - Math.cos(a) * 19.8, y - Math.sin(a) * 19.8, a, 64);   // 탄 A·B 0.05초마다 번갈아, 64px
+    FX.drawShot(kind, x, y, a, age, G.country.key);
+  }
   function drawShotS1(s, lift) {
     const y = s.y - 22 - lift, a = Math.atan2(s.vy, s.vx);
     if (s.tailCol) { const v = Math.hypot(s.vx, s.vy) || 1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = s.tailCol; ctx.globalAlpha = .55; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.vx / v * 34, y - s.vy / v * 34); ctx.stroke(); ctx.globalAlpha = .9; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); }   // 스킬 탄 빛 꼬리 (나라 색)
-    if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key); ctx.restore(); }
-    else FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key);
-    if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; FX.drawShot(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age, G.country.key); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
+    if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); shotKind(s.kind, s.x, y, a, s.age); ctx.restore(); }
+    else shotKind(s.kind, s.x, y, a, s.age);
+    if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; shotKind(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
   }
   // ---- 스킬 이펙트 (코드로 그림, 흰 + 은 #C9CED6 / 옅은 금 #E8D9A8) ----
   const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
@@ -1831,8 +1838,8 @@
       else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
       else if (e.kind === 'corpse') { const q = Math.min(1, k), mo = { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }; if (e.cell != null) UI.cellSprite(e.img, 15, e.cell, e.x, e.y + 2, e.hgt, mo); else UI.sprite(e.img, e.x, e.y + 2, e.hgt, mo); }
       else if (e.kind === 'groundRing') { ctx.save(); ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
-      else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key);
-      else if (e.kind === 'gunHit') { if (settings.flash) FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); }
+      else if (e.kind === 'muzzle') { const bi = bulletImg(e.key); if (bi && e.t < .05) FX.cell(bi, 4, 0, e.x, e.y, e.a, 48); FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key, !!bi); }   // 총구 섬광 그림 48px (핀란드 연기는 코드)
+      else if (e.kind === 'gunHit') { if (settings.flash) { const bi = bulletImg(e.key); if (bi) FX.cell(bi, 4, 3, e.x, e.y, e.dir, 56 * (1 + .3 * k), 1 - k); else FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); } }   // 튀김 56px, 1→1.3배로 커지며 사라짐
       else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }   // 번쩍임 끄면 외곽선·파편으로만
       else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
       else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
@@ -1940,8 +1947,8 @@
         else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }
         else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
         else if (e.kind === 'groundRing') { ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); }
-        else if (e.kind === 'muzzle') FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key);
-      else if (e.kind === 'gunHit') { if (settings.flash) FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); }
+        else if (e.kind === 'muzzle') { const bi = bulletImg(e.key); if (bi && e.t < .05) FX.cell(bi, 4, 0, e.x, e.y, e.a, 48); FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key, !!bi); }   // 총구 섬광 그림 48px (핀란드 연기는 코드)
+      else if (e.kind === 'gunHit') { if (settings.flash) { const bi = bulletImg(e.key); if (bi) FX.cell(bi, 4, 3, e.x, e.y, e.dir, 56 * (1 + .3 * k), 1 - k); else FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); } }   // 튀김 56px, 1→1.3배로 커지며 사라짐
         else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }
         else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
         else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); }

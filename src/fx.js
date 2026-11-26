@@ -150,13 +150,13 @@
     for (let i = 0; i < 8; i++) { const a = -Math.PI * (i / 7) - .1, d = 6 + q * 20; UI.circ(px + Math.cos(a) * d, py + Math.sin(a) * d * .8 + q * q * 14, 2.4 - q, i % 2 ? '#FFFFFF' : '#5BC0FF'); }
     x.restore();
   }
-  function muzzle(x, px, py, dir, q, key) {
-    if (key === 'usa') {   // 하늘색 별 4갈래 14px + 흰 점, 0.035초
+  function muzzle(x, px, py, dir, q, key, noFlash) {   // noFlash: 섬광은 그림으로 그렸어요 (핀란드 연기만)
+    if (key === 'usa') { if (noFlash) return;   // 하늘색 별 4갈래 14px + 흰 점, 0.035초
       if (q < 0 || q > .035) return; x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; star(x, 0, 0, 4, 7, 1.8, '#5FB4EE'); UI.circ(0, 0, 2, '#FFFFFF'); x.restore(); return;
     }
     if (key === 'finland') {   // 옅은 금 3갈래 불꽃 10px 0.04초 + 회색 연기 한 줌 0.4초
       if (q < 0 || q > .4) return;
-      if (q < .04) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgba(255,230,160,.95)';
+      if (q < .04 && !noFlash) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgba(255,230,160,.95)';
         for (const a of [-.45, 0, .45]) { x.beginPath(); x.moveTo(0, -1.4); x.lineTo(Math.cos(a) * (a ? 7 : 10), Math.sin(a) * (a ? 7 : 10)); x.lineTo(0, 1.4); x.fill(); } x.restore(); }
       const f = 1 - q / .4; x.save(); x.globalAlpha = .45 * f; UI.circ(px + Math.cos(dir) * 4 * q / .4, py - 3 - q * 14, 3 + q * 12, 'rgba(160,160,160,.7)'); x.restore(); return;
     }
