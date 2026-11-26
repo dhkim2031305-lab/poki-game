@@ -549,14 +549,15 @@
     h.rangedCd = BAL.RANGED_CD / atkSpd(); h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.t;
     const rk = G.country.ranged;
     const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
-    G.shots.push({ boost: h.boostT > 0, kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null });
+    const tip = weaponTip(Math.atan2(dy, dx));   // 무기 끝 (style-guide "원거리 공격 동작"): 판정 자리는 그대로, 그림만 무기 끝에서 출발
+    G.shots.push(fromTip({ boost: h.boostT > 0, kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null }, tip, quake));
     if (quake) {   // 체코 (사용자 확정): 도리깨를 내리쳐 땅을 따라 은빛 충격파 — 칼은 손에, 내려찍기 궤적·바닥음
       G.fx.push({ kind: 'melee', m: 'smash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('smash') });
       AUDIO.play('impSmash'); if (settings.shake) G.shake = Math.max(G.shake, 1.5);
     }
     if (rk === 'water') G.fx.push({ kind: 'splash', x: h.x + dx * 18, y: h.y - 24 + dy * 8, t: 0, life: 0.2 });
     if (rk === 'wave') { AUDIO.play('swing'); G.fx.push({ kind: 'melee', m: G.country.melee === 'bigslash' ? 'bigslash' : 'slash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('slash') * .8 }); }   // 검기: 칼을 휘두르는 궤적 + 검기
-    if (rk === 'bullet') G.fx.push({ kind: 'muzzle', x: h.x + dx * 18, y: h.y - 24 + dy * 8, a: Math.atan2(dy, dx), t: 0, life: 0.35 });
+    if (rk === 'bullet') G.fx.push({ kind: 'muzzle', x: tip.x, y: tip.y, h0: h.y - tip.y, a: Math.atan2(dy, dx), t: 0, life: 0.35 });   // 총구에서 번쩍
     AUDIO.play('attack');
   }
   // ---- 나라별 고유 스킬 (skills.md 확정): 유형 5개 · 라운드마다 2회 · 쓰는 동안 0.5초 무적 · 피해 40 × F ----
@@ -842,7 +843,7 @@
         }
         if (d.k === 'iai') { const x0 = d.x0, y0 = d.y0, x1 = h.x, y1 = h.y; after(.4, () => { hitSeg(x0, y0, x1, y1, 26, d.base * m.cut); sfx('iai', x0, y0, .35, { x1, y1 }); sfx('art', x0, y0, .35, { img: 'skill/u/' + G.country.key + '-1', mode: 'beam', ang: Math.atan2(y1 - y0, x1 - x0), len: Math.max(80, Math.hypot(x1 - x0, y1 - y0)), H: 130, bright: true }); AUDIO.play('impSlash'); }); }   // 일본 1: 칼을 넣는 순간 지나간 줄 전체
         if (d.k === 'invHit' && d.inv) h.skillT = Math.max(h.skillT, d.inv);
-        if (d.k === 'spearEnd') G.shots.push({ kind: 'lance', x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.3, vy: dy * TEMP.SHOT_SPEED * 1.3, dmg: d.base * m.spear, life: .7, age: 0, skill: true, hits: new Set() });   // 그리스 2: 끝에서 창 던지기
+        if (d.k === 'spearEnd') G.shots.push(fromTip({ kind: 'lance', x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.3, vy: dy * TEMP.SHOT_SPEED * 1.3, dmg: d.base * m.spear, life: .7, age: 0, skill: true, hits: new Set() }, weaponTip(Math.atan2(dy, dx))));   // 그리스 2: 끝에서 창 던지기
         if (d.k === 'leap') { hitCircle(h.x, h.y, 70, d.base * m.mul); sfx('ringOut', h.x, h.y, .4, { r: 70 }); if (settings.shake) G.shake = Math.max(G.shake, 5); AUDIO.play('impSmash'); }   // 착지
         if (d.k === 'echo') { const path = d.path.slice(), look = d.look, dm = d.base * m.clone; after(1, () => echoEnt(path, look, dm)); }   // 콜롬비아 2
         if (d.k === 'endSmash') { hitCircle(h.x, h.y, 60, d.base * m.smash); sfx('crack', h.x, h.y, .6); if (settings.shake) G.shake = Math.max(G.shake, 4); AUDIO.play('impSmash'); }   // 독일 2: 끝에서 내려찍기
@@ -880,7 +881,7 @@
         const angs = m.k === 'spread3' ? [a - .26, a, a + .26] : m.k === 'boomer' ? [-2, -1, 0, 1, 2].map(i => a + i * m.fan) : [a];   // 한국 2: 세 갈래 · 호주 1: 다섯 갈래
         if (m.k === 'boomer') extra.hits = null;   // 부메랑마다 따로 (아래에서 새로)
         const volley = angs.length > 1 ? new Set() : null;   // 한국 2: 한 번 쏜 세 갈래는 같은 외계인을 한 번만 (QA M4)
-        for (const q of angs) G.shots.push(Object.assign({ volley, kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null));
+        for (const q of angs) G.shots.push(fromTip(Object.assign({ volley, kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null), weaponTip(q)));
         G.fx.push({ kind: 'skill', type: 'barrage', x: h.x + dx * 26, y: h.y - 24 + dy * 10, h0: 24 - dy * 10, a, t: 0, life: .22 });
         { const cc = (SKILL_COL[G.country.key] || [])[G.hero.barrageN - 1]; if (cc) { sfx('muzzle', h.x + dx * 22, h.y + dy * 18, .12, { col: cc, a }); for (const sh of G.shots) if (sh.skill && sh.age === 0 && !sh.tailCol) sh.tailCol = cc[1]; } }   // 출발 섬광 + 탄 빛 꼬리 (겹겹이)
         h.rangedT = .2; h.aimShot = a; h.atkT = .12; h.shotT = G.t; b.n++;
@@ -930,6 +931,15 @@
   const GK = () => (use3d ? .62 : .35);   // 바닥 원의 납작한 정도 (3D는 카메라가 더 위에서 봐요)
   // 탄 그리기 (s.big = 크게: 호주 1 큰 부메랑)
   function drawShotS(s, lift) {
+    const tk = s.ox != null ? Math.max(0, 1 - s.age / .12) : 0;
+    if (tk > 0 || (s.tx != null && s.age < .25 && s.kind !== 'boomerang')) {
+      ctx.save();
+      if (s.tx != null && s.age < .25 && s.kind !== 'boomerang') { ctx.translate(s.tx, s.ty); ctx.rotate(Math.atan2(s.vy, s.vx)); ctx.beginPath(); ctx.rect(-2, -400, 2000, 800); ctx.clip(); ctx.rotate(-Math.atan2(s.vy, s.vx)); ctx.translate(-s.tx, -s.ty); }   // 무기 끝 뒤로는 안 그려요 (빛줄기 꼬리가 몸을 뚫지 않게)
+      ctx.translate(s.ox * tk, s.oy * tk); drawShotS1(s, lift); ctx.restore(); return;
+    }
+    drawShotS1(s, lift);
+  }
+  function drawShotS1(s, lift) {
     const y = s.y - 22 - lift, a = Math.atan2(s.vy, s.vx);
     if (s.tailCol) { const v = Math.hypot(s.vx, s.vy) || 1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = s.tailCol; ctx.globalAlpha = .55; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.vx / v * 34, y - s.vy / v * 34); ctx.stroke(); ctx.globalAlpha = .9; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); }   // 스킬 탄 빛 꼬리 (나라 색)
     if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key); ctx.restore(); }
@@ -2089,6 +2099,16 @@
     }
     ctx.restore();
   }
+  // 무기 끝 (style-guide "원거리 공격 동작"): 손 위치(HAND) + 조준 방향 × 무기 길이 × 0.95 · 총은 총구, 활은 시위 자리
+  function weaponTip(aim) {
+    const h = G.hero, c = G.country, o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
+    const kk = 60 / 112, hd = HAND[cell], hx = h.x + (hd[0] - 64) * kk * (flip ? -1 : 1), hy = h.y + (hd[1] - 124) * kk, ca = Math.cos(aim), sa = Math.sin(aim);
+    if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * 30, y: hy + sa * 30 };   // 코드 총: 길이 46 × 0.65 ≈ 30
+    if (c.ranged === 'arrow') return { x: hx + ca * 8, y: hy + sa * 6 };   // 활 가운데(시위 자리)
+    const L = 60 * wLen(c) * .95; return { x: hx + ca * L, y: hy + sa * L };
+  }
+  // 탄 그림이 무기 끝에서 출발해 0.12초 동안 원래 날아가는 줄로 합쳐져요 (판정 자리는 그대로) · 충격파는 바닥 높이 그대로
+  function fromTip(s, tip, ground) { s.ox = tip.x - s.x; s.oy = ground ? 0 : tip.y - (s.y - 22); s.tx = tip.x; s.ty = ground ? s.y : tip.y; return s; }
   // 걷기 (9차 그림): 서기 → A → 서기 → B, 초당 8칸. 걷기 칸 = 방향×2 + (A 0, B 1)
   function bodyFrame(h, cell) {
     const wi = UI.img['walk/' + G.country.key];
