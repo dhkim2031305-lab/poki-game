@@ -58,7 +58,8 @@
   // 돈 → 능력치 (balance.md)
   const stats = (m, c) => {
     const M = Math.max(0, m), top = c && c.rank === 1 ? BAL.TOP1 : null, F = (0.625 + 0.375 * M / 100) * (top ? top.F : 1), S = (0.7 + 0.3 * M / 100) * (top ? top.S : 1);   // F 공식 0.4+0.6·M → 0.625+0.375·M (사용자 확정 2026-11-25, balance.md)
-    return { hp: Math.round(BAL.BASE.hp * F), melee: BAL.BASE.melee * F, ranged: BAL.BASE.ranged * F, speed: BAL.BASE.speed * S, F, S };
+    const Fhp = (0.5125 + 0.4875 * M / 100) * (top ? top.F : 1);   // 체력만 반만 되돌리기 (사용자 결정 2026-11-26, 팀장 전달): 공격은 F 그대로
+    return { hp: Math.round(BAL.BASE.hp * Fhp), Fhp, melee: BAL.BASE.melee * F, ranged: BAL.BASE.ranged * F, speed: BAL.BASE.speed * S, F, S };
   };
 
   // ---------- 에셋 ----------
