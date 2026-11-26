@@ -2162,7 +2162,7 @@
     let pull = 0, sx = 1, wob = 1, snapT = null;
     if (m && !m.rel) { const k = Math.min(1, m.t / m.T); pull = 10 * (1 - Math.pow(1 - k, 2)); sx = 1 - .1 * k; }
     else if (m && m.rel) { const e = m.t - m.T; pull = e < .03 ? 10 * (1 - e / .03) : 0; snapT = e; wob = e < .08 ? 1.08 - .08 * e / .08 : 1; }
-    const cx = h.x + ca * 14, cy = h.y - 32 + sa * 14 * .6;
+    const cx = h.x + ca * 20, cy = h.y - 32 + sa * 20 * .6;   // 몸 앞 20px (디자인 "시위가 몸·얼굴을 가로지르지 않게")
     return { ang, ca, sa, sc, cx, cy, pull, sx, wob, snapT, u: { x: -sa, y: ca }, v: { x: -ca, y: -sa } };
   }
   const bowPt = (f, U, V) => ({ x: f.cx + f.u.x * U * f.wob + f.v.x * V, y: f.cy + f.u.y * U * f.wob + f.v.y * V });
@@ -2387,8 +2387,8 @@
       if (i + 1 < r.round) UI.circ(dx, y, 5, COL.gold); else if (i + 1 === r.round) UI.circ(dx, y, 5, null, '#FFFFFF', 2); else UI.circ(dx, y, 5, COL.empty);
     }
     UI.txt(`${r.round}/6`, cx + 62, VH * .09, 12, COL.fg, 'center', 700);
-    UI.I.alien(cx - 46, VH * .17 + 1, 18, '#CA57E5');
-    UI.txt(t_('ui.04', { n: Math.max(0, remaining()) }), cx + 6, VH * .17 + 1, 14, COL.fg, 'center', 700, 120);
+    { const lt = t_('ui.04', { n: Math.max(0, remaining()) }); UI.x.font = '700 14px system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif'; const tw = Math.min(140, UI.x.measureText(lt).width);   // 글자 폭을 재서 아이콘을 글자 왼쪽 끝에 붙여요 (긴 언어에서 겹치지 않게)
+      UI.I.alien(cx + 6 - tw / 2 - 13, VH * .17 + 1, 18, '#CA57E5'); UI.txt(lt, cx + 6, VH * .17 + 1, 14, COL.fg, 'center', 700, 140); }
     if (G.scene === 'play' && G.touchUI) { const SA = safeArea(); UI.btnSub('pause', Math.min(VW * .93, VW - SA.r - 26), Math.max(VH * .1, SA.t + 26), 44, 'pause'); }   // 폰만 (PC는 ESC) — 마우스로 치다가 잘못 눌리지 않게
   }
 

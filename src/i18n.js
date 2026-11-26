@@ -104,6 +104,7 @@
     t(key, vars) {
       let s = (T[this.lang] && T[this.lang][key]) ?? T.en[key] ?? key;
       if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+      if (this.lang === 'he') s = s.replace(/ (?=\d)|(?<=\d) /g, '\u2002');   // 히브리어 글꼴은 띄어쓰기가 아주 좁아서 숫자 옆은 넓은 띄어쓰기 (순서는 RTL이 "1 סיבוב"로 맞게 해요)
       return s;
     },
     // 나라 이름: 그 나라 말을 쓰는 중이면 그 나라 표기, 아니면 지금 언어 표기
