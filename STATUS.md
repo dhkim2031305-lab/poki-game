@@ -46,9 +46,13 @@
 
 ## 인수인계
 
+- (기획 → 개발·출시) **기본 언어 (2026-11-26, GDD 0-6)**: 사용자 "기본 영어로 출시" → "가" = 첫화면과 메뉴만 영어
+  - 개발: 나라 고르기 전 화면(시작·나라 고르기·메뉴/설정)은 **영어 기본**, 나라를 고른 뒤 게임 안 글자·외침은 **그 나라 언어 기본**. 설정 Language로 고르면 그 언어가 모든 화면에 우선. 일시정지 메뉴는 [제안] 그 나라 언어(사용자 확인 중)
+  - 출시: `platforms.md` 위험 2번(기본 언어) 확인 칸을 닫아 주세요 — GDD 0-6으로 GameDistribution 4.1에 맞춤
+
 - (출시 → 기획·개발·디자인·팀장) **출시 준비 (2026-11-26)** — 자세한 건 `teams/5-출시/`의 `platforms.md`(심사 위험 17개 → 우리 대응), `release-log.md`, `app-stores.md`, `fullscreen.md`, `store/`
   - 사용자 결정 (출시팀 세션): ① **18개 언어 번역을 마친 뒤 출시** ② **"기본 영어로 출시"** ③ 스토어 설명에서 반전(1위만 클리어)은 **숨김** ④ 전체화면 버튼은 **"아니 놔둬"** → 우리 버튼 안 넣고 사이트 전체화면 사용 ⑤ 업로드 순서는 **일단 대기** ⑥ AdMob 새로 필요한 것·꼭 지킬 것 **적용** ⑦ CrazyGames 2개월 독점 **안 함** ⑧ 출시 순서 **웹 → 안드로이드 → 아이폰** (사용자 "추천방식대로 진행해")
-  - 기획: ② "기본 영어"가 **나라 고르기 전 화면만 영어**인지 **게임 전체 기본 영어**인지 사용자 확인 후 GDD 0-6 고쳐 주세요 (GameDistribution 4.1 "the default game language should always be English") · ④에 맞춰 GDD 0-16 정리 · 18개 언어 번역 진행(`texts.md`, 원어민 확인) · 실패·파산 "다시하기"는 1라운드부터 처음 다시(사용자 확인)
+  - ~~기획: ② "기본 영어"가 **나라 고르기 전 화면만 영어**인지 **게임 전체 기본 영어**인지 사용자 확인 후 GDD 0-6 고쳐 주세요 (GameDistribution 4.1 "the default game language should always be English") · ④에 맞춰 GDD 0-16 정리 · 18개 언어 번역 진행(`texts.md`, 원어민 확인) · 실패·파산 "다시하기"는 1라운드부터 처음 다시(사용자 확인)~~ → ✅ 기획 완료(2026-11-26): 사용자 "가" = 첫화면과 메뉴만 영어, GDD 0-6 고침
   - 개발: 번역이 오면 `src/i18n.js`에 18개 언어 추가 · 세로일 때 "가로로 돌리세요" 화면 확인(GameDistribution 필수) · **앱 포장(안드로이드 먼저) + AdMob**: 네이티브 AdMob 방식 [제안], 앱 빌드에 UMP 동의 창, **개발·시험 중엔 구글 테스트 광고 ID만**("If you don't use the test ad unit ID, Google can suspend your account.") · GameDistribution gameId는 사용자가 계정 만든 뒤 전달
   - 디자인: 광고보기 버튼에 보상을 적어요 (HP 0 "그 자리에서 이어하기" · 파산 "돈을 조금 받고 다음 라운드로") — AdMob "clear… disclosure of the… reward(s) offered prior to each instance"
   - 팀장: 썸네일 지시서 `teams/5-출시/store/thumbnail-지시서.md` GPT 원본 3장 (한도 안에서만)
