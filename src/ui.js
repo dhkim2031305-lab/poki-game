@@ -18,7 +18,8 @@
   UI.txt = (s, px, py, size, color, align = 'center', weight = 700, maxW) => {
     const x = UI.x; x.font = `${weight} ${size}px ${FONT}`; x.fillStyle = color; x.textAlign = align; x.textBaseline = 'middle';
     if (maxW) { const w = x.measureText(s).width; if (w > maxW) { x.font = `${weight} ${Math.max(9, size * maxW / w)}px ${FONT}`; } }
-    x.fillText(s, px, py);
+    const pd = x.direction; if (window.I18N && I18N.lang === 'he') x.direction = 'rtl';   // 히브리어: 오른쪽 → 왼쪽 (외침 rtl과 같은 방식)
+    x.fillText(s, px, py); x.direction = pd;
   };
   // 여러 줄 글자 (폭을 넘으면 줄바꿈)
   UI.para = (s, px, py, size, color, maxW, lineH = size * 1.35, weight = 600) => {
