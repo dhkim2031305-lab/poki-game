@@ -2,7 +2,7 @@
 // 기준: teams/1-기획/GDD.md · balance.md · monetization.md · texts.md / teams/2-디자인/ui.md · style-guide.md · sound.md
 // 광고·SDK는 window.Platform 만 불러요.
 (() => {
-  const { COUNTRIES, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD } = window.DATA;
+  const { COUNTRIES, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD, SKILL_COL } = window.DATA;
   const UI = window.UI, I18N = window.I18N, AUDIO = window.AUDIO, COL = UI.COL;
   const t_ = (k, v) => I18N.t(k, v);
   const cv = document.getElementById('game');
@@ -720,7 +720,7 @@
       else { hitCircle(h.x, h.y, R, o.dmg * (m.mul || 1)); sfx('area', h.x, h.y, .5); }
       G.hitstop = Math.max(G.hitstop || 0, .05);
     },
-    barrage(o) { const m = o.mod;   // 그 자리를 향해 쏴요 (GDD 0-17)
+    barrage(o) { const m = o.mod; G.hero.barrageN = o.n;   // 그 자리를 향해 쏴요 (GDD 0-17)
       if (m.k === 'javelin3') {   // 리투아니아 2: 하늘로 던진 창이 앞 일직선 세 곳에 차례로
         const h = G.hero, f = FIELD.floor; [1 / 3, 2 / 3, 1].forEach((s2, i) => { const x = clamp(h.x + (o.tx - h.x) * s2, f.x0 + 10, f.x1 - 10), y = clamp(h.y + (o.ty - h.y) * s2, f.y0 + 10, f.y1);   // 장수 → 그 자리 일직선 세 곳, 마지막이 그 자리
           sfx('javFall', x, y, .3 + i * .22, { d: .3 + i * .22 }); after(.3 + i * .22, () => { hitCircle(x, y, 38, o.dmg * m.mul); sfx('ringOut', x, y, .3, { r: 38 }); AUDIO.play('impact'); }); });
@@ -743,8 +743,24 @@
     return best ? { x: best.x, y: best.y } : { x: h.x + h.dir.x * 120, y: h.y + h.dir.y * 120 * .8 };
   }
   // 스킬 대표 그림 (13차 60장): 그림 한 장을 코드로 키우기·늘이기·돌리기·사라지기. 판정·조준 표시는 그대로
+  // 겹겹이 효과 (디자인 229e0d9 "스킬 이펙트 — 나라 색 + 겹겹이"): 흔들림 끄기·움직임 줄이기면 화면 번쩍·파편 끔
+  const layerFx = () => settings.shake && !reduceMotion;
+  function skillLayers(sk, m, tx, ty, ang, col) {
+    const h = G.hero, k = m.k;
+    if (layerFx()) G.skillFlash = .06;   // 쓰는 순간 화면 번쩍 (흰 8%)
+    if (sk.type === 'dash') {   // 끝에서 충격 고리 40→120 + 파편 8개 · 지나간 길 바닥 긁힘 1초
+      const d = h.dash, T = d ? d.dur * (k === 'returnDash' ? 2 : 1) : .2;
+      after(T, () => { const H = G.hero; if (!H) return; sfx('ringFx', H.x, H.y, .25, { r0: 20, r1: 60, col }); if (layerFx()) sfx('debris', H.x, H.y, .6, { n: 8, col, seed: G.t }); if (d && d.path) sfx('scrape', 0, 0, 1, { pts: d.path.filter((_, i) => i % 2 === 0).map(p => [p[0], p[1]]), col }); });
+    } else if (sk.type === 'area' && k !== 'orbit') {   // 가운데 섬광 0.08 · 충격 고리 2겹(0.1초 차) · 파편 12개(중력) · 그을림 1.5초
+      const cx = ['fear', 'phalanx', 'crack', 'arcs8'].includes(k) ? h.x : tx, cy = ['fear', 'phalanx', 'crack', 'arcs8'].includes(k) ? h.y : ty, R = k === 'cone' ? SKB.AREA_R * 2 : SKB.AREA_R;
+      sfx('coreFlash', cx, cy, .08, { col }); sfx('ringFx', cx, cy, .35, { r0: 20, r1: R, col }); after(.1, () => sfx('ringFx', cx, cy, .35, { r0: 20, r1: R * .8, col }));
+      if (layerFx()) sfx('debris', cx, cy, .7, { n: 12, col, seed: G.t, grav: 1 });
+      sfx('scorch', cx, cy, 1.5, { r: R * .55 });
+    }
+  }
   function skillArt(sk, n, m, tx, ty, ang, x0, y0) {
-    const h = G.hero, k = m.k, img = 'skill/u/' + G.country.key + '-' + n, b = { img, ang, black: k === 'vortex' }, dist = Math.hypot(tx - x0, ty - y0);
+    const h = G.hero, k = m.k, img = 'skill/u/' + G.country.key + '-' + n, cc = (SKILL_COL[G.country.key] || [])[n - 1] || ['#FFFFFF', '#E8D9A8'], b = { img, ang, black: k === 'vortex', col: cc }, dist = Math.hypot(tx - x0, ty - y0);
+    skillLayers(sk, m, tx, ty, ang, cc);
     if (k === 'orbit') return sfx('art', h.x, h.y, 2, Object.assign(b, { mode: 'orbit' }));   // 튀르키예 1: 장수 둘레를 2초 돌아요
     if (sk.type === 'zone') { const z = G.zones[G.zones.length - 1]; if (z) sfx('art', z.x, z.y, (z.life || SKB.ZONE_TIME) - z.t, Object.assign(b, { mode: 'zone', z })); return; }
     if (sk.type === 'dash') {
@@ -866,6 +882,7 @@
         const volley = angs.length > 1 ? new Set() : null;   // 한국 2: 한 번 쏜 세 갈래는 같은 외계인을 한 번만 (QA M4)
         for (const q of angs) G.shots.push(Object.assign({ volley, kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null));
         G.fx.push({ kind: 'skill', type: 'barrage', x: h.x + dx * 26, y: h.y - 24 + dy * 10, h0: 24 - dy * 10, a, t: 0, life: .22 });
+        { const cc = (SKILL_COL[G.country.key] || [])[G.hero.barrageN - 1]; if (cc) { sfx('muzzle', h.x + dx * 22, h.y + dy * 18, .12, { col: cc, a }); for (const sh of G.shots) if (sh.skill && sh.age === 0 && !sh.tailCol) sh.tailCol = cc[1]; } }   // 출발 섬광 + 탄 빛 꼬리 (겹겹이)
         h.rangedT = .2; h.aimShot = a; h.atkT = .12; h.shotT = G.t; b.n++;
         AUDIO.play('attack');
       }
@@ -914,6 +931,7 @@
   // 탄 그리기 (s.big = 크게: 호주 1 큰 부메랑)
   function drawShotS(s, lift) {
     const y = s.y - 22 - lift, a = Math.atan2(s.vy, s.vx);
+    if (s.tailCol) { const v = Math.hypot(s.vx, s.vy) || 1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.strokeStyle = s.tailCol; ctx.globalAlpha = .55; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.vx / v * 34, y - s.vy / v * 34); ctx.stroke(); ctx.globalAlpha = .9; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore(); }   // 스킬 탄 빛 꼬리 (나라 색)
     if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key); ctx.restore(); }
     else FX.drawShot(s.kind, s.x, y, a, s.age, G.country.key);
     if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; FX.drawShot(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age, G.country.key); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
@@ -1154,12 +1172,30 @@
       const t = e.t - (e.delay || 0), L = e.life - (e.delay || 0); if (t < 0) return done();
       const q = Math.min(1, t / L), fade = q > .65 ? Math.max(0, (1 - q) / .35) : 1, gk = .6;   // 바닥 타원 세로 0.6
       if (e.black) ctx.globalCompositeOperation = 'source-over';
-      const reps = e.bright ? 2 : 1;
+      const reps = e.bright ? 2 : 1, cc = e.col || ['#FFFFFF', '#E8D9A8'];
+      const glow = (x, y, R, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, cc[1]); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.save(); ctx.globalCompositeOperation = e.black ? 'source-over' : 'lighter'; ctx.globalAlpha = a; ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, R, R * .65, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); };
+      const motes = (x, y, R, n, tt, a) => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = cc[0]; for (let i = 0; i < n; i++) { const u = hash(i * 7 + (e.seed || 3)), v = hash(i * 13 + 5), px = x + (u - .5) * R, py = y + (v - .5) * R * .5 - tt * 70 * (.6 + v * .6); ctx.globalAlpha = a * Math.max(0, 1 - tt * 2); ctx.fillRect(px - 1.5, py - 1.5, 3, 3); } ctx.restore(); };   // 빛 입자 0.5초 떠오름
+      { const ax = e.mode === 'zone' && e.z ? e.z.x : e.mode === 'orbit' || e.mode === 'front' ? G.hero.x : e.mode === 'beam' || e.mode === 'trail' ? (e.x + (e.x1 == null ? e.x + Math.cos(e.ang) * (e.len || 80) * .5 : e.x1)) / 2 : e.x;
+        const ay = e.mode === 'zone' && e.z ? e.z.y : e.mode === 'orbit' || e.mode === 'front' ? G.hero.y - 20 : e.mode === 'beam' || e.mode === 'trail' ? (e.y + (e.y1 == null ? e.y + Math.sin(e.ang) * (e.len || 80) * .5 : e.y1)) / 2 - 20 : e.y - (e.mode === 'drop' ? e.S * .3 : 6);
+        const RR = (e.mode === 'zone' ? SKB.ZONE_D * 1.45 : e.S || e.len || e.H || 150) * .65;   // 그림 뒤 번짐 1.3배 (반지름 = 크기의 0.65)
+        if (!(e.z && e.z.t < 0)) glow(ax, ay, RR, .35 * fade);
+        if (t < .5 && !e.bright) motes(ax, ay, RR, 10, t, 1); }
+      if (e.mode === 'trail' && !reduceMotion) for (const [off, al] of [[22, .5], [44, .3], [66, .15]]) {   // 돌진 잔상 3겹 (그림을 뒤로 밀어 옅게)
+        const x1 = e.x1 == null ? e.x : e.x1, y1 = e.y1 == null ? e.y : e.y1, L0 = Math.max(70, Math.hypot(x1 - e.x, y1 - e.y)), an = L0 > 72 ? Math.atan2(y1 - e.y, x1 - e.x) : e.ang;
+        ctx.save(); ctx.globalAlpha = al * fade; ctx.translate(e.x - Math.cos(an) * off, e.y - 24 - Math.sin(an) * off * .6); ctx.rotate(an); ctx.drawImage(im, 0, -e.H / 2, L0, e.H); ctx.restore();
+      }
+      if (e.mode === 'zone' && e.z && e.z.t >= 0) {   // 설치: 빛 기둥 입자가 위로 · 사라질 때 바깥으로 흩어짐
+        const z = e.z, Rz = SKB.ZONE_D / 2; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = cc[0];
+        for (let i = 0; i < 10; i++) { const u = hash(i * 3 + 1), ph = (G.t * .8 + u) % 1, px = z.x + (hash(i * 5 + 2) - .5) * Rz * 1.6, py = z.y + (hash(i * 7 + 3) - .5) * Rz * .9; ctx.globalAlpha = Math.sin(ph * Math.PI) * .7 * fade; ctx.fillRect(px - 1, py - ph * 60, 2, 10); }
+        if (q > .85) for (let i = 0; i < 14; i++) { const an = i / 14 * Math.PI * 2, rr = Rz * (.6 + (q - .85) / .15 * .9); ctx.globalAlpha = (1 - q) / .15; ctx.fillRect(z.x + Math.cos(an) * rr - 1.5, z.y + Math.sin(an) * rr * .6 - 1.5, 3, 3); }
+        ctx.restore();
+      }
       for (let rr = 0; rr < reps; rr++) {
         ctx.save();
         if (e.mode === 'burst') { const S = e.S * (reduceMotion ? 1 : .7 + .4 * Math.min(1, t / .25)); ctx.globalAlpha = .95 * fade; ctx.translate(e.x, e.y - 6); if (e.rot) ctx.rotate(e.ang); ctx.drawImage(im, -S / 2, -S / 2 * (e.rot ? .8 : 1), S, S * (e.rot ? .8 : 1)); }
         else if (e.mode === 'zone') { const z = e.z; if (z && z.t < 0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45, br = reduceMotion ? 1 : 1 + .04 * Math.sin(G.t * 3);
-          ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade; ctx.translate(zx, zy); ctx.drawImage(im, -S * br / 2, -S * br / 2, S * br, S * br); }
+          ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade * (reduceMotion ? 1 : .75 + .25 * Math.sin(G.t * Math.PI * 2)); ctx.translate(zx, zy); ctx.drawImage(im, -S * br / 2, -S * br / 2, S * br, S * br);   // 1초 주기로 숨쉬듯
+          if (e.black) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .5 * fade; ctx.strokeStyle = '#8FA6C2'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(0, 0, S * .42, S * .42 * .6, 0, 0, Math.PI * 2); ctx.stroke(); } }   // 칠레 2: 회청 테두리 빛
         else if (e.mode === 'beam' || e.mode === 'trail') {
           let x1, y1, ang = e.ang, len = e.len;
           if (e.mode === 'trail') { const h = G.hero; if (h && h.dash) { e.x1 = h.x; e.y1 = h.y; } x1 = e.x1 == null ? e.x : e.x1; y1 = e.y1 == null ? e.y : e.y1; len = Math.max(70, Math.hypot(x1 - e.x, y1 - e.y)); if (len > 72) ang = Math.atan2(y1 - e.y, x1 - e.x); }
@@ -1173,6 +1209,14 @@
       }
       return done();
     }
+    if (e.type === 'ringFx') { const r0 = e.r0 + (e.r1 - e.r0) * k; ctx.globalAlpha = (1 - k) * .9; ctx.strokeStyle = e.col[1]; ctx.lineWidth = 6 * (1 - k) + 2; gEll(e.x, e.y, r0); ctx.stroke(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.stroke(); return done(); }   // 충격 고리
+    if (e.type === 'coreFlash') { const g = ctx.createRadialGradient(e.x, e.y - 20, 0, e.x, e.y - 20, 70); g.addColorStop(0, '#FFFFFF'); g.addColorStop(.4, e.col[0]); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = 1 - k; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y - 20, 70, 0, Math.PI * 2); ctx.fill(); return done(); }   // 가운데 섬광
+    if (e.type === 'debris') { const T = k * e.life; ctx.fillStyle = e.col[0]; for (let i = 0; i < e.n; i++) { const an = hash(i * 11 + (e.seed * 7 | 0)) * Math.PI * 2, sp = 120 + hash(i * 17 + 3) * 160, vy = -140 - hash(i * 5) * 120;
+        const x = e.x + Math.cos(an) * sp * T, y = e.y - 10 + Math.sin(an) * sp * T * .5 + (e.grav ? vy * T + 420 * T * T : 0); ctx.globalAlpha = 1 - k; ctx.fillRect(x - 2, y - 2, 4, 4); } return done(); }   // 파편 (범위는 중력)
+    if (e.type === 'scorch') { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = .32 * (1 - k); ctx.fillStyle = '#0A0A0E'; gEll(e.x, e.y, e.r); ctx.fill(); return done(); }   // 그을림 자국 1.5초
+    if (e.type === 'scrape') { ctx.globalAlpha = .6 * (1 - k); ctx.strokeStyle = e.col[1]; ctx.lineWidth = 3; ctx.beginPath(); e.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); return done(); }   // 바닥 긁힘 1초
+    if (e.type === 'muzzle') { ctx.globalAlpha = 1 - k; ctx.fillStyle = e.col[0]; ctx.beginPath(); ctx.arc(e.x, e.y - 24, 9 * (1 - k * .5), 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(e.x, e.y - 24, 4, 0, Math.PI * 2); ctx.fill(); return done(); }   // 출발 섬광
+    if (e.type === 'pop') { ctx.globalAlpha = 1 - k; ctx.strokeStyle = e.col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(e.x, e.y - 22, 4 + 8 * k, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(e.x, e.y - 22, 3 * (1 - k), 0, Math.PI * 2); ctx.fill(); return done(); }   // 맞은 곳 작은 폭발 (지름 24)
     if (e.type === 'boostSlash') { ctx.globalAlpha = e.al * (1 - k); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(e.x, e.y - 24, 44, 44 * .7, 0, e.a - 1.1, e.a + 1.1); ctx.stroke(); return done(); }   // 무적 중 치기 잔상
     if (e.type === 'aimFlash') {   // PC: 커서 자리에 목표 원이 1.25배 → 1배로 줄며 0.35초 동안 사라져요 (움직임 줄이기면 깜빡임만)
       const sc = reduceMotion ? 1 : 1.25 - .25 * Math.min(1, k * 2); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = reduceMotion ? (Math.floor(k * 4) % 2 ? 0 : .9) : 1 - k;
@@ -1442,12 +1486,12 @@
       if (s.noHit) continue;
       if (s.hits) {   // 꿰뚫는 탄(부메랑·충격파): 지나가며 맞히고, 한 번 지날 때 같은 외계인은 한 번만
         for (const a of G.aliens) if (s.life > 0 && !a.dead && !s.hits.has(a) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + (s.kind === 'quake' ? 16 : 8)) ** 2) {
-          s.hits.add(a); const v = Math.hypot(s.vx, s.vy) || 1; damage(a, s.dmg, s.vx / v, s.vy / v, s.kind === 'quake');
+          s.hits.add(a); const v = Math.hypot(s.vx, s.vy) || 1; damage(a, s.dmg, s.vx / v, s.vy / v, s.kind === 'quake'); if (s.tailCol) sfx('pop', a.x, a.y, .15, { col: s.tailCol });
         }
         continue;
       }
       if (s.life <= 0 && s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 });
-      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); s.life = 0; if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
+      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED); if (s.tailCol) sfx('pop', a.x, a.y, .15, { col: s.tailCol }); s.life = 0; if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
     }
     G.shots = G.shots.filter(s => s.life > 0);
     G.aliens = G.aliens.filter(a => !a.dead);
@@ -1522,7 +1566,7 @@
     G.t += dt;
     const pt = portrait();
     if (pt !== wasPortrait) { wasPortrait = pt; clearInput(); if (pt && G.scene === 'play' && !G.paused) setPause(true); }
-    G.shake = Math.max(0, G.shake - dt * 20); G.hurtFlash = Math.max(0, G.hurtFlash - dt);
+    G.shake = Math.max(0, G.shake - dt * 20); G.hurtFlash = Math.max(0, G.hurtFlash - dt); G.skillFlash = Math.max(0, (G.skillFlash || 0) - dt);
     for (const m of G.msgs) m.t -= dt; G.msgs = G.msgs.filter(m => m.t > 0);
     for (const p of G.parts) { p.t += dt; if (p.t > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } } G.parts = G.parts.filter(p => p.t < p.life);
     if (G.kick) { G.kick.t += dt; if (G.kick.t > .1) G.kick = null; }
@@ -2144,6 +2188,7 @@
   // 위 표시: HP · 돈 · 라운드 · 남은 외계인 · 일시정지
   function drawHUD() {
     const r = G.run, h = G.hero, c = G.country;
+    if (G.skillFlash > 0) { ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(0, 0, VW, VH); }   // 스킬 쓰는 순간 화면 번쩍 0.06초
     const x0 = Math.max(VW * .08, fieldBox.x + 12, safeArea().l + 8);   // 안전 영역 안 (QA M15)
     UI.rr(x0 - 8, VH * .04, 236, 64, 10, 'rgba(10,11,15,.55)');
     const low = h.hp / h.maxHp <= .25;

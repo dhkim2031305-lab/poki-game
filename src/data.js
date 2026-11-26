@@ -162,6 +162,8 @@
     mexico: [{ k: 'leap', mul: 1 }, { k: 'wings', mul: .45 }],
     colombia: [{ k: 'roar', mul: .3 }, { k: 'echo', mul: .5, clone: .4 }],
   };
+  // 스킬 이펙트 나라 색 [1번, 2번] = [몸 색, 바깥 빛 색] (디자인 gpt-art/round14/지시서.md · 칠레 2는 회청 테두리)
+  const SKILL_COL = {luxembourg: [["#FFC93C", "#5FB4EE"], ["#5FB4EE", "#FFC93C"]], ireland: [["#2FBF71", "#FF8A2E"], ["#FF8A2E", "#2FBF71"]], switzerland: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], usa: [["#5FB4EE", "#F2452E"], ["#F2452E", "#5FB4EE"]], netherlands: [["#FF8A2E", "#3D74D9"], ["#3D74D9", "#FF8A2E"]], denmark: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], austria: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], australia: [["#FFC93C", "#2FBF71"], ["#2FBF71", "#FFC93C"]], germany: [["#FFC93C", "#F2452E"], ["#F2452E", "#FFC93C"]], sweden: [["#FFC93C", "#3D74D9"], ["#3D74D9", "#FFC93C"]], canada: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], finland: [["#DDE6F2", "#3D74D9"], ["#3D74D9", "#DDE6F2"]], france: [["#3D74D9", "#F2452E"], ["#F2452E", "#3D74D9"]], italy: [["#2FBF71", "#F2452E"], ["#F2452E", "#2FBF71"]], korea: [["#F2452E", "#3D74D9"], ["#3D74D9", "#F2452E"]], spain: [["#FFC93C", "#F2452E"], ["#F2452E", "#FFC93C"]], czechia: [["#3D74D9", "#F2452E"], ["#F2452E", "#3D74D9"]], israel: [["#5FB4EE", "#DDE6F2"], ["#5FB4EE", "#DDE6F2"]], lithuania: [["#FFC93C", "#2FBF71"], ["#2FBF71", "#FFC93C"]], newzealand: [["#2FBF71", "#DDE6F2"], ["#2FBF71", "#DDE6F2"]], japan: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], portugal: [["#2FBF71", "#F2452E"], ["#F2452E", "#2FBF71"]], poland: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], hungary: [["#F2452E", "#2FBF71"], ["#2FBF71", "#F2452E"]], slovakia: [["#3D74D9", "#F2452E"], ["#F2452E", "#3D74D9"]], greece: [["#5FB4EE", "#DDE6F2"], ["#5FB4EE", "#DDE6F2"]], turkiye: [["#F2452E", "#DDE6F2"], ["#F2452E", "#DDE6F2"]], chile: [["#F2452E", "#3D74D9"], ["#8FA6C2", "#8FA6C2"]], mexico: [["#FFC93C", "#2FBF71"], ["#2FBF71", "#FFC93C"]], colombia: [["#FFC93C", "#3D74D9"], ["#3D74D9", "#FFC93C"]]};
   COUNTRIES.forEach(c => { const m = SKILL_MOD[c.key]; if (m) { c.skill.mod = m[0]; c.skill2.mod = m[1]; } });
 
   // ---- 기획서에 수치가 없어서 개발팀이 넣은 임시 값 [제안 · 기획팀 확인 필요] ----
@@ -193,5 +195,5 @@
     { x: 30, y: FIELD.H / 2, dx: 1, dy: 0 },            // 왼쪽
   ];
 
-  window.DATA = { COUNTRIES, SKILLS, SKILLS2, SKILL_MOD, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
+  window.DATA = { COUNTRIES, SKILLS, SKILLS2, SKILL_MOD, SKILL_COL, CURRENCY_ORDER, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD };
 })();
