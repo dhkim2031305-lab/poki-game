@@ -1,0 +1,1 @@
+[sheet-07.png](/home/user/poki-game/teams/2-디자인/gpt-art/round13/sheet-07.png)에 07번 이펙트 네 칸을 저장했습니다. 생성 원본의 크기와 색을 보정한 뒤, 최종 PNG가 1024×1024px이고 배경과 각 칸의 가장자리 24px가 투명한 것을 확인했습니다. 검증 결과는 [result-07.md](/home/user/poki-game/teams/2-디자인/gpt-art/round13/result-07.md)에 기록했습니다.
