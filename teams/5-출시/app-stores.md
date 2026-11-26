@@ -63,7 +63,7 @@
 - **AM7** https://developers.google.com/admob/android/privacy (UMP SDK)
 - **AM8** https://support.google.com/admob/answer/9363762 (app-ads.txt)
 
-## 순서 [제안]
+## 순서 (사용자 확정 2026-11-26 "추천방식대로 진행해")
 1. 웹 사이트(itch.io → GameDistribution → CrazyGames) 먼저 올려서 반응 보기
 2. 그동안 개발팀이 앱 포장 시제품(안드로이드 먼저) → 구글 비공개 테스트 14일 시작
 3. 아이폰은 Mac 준비 여부를 보고 나중에

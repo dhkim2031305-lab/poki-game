@@ -6,7 +6,7 @@
 ## 대상 사이트 (사용자 결정 2026-11-25, GDD 0-6)
 - **CrazyGames · GameDistribution · itch.io** (+ 독점 조건 없는 곳) · 휴대폰 앱(앱스토어·구글 플레이)은 `app-stores.md` (2026-11-26 사용자 요청)
 - **Poki: 웹 독점 계약은 안 해요.** 비독점 길은 있어요: "For games already live on other web platforms, or with a more niche or short-term fit for our audience, we can offer a one-time flat license fee instead, with no revenue share." [P6] → 한 번만 받는 고정 라이선스비, 수익 배분 없음. Poki가 게임을 보고 제안할 때만 가능해요.
-- **CrazyGames 2개월 독점(+50%)은 못 해요** (다른 웹사이트에도 올리니까). [C5]
+- **CrazyGames 2개월 독점(+50%)은 안 해요** (사용자 확정 2026-11-26 · 다른 웹사이트에도 올리니까). [C5]
 
 ## 요약 표
 
