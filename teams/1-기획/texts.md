@@ -31,17 +31,20 @@
 | `x.cancel` | 취소 | Cancel | 스킬 끌어서 쓰기의 취소 원 안 글자 (GDD 0-17, 개발 2189380) | 확정 (2026-11-25) |
 | `round.clear.1` | 완벽해요! 세상은 정말 아름다워요! | Perfect! The world is truly beautiful! | 라운드 클리어 (무작위) | 확정 |
 | `round.clear.2` | 당신은 뭐든 할 수 있어요! | You can do anything! | 라운드 클리어 (무작위) | 확정 |
-| `end.unfair` | …하지만 인생은 불공평해요. | …But life isn't fair. | 6라운드 클리어 뒤, 장수가 쓰러지기 직전 | 확정 |
-| `end.after.01` | 쉽게 깼네요. 이번엔 어려운 나라로 해 보세요. | That was easy. Try a harder country next time. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.02` | 축하해요. 좋은 나라를 골랐네요. 그게 실력은 아니지만요. | Congrats. You picked a good country. That's not skill, though. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.03` | 어떤 나라는 같은 맵에서 3라운드도 못 가요. 한번 해 볼래요? | Some countries can't even reach Round 3 on the same map. Want to try? | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.04` | 잘했어요. 출발선이 좋았으니까요. | Well done. You had a good starting line. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.05` | 이번엔 돈이 적은 나라로 해 보세요. 같은 외계인이에요. | Try a country with less money next. Same aliens. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.06` | 쉬웠죠? 모두에게 쉬운 건 아니에요. | Easy, right? It isn't easy for everyone. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.07` | 돈이 적은 나라로도 깰 수 있을까요? 직접 확인해 보세요. | Can you clear it with a country that has less money? See for yourself. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.08` | 당신이 잘한 걸까요, 나라가 잘산 걸까요? | Was it you, or was it your country's wealth? | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.09` | 같은 게임인데 다른 나라는 왜 어려울까요? 골라 보면 알아요. | Same game, so why is it harder for other countries? Pick one and find out. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
-| `end.after.10` | 이긴 건 맞아요. 공평했던 건 아니고요. | You won. It just wasn't fair. | 장수가 쓰러진 뒤 (10개 중 무작위) | 확정 |
+| `end.unfair` | …하지만 인생은 불공평해요. | …But life isn't fair. | ~~6라운드 클리어 뒤, 장수가 쓰러지기 직전~~ → **안 써요** (2026-11-26 끝 화면 바뀜, GDD 0-4) | 안 씀 |
+| `end.clear.title` | 클리어! | Clear! | 1위가 6라운드를 깼을 때 제목. 장수는 안 쓰러지고, 아래에 `end.after.*` 10개 중 하나 (GDD 0-4 "가") | 확정 (2026-11-26) |
+| `end.far.title` | 여기까지 | This Far | 2~15위가 6라운드를 깼을 때 제목 (클리어도 실패도 아님) | 확정 (2026-11-26) |
+| `end.far.01` | 당신은 뭐든 할 수 있어요! …이 나라로는 빼고요. 진짜 클리어는 다른 나라로 해 보세요. | You can do anything! …Except with this country. For a real clear, try another one. | 2~15위 6라운드 클리어 화면 문구. 장수는 서 있어요 (GDD 0-4 "2번") | 확정 (2026-11-26) · 18개 언어는 번역 단계 |
+| `end.after.01` | 쉽게 깼네요. 이번엔 어려운 나라로 해 보세요. | That was easy. Try a harder country next time. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.02` | 축하해요. 좋은 나라를 골랐네요. 그게 실력은 아니지만요. | Congrats. You picked a good country. That's not skill, though. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.03` | 어떤 나라는 같은 맵에서 3라운드도 못 가요. 한번 해 볼래요? | Some countries can't even reach Round 3 on the same map. Want to try? | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.04` | 잘했어요. 출발선이 좋았으니까요. | Well done. You had a good starting line. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.05` | 이번엔 돈이 적은 나라로 해 보세요. 같은 외계인이에요. | Try a country with less money next. Same aliens. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.06` | 쉬웠죠? 모두에게 쉬운 건 아니에요. | Easy, right? It isn't easy for everyone. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.07` | 돈이 적은 나라로도 깰 수 있을까요? 직접 확인해 보세요. | Can you clear it with a country that has less money? See for yourself. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.08` | 당신이 잘한 걸까요, 나라가 잘산 걸까요? | Was it you, or was it your country's wealth? | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.09` | 같은 게임인데 다른 나라는 왜 어려울까요? 골라 보면 알아요. | Same game, so why is it harder for other countries? Pick one and find out. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
+| `end.after.10` | 이긴 건 맞아요. 공평했던 건 아니고요. | You won. It just wasn't fair. | 1위 클리어 화면 아래 (10개 중 무작위) | 확정 |
 | `bankrupt.first.01` | 아… 잘난 사람들만 잘나가는 세상. | Ah… a world where only the privileged get ahead. | 첫 파산 (10개 중 무작위) | 확정 |
 | `bankrupt.first.02` | 열심히 했는데… 돈이 없네. | I worked so hard… and still no money. | 첫 파산 (10개 중 무작위) | 확정 |
 | `bankrupt.first.03` | 출발선부터 달랐던 거야. | The starting line was different from the start. | 첫 파산 (10개 중 무작위) | 확정 |

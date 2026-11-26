@@ -138,16 +138,17 @@
 - **안 가 (확정)**: 쓰러지지 않아요. "클리어!" + 라운드 클리어처럼 행복한 말, 그 아래에 지금의 **죽은 뒤 문구 10개 중 하나**를 그대로 써요. 10개가 모두 "좋은 나라를 골라서 쉬웠다"는 말이라 1위에 딱 맞아요.
 - ~~안 나~~ (안 씀): 지금처럼 축하하다가 "…하지만 인생은 불공평해요."와 함께 쓰러져요. 그다음 죽은 뒤 문구 10개 중 하나. 다만 "클리어"라는 말과는 덜 맞아요.
 
-#### 2~15위 화면 문구 시안 [제안 · 사용자가 하나 고르기]
-- 흐름: 행복한 말로 시작 → "…그런데" 반전. 장수는 **쓰러지지 않고 그냥 서 있어요** [제안]. 버튼은 지금처럼 다시하기·나라 고르기.
+#### 2~15위 화면 문구 — ✅ 확정 "2번" (사용자 2026-11-26, 팀장 전달)
+- 흐름: 행복한 말로 시작 → "…그런데" 반전. 장수는 **쓰러지지 않고 그냥 서 있어요** (확정). 버튼은 지금처럼 다시하기·나라 고르기.
 
 | 안 | 한국어 | English |
 |---|---|---|
-| 1 | 보스를 쓰러뜨렸어요! 세상은 정말 아름다워요! **…그런데 클리어는 1등 나라만 할 수 있대요.** 진짜 깨고 싶으면 다른 나라로 다시 도전해 보세요. | You beat the boss! The world is truly beautiful! **…But only the #1 country gets to clear.** Want a real win? Try again with another country. |
-| 2 | 당신은 뭐든 할 수 있어요! **…이 나라로는 빼고요.** 진짜 클리어는 다른 나라로 해 보세요. | You can do anything! **…Except with this country.** For a real clear, try another one. |
-| 3 | 거의 다 왔어요! **…하지만 이 나라는 여기까지예요.** 출발선이 다른 나라로 다시 도전해 보세요. | So close! **…But this is as far as this country goes.** Try again from a different starting line. |
+| ~~1~~ | 보스를 쓰러뜨렸어요! 세상은 정말 아름다워요! **…그런데 클리어는 1등 나라만 할 수 있대요.** 진짜 깨고 싶으면 다른 나라로 다시 도전해 보세요. | You beat the boss! The world is truly beautiful! **…But only the #1 country gets to clear.** Want a real win? Try again with another country. |
+| **2 ✅** | 당신은 뭐든 할 수 있어요! **…이 나라로는 빼고요.** 진짜 클리어는 다른 나라로 해 보세요. | You can do anything! **…Except with this country.** For a real clear, try another one. |
+| ~~3~~ | 거의 다 왔어요! **…하지만 이 나라는 여기까지예요.** 출발선이 다른 나라로 다시 도전해 보세요. | So close! **…But this is as far as this country goes.** Try again from a different starting line. |
 
-- 화면 제목 [제안]: "클리어"·"실패" 대신 **"여기까지"** / "This Far" (다른 말을 원하시면 바꿔요).
+- 화면 제목 ✅ 확정: **"여기까지"** / "This Far". 문구 키는 `texts.md`의 `end.far.*`예요.
+- "…하지만 인생은 불공평해요."(`end.unfair`)는 이제 안 써요 (1위도 안 쓰러지고, 2~15위는 2번 문구).
 
 ## 0-5. 스킬 외침 (2026-11-25 사용자 결정)
 사용자 원문: "그리고 스킬 쓸때 각 나라 이름이 들어가 한국이면 한국! 일본이면 일본! 존나 버텨 이런식? ㅋㅋ"
