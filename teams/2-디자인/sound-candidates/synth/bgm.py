@@ -83,7 +83,7 @@ def master(x,peak=.89):
 def export(x,path,kbps=64):
   w=path.replace('.mp3','.wav'); import wave
   with wave.open(w,'wb') as f: f.setnchannels(1);f.setsampwidth(2);f.setframerate(SR);f.writeframes((x*32767).astype('<i2').tobytes())
-  subprocess.run(['ffmpeg','-y','-loglevel','error','-i',w,'-c:a','libmp3lame','-b:a',f'{kbps}k','-ac','1',path],check=True); os.remove(w)
+  subprocess.run(['ffmpeg','-y','-loglevel','error','-i',w,'-c:a','libmp3lame','-b:a',f'{kbps}k','-ac','1']+(['-ar','22050'] if kbps<32 else [])+[path],check=True)   # 32k 미만은 22.05kHz(MPEG-2)라야 비트레이트가 실제로 낮아져요; os.remove(w)
 
 OUT=sys.argv[1] if len(sys.argv)>1 else '.'
 # ===== 전투 루프: 132bpm, 16마디, D단조. 층 3개(기본 / +타악 / +금관) =====
@@ -120,9 +120,9 @@ mix1=reverb(L1.buf); mix2=reverb(L2.buf,.6,.08)*2.6; mix3=reverb(L3.buf,1.3,.2)*
 g=np.max(np.abs(mix1))/.62                 # 세 층 모두 같은 배율 → 게임에서 그냥 더하면(볼륨 0.8) 미리듣기와 같은 소리
 sc=lambda x,lim: lim*np.tanh(x/g/lim)        # 층마다 부드럽게 눌러 튀는 북소리 정리
 b1,b2,b3=sc(mix1,.62),sc(mix2,.32),sc(mix3,.30)
-export(b1,f'{OUT}/bgm-battle.mp3',56)
-export(b2,f'{OUT}/bgm-battle-perc.mp3',32)
-export(b3,f'{OUT}/bgm-battle-brass.mp3',32)
+export(b1,f'{OUT}/bgm-battle.mp3',40)
+export(b2,f'{OUT}/bgm-battle-perc.mp3',24)
+export(b3,f'{OUT}/bgm-battle-brass.mp3',24)
 export(np.tanh((b1+b2)*1.0),f'{OUT}/preview-battle-r3.mp3',56)          # 미리듣기: 3~4라운드
 export(np.tanh((b1+b2+b3)*1.0),f'{OUT}/preview-battle-r5.mp3',56)     # 미리듣기: 5~6라운드
 # ===== 보스 루프: 150bpm, 8마디, D 프리지안(무겁게) =====
@@ -141,7 +141,7 @@ for bar in range(8):
 # 마지막 마디 필인 → 첫 박으로 이어짐
 for i in range(6): T.add(tom(m('A2')-i*2),7*BAR+2*B+i*B/3,.6)
 T.add(crash(),0,.5)
-export(master(reverb(T.buf,1.0,.14)),f'{OUT}/bgm-boss.mp3',56)
+export(master(reverb(T.buf,1.0,.14)),f'{OUT}/bgm-boss.mp3',48)
 th=thunder(); st=np.zeros(len(th)); b=brass(bch['D'],.6,1.0); i0=int(.9*SR); k=min(len(b),len(th)-i0); st[i0:i0+k]=b[:k]
 export(master(th+st),f'{OUT}/sfx-boss-thunder.mp3',56)
 # ===== 메뉴 루프: 100bpm, 8마디, 류트 아르페지오 + 거들먹 호른(풍자) =====
@@ -156,7 +156,7 @@ for bar in range(8):
 hm=[('A4',1.5),('D5',.5),('D5',1),('F5',1),('E5',1.5),('D5',.5),('C5',2),('D5',1.5),('A4',.5),('Bb4',1),('C5',1),('A4',4)]
 t=4*BAR
 for nm,bt in hm: M.add(horn(m(nm),bt*B*.9),t,.25); t+=bt*B
-export(master(reverb(M.buf,1.4,.2)),f'{OUT}/bgm-menu.mp3',48)
+export(master(reverb(M.buf,1.4,.2)),f'{OUT}/bgm-menu.mp3',32)
 # ===== 결말 짧은 곡 (반복 안 함) =====
 def oneshot(sec): return Track(sec)
 B=60/112; V=oneshot(5.0)   # 승리: D장조 팡파르
