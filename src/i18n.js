@@ -9,6 +9,7 @@
       'ui.08': 'GDP per capita (PPP) · OECD 2024', 'ui.09': 'Settings', 'ui.10': 'Language',
       'round.clear.1': 'Perfect! The world is truly beautiful!', 'round.clear.2': 'You can do anything!',
       'end.unfair': '…But life isn\'t fair.',
+      'end.far.title': 'This Far', 'end.far.a': 'You can do anything!', 'end.far.b': '…Except with this country.', 'end.far.01': 'You can do anything! …Except with this country. For a real clear, try another one.', 'end.clear.title': 'Clear!', 'end.time': 'Time {t}s', 'end.time.min': 'Time {m}m {s}s',   // GDD 0-4 (texts.md end.*)
       'end.after.01': 'That was easy. Try a harder country next time.',
       'end.after.02': 'Congrats. You picked a good country. That\'s not skill, though.',
       'end.after.03': 'Some countries can\'t even reach Round 3 on the same map. Want to try?',
@@ -49,6 +50,7 @@
       'ui.08': '1인당 GDP(PPP) · OECD 2024', 'ui.09': '설정', 'ui.10': 'Language',
       'round.clear.1': '완벽해요! 세상은 정말 아름다워요!', 'round.clear.2': '당신은 뭐든 할 수 있어요!',
       'end.unfair': '…하지만 인생은 불공평해요.',
+      'end.far.title': '여기까지', 'end.far.a': '당신은 뭐든 할 수 있어요!', 'end.far.b': '…이 나라로는 빼고요.', 'end.far.01': '당신은 뭐든 할 수 있어요! …이 나라로는 빼고요. 진짜 클리어는 다른 나라로 해 보세요.', 'end.clear.title': '클리어!', 'end.time': '걸린 시간 {t}초', 'end.time.min': '걸린 시간 {m}분 {s}초',
       'end.after.01': '쉽게 깼네요. 이번엔 어려운 나라로 해 보세요.',
       'end.after.02': '축하해요. 좋은 나라를 골랐네요. 그게 실력은 아니지만요.',
       'end.after.03': '어떤 나라는 같은 맵에서 3라운드도 못 가요. 한번 해 볼래요?',

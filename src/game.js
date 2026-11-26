@@ -441,7 +441,7 @@
   async function restart() {
     cancelLater();
     const ci = G.country.rank - 1;
-    if (G.result.kind === 'clear' && !G.run.rewardedSeen) await runAd(cb => Platform.commercialBreak(cb));
+    if ((G.result.kind === 'clear' || G.result.kind === 'far') && !G.run.rewardedSeen) await runAd(cb => Platform.commercialBreak(cb));
     newRun(ci);
   }
   async function rewarded() {
@@ -580,7 +580,7 @@
   function useInvuln() {
     const r = G.run, h = G.hero;
     if (!r || r.invuln <= 0 || h.dead || h.skillT > 0) return;
-    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 3초 + 그동안 공격 속도 2.5배
+    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 2초 + 그동안 공격 속도 2.5배 (GDD 0-15, 2026-11-26)
     G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
     if (settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('revive');
@@ -1584,22 +1584,24 @@
   }
   function startEnding() {
     G.scene = 'ending';
-    G.ending = { t: 0, line: t_(rnd(['round.clear.1', 'round.clear.2'])), fell: false };
+    const top = G.country.rank === 1;   // 끝 화면 (GDD 0-4 "1위만 클리어", 사용자 2026-11-26): 1위 = 진짜 클리어 · 2~15위 = "여기까지"
+    G.ending = { t: 0, top, line: top ? t_(rnd(['round.clear.1', 'round.clear.2'])) : t_('end.far.a'), fell: false };
     AUDIO.play('gameClear');
   }
   function updateEnding(dt) {
     const e = G.ending; e.t += dt;
     if (e.t < 2.2 && Math.random() < .5) burst(FIELD.W / 2 + (Math.random() - .5) * 300, FIELD.H * .2 + Math.random() * 200, COL.glow, 1, 40);
-    if (e.t > 3.6 && !e.fell) { e.fell = true; AUDIO.play('hurt'); }
-    if (e.t > 5.4) showResult('clear', { line: t_('end.after.' + String(1 + Math.floor(Math.random() * 10)).padStart(2, '0')) });
+    if (e.top) { if (e.t > 4.2) showResult('clear', { line: t_('end.after.' + String(1 + Math.floor(Math.random() * 10)).padStart(2, '0')) }); return; }   // 1위: 쓰러지지 않고 클리어 + 죽은 뒤 문구 10개 중 하나
+    if (e.t > 4.6) showResult('far', { line: t_('end.far.01') });   // 2~15위: 서 있고 "여기까지" (클리어·실패 아닌 따로 결과)
   }
   function showResult(kind, o = {}) {
     const r = G.run, c = G.country;
     Platform.gameplayStop();
-    const rounds = kind === 'clear' ? 6 : kind === 'bankrupt' ? r.round : r.round - 1;
+    const rounds = kind === 'clear' || kind === 'far' ? 6 : kind === 'bankrupt' ? r.round : r.round - 1;
+    if (kind === 'far') { const fr = store.get('far', {}); fr[c.key] = { kills: Math.max(r.kills, (fr[c.key] || {}).kills || 0), n: ((fr[c.key] || {}).n || 0) + 1 }; store.set('far', fr); }   // "여기까지" 기록은 클리어·실패와 따로
     const prev = best[c.key], isNew = !prev || rounds > prev.rounds || (rounds === prev.rounds && r.kills > prev.kills);
-    if (isNew) { best[c.key] = { rounds, kills: r.kills }; store.set('best', best); later(() => AUDIO.play('best'), 700); }
-    G.result = { kind, rounds, kills: r.kills, isNew, line: o.line || '', final: !!o.final, t: 0 };
+    if (isNew) { best[c.key] = { rounds, kills: r.kills, far: kind === 'far' || undefined }; store.set('best', best); later(() => AUDIO.play('best'), 700); }
+    G.result = { kind, rounds, kills: r.kills, isNew, line: o.line || '', final: !!o.final, t: 0, time: kind === 'clear' || kind === 'far' ? r.playT || 0 : null };
     G.scene = 'result';
   }
 
@@ -1617,6 +1619,7 @@
     for (const e of G.fx) e.t += dt; G.fx = G.fx.filter(e => e.t < e.life);
     if (portrait()) return;                     // 세로: 라운드 패널·엔딩도 멈춰요
     if (G.scene === 'play' && !G.paused) {
+      if (G.run && !G.hold && G.run.clearT < 0 && !(G.hero && G.hero.dead)) G.run.playT = (G.run.playT || 0) + dt;   // 걸린 시간 (GDD 0-4): 싸우는 시간만 — 일시정지·광고·라운드 사이·마지막 외계인 뒤는 빼요
       if (G.hitstop > 0) G.hitstop -= dt;
       else { let gdt = dt; if (G.slow > 0) { G.slow -= dt; gdt = dt * .7; } updatePlay(gdt); }   // 보스 결정타는 0.12초 동안 0.7배속
     }
@@ -1732,7 +1735,7 @@
     UI.btnMain('start', VW / 2, VH * .66, pr, 'play');
     if (lastCountry != null && best[COUNTRIES[lastCountry].key]) {
       const b = best[COUNTRIES[lastCountry].key];
-      UI.I.trophy(VW / 2 - 40, VH * .88, 18, COL.gold); UI.flag(COUNTRIES[lastCountry].iso, VW / 2 - 24, VH * .88 - 6, 17, 12);
+      if (b.far) UI.I.flag(VW / 2 - 40, VH * .88, 18, COL.glow); else UI.I.trophy(VW / 2 - 40, VH * .88, 18, COL.gold); UI.flag(COUNTRIES[lastCountry].iso, VW / 2 - 24, VH * .88 - 6, 17, 12);
       UI.txt(`${b.rounds}/6 · ${b.kills}`, VW / 2 + 22, VH * .88, 14, COL.muted, 'center', 700);
     }
     UI.btnSub('sound', VW * .93, VH * .1, 44, 'speaker', !settings.sound);
@@ -2460,18 +2463,18 @@
   function drawEnding() {
     const e = G.ending;
     if (e.t < 3.6) {
-      const a = Math.min(1, e.t / .3);
+      const a = Math.min(1, e.t / .3) * (e.top ? 1 : Math.min(1, Math.max(0, (4.4 - e.t) / .3) + (e.t < 3.6 ? 1 : 0)));
       ctx.globalAlpha = a;
       UI.rr(VW / 2 - 220, VH * .2 - 30, 440, 92, 14, 'rgba(10,11,15,.6)');
-      UI.I.trophy(VW / 2 - 70, VH * .2, 30, COL.gold);
-      UI.txt(t_('x.clear'), VW / 2 + 10, VH * .2, 30, COL.glow, 'center', 900);
+      if (e.top) { UI.I.trophy(VW / 2 - 70, VH * .2, 30, COL.gold); UI.txt(t_('x.clear'), VW / 2 + 10, VH * .2, 30, COL.glow, 'center', 900); }
+      else UI.txt(t_('x.roundClear', { n: 6 }), VW / 2, VH * .2, 26, COL.glow, 'center', 900);   // 2~15위: 보스는 깼지만 "클리어"라고 하지 않아요
       UI.txt(e.line, VW / 2, VH * .2 + 40, 15, COL.fg, 'center', 700, 420);
       ctx.globalAlpha = 1;
     }
-    if (e.t > 2.2) {
+    if (e.t > 2.2 && !e.top) {   // 2~15위: "…이 나라로는 빼고요." (1위는 반전 없이 클리어)
       ctx.globalAlpha = Math.min(1, (e.t - 2.2) / .4);
       UI.rr(VW / 2 - 200, VH * .78 - 20, 400, 40, 10, 'rgba(10,11,15,.7)');
-      UI.txt(t_('end.unfair'), VW / 2, VH * .78, 17, COL.fg, 'center', 700, 380);
+      UI.txt(t_('end.far.b'), VW / 2, VH * .78, 17, COL.fg, 'center', 700, 380);
       ctx.globalAlpha = 1;
     }
   }
@@ -2483,19 +2486,21 @@
     UI.hero(c.key, VW * .15, VH - 6, Math.min(190, VH * .5), { sy: reduceMotion ? 1 : 1 + Math.sin(G.t * 2.2) * .015 });
     const cx = VW / 2;
     if (R.kind === 'clear') UI.I.trophy(cx, VH * .13, 50, COL.gold);
+    else if (R.kind === 'far') UI.I.flag(cx, VH * .13, 50, COL.glow);   // 여기까지: 트로피도 실패 깃발 색도 아닌 금빛 깃발
     else if (R.kind === 'fail') UI.I.flag(cx, VH * .13, 50, COL.fg);
     else UI.I.coin(cx, VH * .13, 50, c.sym, true);
-    const title = R.kind === 'clear' ? t_('x.clear') : R.kind === 'fail' ? t_('x.fail') : t_('ui.07');
+    const title = R.kind === 'clear' ? t_('end.clear.title') : R.kind === 'far' ? t_('end.far.title') : R.kind === 'fail' ? t_('x.fail') : t_('ui.07');
     UI.txt(title, cx, VH * .29, 28, COL.fg, 'center', 800);
     let ly = VH * .37;
     if (R.kind === 'bankrupt') { UI.txt(c.sym + '0', cx, ly, 16, COL.amber, 'center', 800); ly += 20; }
+    if (R.time != null) { const T = Math.floor(R.time * 10) / 10, m = Math.floor(T / 60), sec = (T - m * 60).toFixed(1); UI.txt(T < 60 ? t_('end.time', { t: T.toFixed(1) }) : t_('end.time.min', { m, s: sec }), cx, ly, 15, COL.glow, 'center', 800); ly += 20; }   // 걸린 시간 (60초 넘으면 분·초, GDD 0-4 "나")
     if (R.line) UI.para(R.line, cx, ly + 4, 13, COL.muted, Math.min(420, VW * .5), 17);
     const iy = VH * .5;
     UI.flag(c.iso, cx - 90, iy - 8, 24, 16); UI.txt(I18N.countryName(c), cx - 58, iy, 15, COL.fg, 'left', 700, 150);
     for (let i = 0; i < 6; i++) UI.circ(cx - 45 + i * 18, VH * .59, 5, i < R.rounds ? COL.gold : COL.empty);
     UI.I.alien(cx + 76, VH * .59, 16, '#CA57E5'); UI.txt(String(R.kills), cx + 90, VH * .59, 14, COL.fg, 'left', 800);
     const b = best[c.key];
-    if (b) { UI.I.trophy(cx - 30, VH * .67, 14, COL.gold); UI.txt(`${b.rounds}/6 · ${b.kills}`, cx + 6, VH * .67, 13, COL.muted, 'center', 700); }
+    if (b) { if (b.far) UI.I.flag(cx - 30, VH * .67, 14, COL.glow); else UI.I.trophy(cx - 30, VH * .67, 14, COL.gold); UI.txt(`${b.rounds}/6 · ${b.kills}`, cx + 6, VH * .67, 13, COL.muted, 'center', 700); }   // "여기까지" 기록은 깃발
     if (R.isNew) { UI.I.star(cx + 56, VH * .67, 16 + (reduceMotion ? 0 : Math.sin(G.t * 8) * 2), COL.glow); UI.txt('NEW', cx + 80, VH * .67, 11, COL.glow, 'left', 900); }
     // 버튼 3개 (사용자 결정): 종료 · 다시하기 · 광고보기 — 모두 같은 크기
     // 광고보기는 실패(한 판 1회)·파산(무제한)에서만, 광고 SDK가 준비됐을 때만 보여요
