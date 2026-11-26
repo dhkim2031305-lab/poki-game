@@ -3,6 +3,11 @@
 > 각 사이트 개발자 포털에서 확인한 내용만 적어요. 확인 안 된 칸은 "확인 안 됨"으로 둬요.
 > **확인 날짜: 2026-11-25** · 확인 방법: 출처 페이지를 직접 내려받아 원문 문구 대조 (Claude). 정책은 바뀌니 제출 직전에 다시 확인해요.
 
+## 대상 사이트 (사용자 결정 2026-11-25, GDD 0-6)
+- **CrazyGames · GameDistribution · itch.io** (+ 독점 조건 없는 곳) · 휴대폰 앱(앱스토어·구글 플레이)은 `app-stores.md` (2026-11-26 사용자 요청)
+- **Poki: 웹 독점 계약은 안 해요.** 비독점 길은 있어요: "For games already live on other web platforms, or with a more niche or short-term fit for our audience, we can offer a one-time flat license fee instead, with no revenue share." [P6] → 한 번만 받는 고정 라이선스비, 수익 배분 없음. Poki가 게임을 보고 제안할 때만 가능해요.
+- **CrazyGames 2개월 독점(+50%)은 못 해요** (다른 웹사이트에도 올리니까). [C5]
+
 ## 요약 표
 
 | 항목 | Poki | CrazyGames | GameDistribution | itch.io |
@@ -17,23 +22,43 @@
 | 설명 글자 수·언어 | 확인 안 됨 | 확인 안 됨 | 문서끼리 달라요: 100~500단어 [G2] / 설명·조작법 각 200~500자 [G1] | 확인 안 됨 |
 | 태그·카테고리 | 확인 안 됨 | 확인 안 됨 | 장르 최대 2개 + 태그 최대 5개, 연령대 필수 [G1] | 장르 1개 + 태그 최대 10개 [I4] |
 | ZIP 용량 제한 | 수치 제한은 확인 안 됨. 10초 안에 로딩되게, 외부 요청 금지 [P2] | 첫 다운로드 50MB 이하(모바일 홈은 20MB), 전체 250MB, 파일 1,500개 [C3] | 확인 안 됨 | 압축 풀어 500MB, 한 파일 200MB, 파일 1,000개 [I1] |
-| 독점·선공개 조건 | 기본은 **웹 독점**(다른 웹사이트·Discord·YouTube Playables에 못 올림, Steam·앱스토어는 가능), 기본 5년. 비독점은 1회 고정금만 받고 수익 배분 없음 [P6] | 선택. 정식 출시 후 2개월 동안 웹에서 CrazyGames에만 올리면 보상 +50% [C5] | 비독점. 다른 곳과 같은 최신 버전을 유지해야 해요 [G3] | 확인 안 됨 |
+| 독점·선공개 조건 | (우리는 안 함) 기본은 **웹 독점**(다른 웹사이트·Discord·YouTube Playables에 못 올림, Steam·앱스토어는 가능), 기본 5년. 비독점은 1회 고정금만 받고 수익 배분 없음 [P6] | 선택. 정식 출시 후 2개월 동안 웹에서 CrazyGames에만 올리면 보상 +50% [C5] | 비독점. 다른 곳과 같은 최신 버전을 유지해야 해요 [G3] | 확인 안 됨 |
 | 수익 배분 | 계약서마다 달라요 (확인 안 됨) [P6] | 비율 공개 안 됨. 트래픽·광고 성과로 매월 정산. 기본 출시(Basic Launch)는 광고·수익 없음 [C5][C6] | 순수익의 33%, 100유로부터 지급 [G3] | 기본 10% (0~100% 조절 가능) [I6] |
 | **광고 규칙** | 광고 타이머 직접 만들기 금지, `commercialBreak()`는 게임으로 돌아갈 때만. 보상형 버튼 옆에 **같은 크기 이상의 무료 이어하기 버튼**이 항상 함께 있어야 해요. 보상형 버튼은 초록색 금지, 🎬 아이콘 필수. **광고를 봐야만 진행할 수 있으면 심사 불통과** [P2][P7] | 플레이 중 광고 금지, 중간 광고는 3분에 1번까지(SDK가 조절). **판 사이 광고와 "이어하기 보상형"을 같은 때 함께 내면 안 돼요.** 보상형은 너무 자주 금지, 광고 연속 금지. **보상형 광고로만 깰 수 있는 레벨은 허용 안 됨**. 광고 차단기가 있어도 정상 플레이 [C6] | 프리롤·미드롤 필수, 보상형은 선택. 광고 중 일시정지·음소거, 플레이어 입력 후 재개. 보상은 시청을 끝까지 마쳤을 때만 [G1][G4] | 광고 없는 게임을 선호하지만 금지는 아님. 플레이를 막는 광고는 피하기. 애드웨어 금지 [I2] |
 | 확인 날짜 / 출처 | 2026-11-25 · P1~P7 | 2026-11-25 · C1~C6 | 2026-11-25 · G1~G4 | 2026-11-25 · I1~I6 |
 
-## 우리 게임에 걸리는 점 (기획팀 확인 필요)
+## 심사 위험 → 우리 대응 (2026-11-26 갱신)
 
-| # | 걸리는 점 | 사이트 | 원문 |
-|---|---|---|---|
-| 1 | "고른 나라 언어로만 플레이"는 **영어 필수** 조건에 걸려요 | CrazyGames, GameDistribution | "The game must have English localization" [C1] · "Providing an English version of the game is mandatory" [G2] |
-| 2 | 첫 언어는 기기 언어를 따르고 **플레이어가 바꿀 수 있어야** 해요 | Poki (CrazyGames·GD도 비슷) | "Use the detected language as the initial default, but let the player's manual choice override it" [P3] |
-| 3 | 실제 경제력 순위로 약한 나라·깰 수 없는 나라를 정하는 설정, 파산 문구("잘난 사람들만 잘나가는 세상" 등)는 정치·고정관념·존엄 조항에 걸릴 수 있어요 (국가·국기 자체를 금지하는 조항은 4곳 모두 없음) | 4곳 모두 | Poki "stereotypes" [P1] · GD "politics" [G2] · CG "dignity of others" [C5] · itch "discriminatory content" [I3] |
-| 4 | **가난한 나라가 파산 이어하기 광고로만 앞으로 갈 수 있으면** 심사에서 떨어질 수 있어요. 무제한 반복도 "너무 자주"에 걸려요 | Poki, CrazyGames | "If a player has to watch an ad to progress, it isn't a reward, and it won't pass review" [P7] · "levels that can only be completed by a rewarded ad are not acceptable" · "Do not offer a rewarded ad too often" [C6] |
-| 5 | 판 사이 광고와 보상형 이어하기를 같은 때 내면 안 돼요 | CrazyGames | "It's not allowed to combine a midgame ad between levels with a rewarded to keep playing the current level" [C6] |
-| 6 | 보상형 버튼 옆에 무료 이어하기 버튼이 항상 있어야 해요 (보상형 버튼은 초록색 금지) | Poki | "there must always be a standard continue button as an alternative to a 🎬 rewarded one" [P2] |
-| 7 | PC 조작(WASD+J/K)에 ESC나 스페이스 일시정지를 넣어야 해요 | Poki | "for keyboard-controlled games, implement ESC or spacebar for pause/resume" [P2] |
-| 8 | Poki 웹 독점이면 CrazyGames·GD에 못 올려요 → 사이트 확정 때 먼저 정해요 | Poki | "on the open web, your game is published only on Poki" [P6] |
+| # | 심사 위험 | 사이트 | 우리 대응 | 맡은 팀 | 상태 |
+|---|---|---|---|---|---|
+| 1 | 영어 필수 | CG · GD | 설정 맨 위 "Language"(지구본)에서 영어로 바꿔요 · 영어 문구 99줄 있음 (GDD 0-6, texts.md) | 기획 ✅ · 개발 ✅ | 해결 |
+| 2 | 기본 언어: GD "the default game language should always be English" [G1 4.1] · CG는 SDK locale, 없으면 영어 | GD · CG | 지금은 고른 나라 언어가 기본이에요. **나라 고르기 전 화면(시작·나라 고르기)을 영어로** 보여 주면 맞출 수 있어요 [제안] | 기획 | 👀 사용자 원문 "기본 영어로 출시"(2026-11-26) → 첫 화면만인지 게임 전체인지 기획팀이 확인 |
+| 3 | 번역: 실제 번역한 언어만 등록 | itch.io · GD | 지금 번역은 한국어·영어뿐(`src/i18n.js`) → **사용자 결정(2026-11-26): 18개 언어 번역을 마친 뒤 출시** · 등록은 번역 끝난 20개 | 기획 · 개발 | 번역 대기 |
+| 4 | 실제 경제 순위로 약한 나라·못 깨는 나라 → 정치(GD "Political bias")·고정관념(Poki)·존엄(CG)·차별(itch) | 4곳 모두 | 적은 외계인 · 모든 장수 똑같이 멋있게 · 문구는 구조(출발선·돈)만 말하고 나라 탓 안 함(GDD 0-7) · 능력치 숨김(0-13) · 스토어 설명은 중립, 출처 표기 | 기획 · 디자인 · 출시 | 대응 중 |
+| 5 | 파산·엔딩 문구가 사회 메시지로 읽힘 | GD 위험 큼 | 사용자 문구 유지. 지적받으면 그 사이트 빌드만 문구 바꾸는 안 | 기획 | ⚠️ 위험 알고 유지 |
+| 6 | 보상형으로만 진행 | CG "levels that can only be completed by a rewarded ad are not acceptable" · Poki "If a player has to watch an ad to progress… won't pass review" | 파산 이어하기는 **광고로 다음 라운드를 더 할 뿐, 광고로 클리어는 안 돼요**(파산 이어하기로 6라운드를 깨도 또 파산, 개발 해석). 실패·파산 화면에 광고 없는 "다시하기"(1라운드부터 처음 다시)가 같은 크기로 항상 있어요 (monetization.md) | 기획 ✅ | ⚠️ 위험 알고 유지 (조항 문구와 정확히 같진 않지만 심사자 판단) |
+| 7 | 보상형을 너무 자주 (무제한 파산 이어하기) | CG "Do not offer a rewarded ad too often" | 사용자 결정으로 무제한 유지. 한 판 횟수 제한 수치는 **어느 사이트 문서에도 없어요** | 기획 | ⚠️ 위험 알고 유지 |
+| 8 | 판 사이 광고와 이어하기 보상형을 같은 때 | CG | 판 사이 광고는 클리어 화면 다시하기에서만, 보상형 본 판은 다음 판 사이 광고 건너뜀 (monetization.md) | 기획 ✅ · 개발 ✅ | QA 확인 |
+| 9 | 플레이 중 광고 금지 · 광고 중 소리·입력 멈춤 · 보상은 끝까지 봤을 때만 · 광고 차단기에도 정상 플레이 | CG · GD | monetization.md · 개발 회귀 테스트 ads2 | 개발 ✅ | QA 확인 |
+| 10 | 게임 안 전체화면 버튼 | CG **금지** | **우리 버튼은 안 넣어요** (사용자 "아니 놔둬", 2026-11-26) · 사이트 전체화면 사용 (`fullscreen.md`) | 개발 | 해결 |
+| 11 | 가로 고정 또는 "돌리세요" 화면 | GD 필수 · CG는 사이트가 처리 | 개발 테스트에 `portrait` 있음 → 세로일 때 안내 화면 확인 | 개발 · QA | QA 확인 |
+| 12 | PC 일시정지 | Poki (대상 아님) | Esc 일시정지 (GDD 0-14) | 개발 ✅ | 해결 |
+| 13 | 첫 다운로드 50MB(모바일 홈 20MB) | CG | 지금 ZIP 약 9.4MB, 파일 275개 (2026-11-26 빌드) | 개발 | 통과 |
+| 14 | 제목 20자 권장, 40자 금지 | GD | 37자 → 허용, 두 줄로 보여요 | 출시 | 참고 |
+| 15 | 다른 사이트와 같은 최신 버전 | GD | 모든 사이트(앱 포함) 같은 버전으로 올리고 `release-log.md`에 기록 | 출시 | 운영 규칙 |
+| 16 | 플레이를 막는 광고 | itch.io | `web` 빌드는 광고 없음 | 개발 ✅ | 해결 |
+| 17 | 실제 국가·국기 | 4곳 | **금지 조항 없음**(4곳 모두 확인). 국기는 `src/assets/flag/`(SVG, MIT) 정확한 것 사용 | 디자인 ✅ | 해결 |
+
+## 기획팀이 물은 것 — 답 모음 (2026-11-26)
+| 물은 것 | 답 | 근거 |
+|---|---|---|
+| 파산 때 보상형 무제한 이어하기가 정책에 맞나요? | **한 판 횟수 제한 수치는 어느 사이트에도 없어요.** 다만 CrazyGames는 "too often" 금지와 "보상형으로만 깰 수 있는 레벨" 금지, Poki는 "광고를 봐야만 진행" 불통과가 있어요. 우리는 광고로 클리어가 안 되고 무료 다시하기가 있어서 조항에 정확히 걸리진 않지만, **심사자가 반복 유도로 볼 위험**이 남아요. GD는 보상형 자체가 선택이고 횟수 규칙 없음. | [C6] [P7] [G4] |
+| 실제 국가(OECD 30개)·국기 | 4곳 모두 실제 국가·국기를 막는 조항은 없어요. 대신 정치·고정관념·차별 조항에 걸리지 않게 위 4·5번으로 대응해요. | [P1] [C5] [G1] [G2] [I3] |
+| 다국어 20개 | 사이트는 언어 수 제한이 없어요. **영어는 필수**(CG·GD), 기기 언어 반영 권장, **번역한 언어만 등록**(itch·GD). 지금은 한국어·영어만 번역돼 있어요. | [C1] [G1] [G2] [I2] |
+| 가로 화면·두 손 조작 | 4곳 모두 가로 가능. 두 손 조작 전용 규칙은 없어요. CG는 터치·마우스·키보드 모두 지원, 모바일 조작은 SDK 기기 정보로 판단. | [C3] [G1] [P2] [I1] |
+| 전체화면 | `fullscreen.md` 참고 — CG는 게임 안 버튼 금지, 아이폰은 요소 전체화면 불가 | [C1] MDN |
+
+> 앞서(2026-11-25) 적었던 "우리 게임에 걸리는 점" 8개는 위 표로 합쳤어요.
 
 ## 출처 (모두 2026-11-25 확인)
 
@@ -60,5 +85,6 @@
 - **I4** https://itch.io/docs/creators/getting-started
 - **I5** https://itch.io/updates/better-support-for-mobile-html-games-more (2017 공지)
 - **I6** https://itch.io/docs/creators/payments
+- **MDN** https://developer.mozilla.org/docs/Web/API/Element/requestFullscreen (호환성 데이터 `@mdn/browser-compat-data` 8.1.10)
 
-> 원문 대조 메모: Claude가 출처 페이지에서 직접 원문을 맞춰 본 것 — "걸리는 점" 표의 원문(CG "dignity of others"[C5 PDF]만 빼고), 영어 필수(C1·C2·G2·G3), 언어 변경(P3), 독점(P6·G3), GD 33%(G3), itch 언어·광고·차별(I2·I3). 나머지(썸네일 크기·용량·CG 약관·itch 수익 배분 등)는 조사 담당이 공식 페이지에서 읽은 내용이라 제출 직전에 한 번 더 확인해요.
+> 원문 대조 메모: Claude가 출처 페이지에서 직접 원문을 맞춰 본 것 — "걸리는 점" 표의 원문(CG "dignity of others"[C5 PDF]만 빼고, GD "Political bias"[G1]는 2026-11-25 추가 확인), 영어 필수(C1·C2·G2·G3), 언어 변경(P3), 독점(P6·G3), GD 33%(G3), itch 언어·광고·차별(I2·I3). 나머지(썸네일 크기·용량·CG 약관·itch 수익 배분 등)는 조사 담당이 공식 페이지에서 읽은 내용이라 제출 직전에 한 번 더 확인해요.
