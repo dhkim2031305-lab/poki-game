@@ -948,8 +948,8 @@
   }
   // 지금 몸 그림 칸 (돌진 잔상용)
   function heroLookNow() {
-    const h = G.hero, aim = Math.atan2(h.dir.y, h.dir.x), o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, bf = bodyFrame(h, OCT[o][0]);
-    return { cell: bf.cell, folder: bf.folder, flip: OCT[o][1] };
+    const h = G.hero, aim = Math.atan2(h.dir.y, h.dir.x), [cell, flip] = heroDir(aim), bf = bodyFrame(h, cell);
+    return { cell: bf.cell, folder: bf.folder, flip };
   }
   // 스킬 그림 (2D·3D 같이): at(x, 바닥y, fn) 은 3D에서 원근 자리로 옮겨요
   const GK = () => (use3d ? .62 : .35);   // 바닥 원의 납작한 정도 (3D는 카메라가 더 위에서 봐요)
@@ -2013,9 +2013,9 @@
   function castHero() {
     const h = G.hero, c = G.country; if (!h || (h.dead && G.scene !== 'ending')) return;
     const im = UI.img['dir/' + c.key]; if (!im || !im.naturalWidth) return;
-    const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x), o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8;
-    const bf = bodyFrame(h, OCT[o][0]);
-    UI.dirBody(c.key, bf.cell, h.x, h.y, 60, { flip: OCT[o][1], shadow: .3 }, bf.folder);
+    const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x), [cell, flip] = heroDir(aim, c.key);
+    const bf = bodyFrame(h, cell);
+    UI.dirBody(c.key, bf.cell, h.x, h.y, 60, { flip, shadow: .3 }, bf.folder);
   }
   // 부드러운 타원 그림자 (가운데 진하고 가장자리로 사라져요)
   function softShadow(x, y, rx, ry, a) {
@@ -2113,11 +2113,22 @@
 
   // ---- 8방향 몸 + 무기 360도 (7차 그림, 사용자 결정 "8방향 그림 + 무기 360도") ----
   // 몸: 조준 각도를 8방향으로 나눠 5칸 중 하나(왼쪽은 뒤집기). 무기: 손 위치에서 조준 각도대로 돌려요
-  const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향
+  const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향 (외계인용)
+  // 장수 16방향 (사용자 결정 2026-11-26): 서기 시트 칸 수로 나라마다 고르기 — 9칸이면 16방향, 5칸이면 8방향
+  // 칸 = 아래 0 → 오른쪽 → 위 (n−1), 왼쪽 반은 뒤집기. 그림이 나라별로 차례로 들어와도 안 깨져요
+  const heroCols = key => { const im = UI.img['dir/' + key]; return im && im.naturalWidth && Math.round(im.naturalWidth / im.naturalHeight) >= 9 ? 9 : 5; };
+  function heroDir(aim, key = G.country.key) {
+    const n = heroCols(key), N = 2 * (n - 1), st = 2 * Math.PI / N, o = ((Math.round(aim / st) % N) + N) % N, qa = o * st;   // 먼저 칸 각도로 맞춰요 (8방향은 예전 OCT와 똑같아요)
+    const flip = Math.cos(qa) < -1e-6, a = flip ? Math.PI - qa : qa, ra = Math.atan2(Math.sin(a), Math.cos(a));
+    return [Math.round((Math.PI / 2 - ra) / (Math.PI / (n - 1))), flip];
+  }
   // 무기 길이 = 장수 키 × 0.68, 창류(창·할버드·기병창)만 × 0.85
   const wLen = c => (c.ranged === 'polearm' ? 0.85 : 0.68);   // 사용자 "ㅇㅇ 줄여": 한손 무기 0.65~0.7, 창·할버드·장창 0.85
   // 손 위치 (칸 128×128 좌표, 발 = (64,124)) · 칸마다 무기를 몸 앞/뒤 어디에 그릴지 (디자인팀 c8ed6d9)
   const HAND = [[47, 86, false], [86, 85, false], [64, 86, false], [82, 86, true], [88, 84, true]];   // ①아래 ②오른쪽아래 ③오른쪽 ④오른쪽위(뒤) ⑤위(뒤)
+  // 16방향(9칸) 손 위치 · 디자인팀 시험 측정(round15 점검.md, 128칸 좌표) — 192칸 기준 다시 잰 값이 오면 바꿔요
+  const HAND9 = [[47, 86, false], [48, 85, false], [86, 85, false], [53, 85, false], [64, 86, false], [75, 85, true], [82, 86, true], [80, 84, true], [88, 84, true]];
+  const handAt = (cell, key = G.country.key) => (heroCols(key) === 9 ? HAND9 : HAND)[cell];
   const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
   const GUN_REST = 0.175; // 총은 쉴 때 아래로 10°만 (style-guide "총 모션", 사용자 "총검술 몰라?")
   const THROWN = k => FX.THROWN(k) || k === 'boomerang';
@@ -2243,8 +2254,8 @@
   }
   // 손 자리·무기 각 (drawHero8과 같은 계산) → 놓는 순간 그 자리·각도에서 날아가요
   function throwGrip(h) {
-    const p = throwPose(h), c = G.country, o = ((Math.round(h.throwM.ang / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
-    const kk = 60 / 112, hd = HAND[cell], ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang);
+    const p = throwPose(h), c = G.country, [cell, flip] = heroDir(h.throwM.ang, c.key);
+    const kk = 60 / 112, hd = handAt(cell, c.key), ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang);
     const hx = h.x + ca * p.lean + (hd[0] - 64) * kk * (flip ? -1 : 1) + Math.cos(p.a) * p.push + ca * p.hand, hy = h.y + sa * p.lean * .6 + (hd[1] - 124) * kk + Math.sin(p.a) * p.push * .8 + p.oy + sa * p.hand * .6;
     return { hx, hy, a: p.a, len: 60 * wLen(c) };
   }
@@ -2262,8 +2273,8 @@
   }
   // 무기 끝 (style-guide "원거리 공격 동작"): 손 위치(HAND) + 조준 방향 × 무기 길이 × 0.95 · 총은 총구, 활은 시위 자리
   function weaponTip(aim, ext = 0) {
-    const h = G.hero, c = G.country, o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
-    const kk = 60 / 112, hd = HAND[cell], hx = h.x + (hd[0] - 64) * kk * (flip ? -1 : 1), hy = h.y + (hd[1] - 124) * kk, ca = Math.cos(aim), sa = Math.sin(aim);
+    const h = G.hero, c = G.country, [cell, flip] = heroDir(aim, c.key);
+    const kk = 60 / 112, hd = handAt(cell, c.key), hx = h.x + (hd[0] - 64) * kk * (flip ? -1 : 1), hy = h.y + (hd[1] - 124) * kk, ca = Math.cos(aim), sa = Math.sin(aim);
     if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * (32 + ext), y: hy - GUN_UP + sa * (32 + ext) };   // 코드 총: 32px, 어깨 높이
     if (c.ranged === 'arrow') return { x: hx + ca * 8, y: hy + sa * 6 };   // 활 가운데(시위 자리)
     const L = 60 * wLen(c) * .95; return { x: hx + ca * L, y: hy + sa * L };
@@ -2282,24 +2293,27 @@
       ctx.restore();
     }
   }
-  // 걷기 (9차 그림): 서기 → A → 서기 → B, 초당 8칸. 걷기 칸 = 방향×2 + (A 0, B 1)
+  // 걷기 (9차 그림): 서기 → A → 서기 → B, 초당 8칸. 걷기 칸 = 방향×2 + (A 0, B 1) · 16방향이면 18칸
   function bodyFrame(h, cell) {
     const wi = UI.img['walk/' + G.country.key];
     if (!h.moving || h.swing || h.dead || reduceMotion || !wi || !wi.naturalWidth) return { folder: 'dir', cell };
     const ph = Math.floor(h.walkT * 8) % 4;
-    return ph === 1 ? { folder: 'walk', cell: cell * 2 } : ph === 3 ? { folder: 'walk', cell: cell * 2 + 1 } : { folder: 'dir', cell };
+    if (ph !== 1 && ph !== 3) return { folder: 'dir', cell };
+    const n = heroCols(G.country.key), wn = Math.round(wi.naturalWidth / wi.naturalHeight) >= 18 ? 9 : 5;   // 걷기 18칸 = 16방향, 10칸 = 8방향
+    const wc = wn === n ? cell : wn === 9 ? cell * 2 : Math.round(cell / 2);   // 서기·걷기 칸 수가 아직 다르면 가까운 방향으로
+    return { folder: 'walk', cell: wc * 2 + (ph === 3 ? 1 : 0) };
   }
   function drawHero8(h, c, mo) {
     if (!UI.img['dir/' + c.key] || !UI.img['dir/' + c.key].naturalWidth) return false;
     const aim = h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x);
-    const o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
+    const [cell, flip] = heroDir(aim, c.key);
     const bm = Object.assign({}, mo, { flip });
     if (bm.rot && flip !== mo.flip) bm.rot = -bm.rot;
     const dead = h.dead || (G.scene === 'ending' && G.ending.fell);
     const tp = !h.swing && h.throwM ? throwPose(h) : null;
     const w = tp ? { a: tp.a, push: tp.push } : weaponAngle(h, aim);
     // 손 위치: 128칸 기준 좌표를 게임 크기로 (그림이 192칸이어도 비율이 같아요 · 왼쪽 방향은 x → 128 − x)
-    const kk = 60 / 112, hd = HAND[cell], hdx = (hd[0] - 64) * kk * (flip ? -1 : 1), hdy = (hd[1] - 124) * kk;
+    const kk = 60 / 112, hd = handAt(cell, c.key), hdx = (hd[0] - 64) * kk * (flip ? -1 : 1), hdy = (hd[1] - 124) * kk;
     let hx = h.x + (mo.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (mo.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
     if (tp) { const ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); hx += ca * tp.hand; hy += tp.oy + sa * tp.hand * .6; }
     if (tp && !dead) throwTrail(h, c, hx, hy, w.a, tp, mo.alpha);   // 잔상 2개 + 휘두름 호
