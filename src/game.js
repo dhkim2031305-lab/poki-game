@@ -83,6 +83,7 @@
     if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
     if (c.ranged === 'sling') l.push('weapon/israel-ranged');
     for (const t of new Set([c.skill.type, c.skill2.type, 'area'])) l.push('skill/fx-' + t);   // 그 나라 스킬 두 개의 이펙트만
+    l.push('skill/u/' + c.key + '-1', 'skill/u/' + c.key + '-2');   // 스킬 대표 그림 (13차, 디자인 5091312)
     l.push('alien/grunt-jump', 'alien/boss-jump', 'alien/fx-land');   // 점프 그림 (12차) — 점프하는 졸개·보스만
     return l;
   }
@@ -741,6 +742,29 @@
     for (const a of G.aliens) { if (a.dead || a.entering) continue; const d = Math.hypot(a.x - h.x, a.y - h.y); if (d < bd) { bd = d; best = a; } }
     return best ? { x: best.x, y: best.y } : { x: h.x + h.dir.x * 120, y: h.y + h.dir.y * 120 * .8 };
   }
+  // 스킬 대표 그림 (13차 60장): 그림 한 장을 코드로 키우기·늘이기·돌리기·사라지기. 판정·조준 표시는 그대로
+  function skillArt(sk, n, m, tx, ty, ang, x0, y0) {
+    const h = G.hero, k = m.k, img = 'skill/u/' + G.country.key + '-' + n, b = { img, ang, black: k === 'vortex' }, dist = Math.hypot(tx - x0, ty - y0);
+    if (k === 'orbit') return sfx('art', h.x, h.y, 2, Object.assign(b, { mode: 'orbit' }));   // 튀르키예 1: 장수 둘레를 2초 돌아요
+    if (sk.type === 'zone') { const z = G.zones[G.zones.length - 1]; if (z) sfx('art', z.x, z.y, (z.life || SKB.ZONE_TIME) - z.t, Object.assign(b, { mode: 'zone', z })); return; }
+    if (sk.type === 'dash') {
+      const d = h.dash;
+      if (k === 'leap') return sfx('art', tx, ty, (d ? d.dur : .5) + .5, Object.assign(b, { mode: 'drop', delay: Math.max(0, (d ? d.dur : .5) - .08), S: 190 }));   // 멕시코 1: 착지 순간 독수리
+      if (k === 'blink') return sfx('art', x0, y0, .5, Object.assign(b, { mode: 'beam', len: Math.max(80, dist), H: 90 }));
+      if (k === 'dashInv') return sfx('art', x0, y0, (d ? d.dur : .35) + .25, Object.assign(b, { mode: 'front', S: 110 }));   // 룩셈부르크 1: 앞에 붙어 함께
+      return sfx('art', x0, y0, (d ? d.dur * (k === 'returnDash' ? 2 : 1) : .35) + .35, Object.assign(b, { mode: 'trail', H: 86 }));   // 지나간 길을 따라 늘어나요
+    }
+    if (sk.type === 'area') {
+      if (k === 'fear' || k === 'phalanx' || k === 'crack') return sfx('art', h.x, h.y, .6, Object.assign(b, { mode: 'beam', len: k === 'phalanx' ? 200 : k === 'fear' ? SKB.AREA_R * 1.3 : Math.max(240, dist), H: k === 'phalanx' ? 130 : k === 'fear' ? 200 : 90, floor: k !== 'fear' }));
+      const rot = k === 'cone' || k === 'gust';
+      return sfx('art', k === 'arcs8' ? h.x : tx, k === 'arcs8' ? h.y : ty, .6, Object.assign(b, { mode: 'burst', rot, S: (k === 'cone' ? SKB.AREA_R * 2 : k === 'widen' ? 300 : k === 'chain3' ? 220 : SKB.AREA_R * 2.1) }));
+    }
+    // 연사
+    if (k === 'javelin3') { [1 / 3, 2 / 3, 1].forEach((q, i) => sfx('art', x0 + (tx - x0) * q, y0 + (ty - y0) * q, .3 + i * .22 + .35, Object.assign({}, b, { mode: 'drop', delay: .1 + i * .22, S: 130 }))); return; }   // 리투아니아 2: 같은 그림 3번
+    if (k === 'lob') return sfx('art', tx, ty, 1.6, Object.assign(b, { mode: 'drop', delay: 0, S: 150, hold: 1.2 }));
+    if (k === 'arcs8') return sfx('art', h.x, h.y, .85, Object.assign(b, { mode: 'burst', S: 200 }));   // 헝가리 1: 사방 8번
+    return sfx('art', x0, y0, .6, Object.assign(b, { mode: 'beam', len: Math.min(340, dist + 60), H: 100 }));   // 그 자리를 향해 뻗어요
+  }
   function useSkill(n = 1, target) {
     const r = G.run, h = G.hero, f = FIELD.floor;
     if (!r || sLeft(n) <= 0 || h.dead || h.dash || h.barrage) return;
@@ -749,7 +773,9 @@
     const tg = target || autoTarget(), tx = clamp(tg.x, f.x0 + 12, f.x1 - 12), ty = clamp(tg.y, f.y0 + 22, f.y1);   // 전장 밖이면 가장자리에 붙여요
     let ang = Math.atan2(ty - h.y, tx - h.x); if (Math.hypot(tx - h.x, ty - h.y) < 4) ang = Math.atan2(h.dir.y, h.dir.x);
     if (m.k !== 'orbit') h.dir = { x: Math.cos(ang), y: Math.sin(ang) };   // 고른 쪽을 바라봐요 (튀르키예 1은 예외)
+    const hx0 = h.x, hy0 = h.y;
     SKILL_FN[sk.type]({ sk, n, dmg, ang, dx: Math.cos(ang), dy: Math.sin(ang), tx, ty, mod: m });
+    skillArt(sk, n, m, tx, ty, ang, hx0, hy0);
     if (tg.pc && m.k !== 'orbit') sfx('aimFlash', tx, ty, .35, { r: aimR(sk), type: sk.type });   // PC: 쓰는 순간만 커서 자리에 목표 원
     // 외침: 그 나라에서 유명한 말 (번역 안 함) + 스킬 이름(설정 언어)
     G.msgs = G.msgs.filter(m => !m.shout);
@@ -798,7 +824,7 @@
           a.kb = { x: dx * 200, y: dy * 200 };
           if (nearWall) { damage(a, d.base * m.slam, dx, dy, true); sfx('star', a.x, a.y, .35); AUDIO.play('impact'); }
         }
-        if (d.k === 'iai') { const x0 = d.x0, y0 = d.y0, x1 = h.x, y1 = h.y; after(.4, () => { hitSeg(x0, y0, x1, y1, 26, d.base * m.cut); sfx('iai', x0, y0, .35, { x1, y1 }); AUDIO.play('impSlash'); }); }   // 일본 1: 칼을 넣는 순간 지나간 줄 전체
+        if (d.k === 'iai') { const x0 = d.x0, y0 = d.y0, x1 = h.x, y1 = h.y; after(.4, () => { hitSeg(x0, y0, x1, y1, 26, d.base * m.cut); sfx('iai', x0, y0, .35, { x1, y1 }); sfx('art', x0, y0, .35, { img: 'skill/u/' + G.country.key + '-1', mode: 'beam', ang: Math.atan2(y1 - y0, x1 - x0), len: Math.max(80, Math.hypot(x1 - x0, y1 - y0)), H: 130, bright: true }); AUDIO.play('impSlash'); }); }   // 일본 1: 칼을 넣는 순간 지나간 줄 전체
         if (d.k === 'invHit' && d.inv) h.skillT = Math.max(h.skillT, d.inv);
         if (d.k === 'spearEnd') G.shots.push({ kind: 'lance', x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.3, vy: dy * TEMP.SHOT_SPEED * 1.3, dmg: d.base * m.spear, life: .7, age: 0, skill: true, hits: new Set() });   // 그리스 2: 끝에서 창 던지기
         if (d.k === 'leap') { hitCircle(h.x, h.y, 70, d.base * m.mul); sfx('ringOut', h.x, h.y, .4, { r: 70 }); if (settings.shake) G.shake = Math.max(G.shake, 5); AUDIO.play('impSmash'); }   // 착지
@@ -1122,6 +1148,30 @@
     }
     if (e.type === 'reflect') {   // 막은 힘을 둘레로 되돌림: 금빛 고리
       ctx.globalAlpha = 1 - k; ctx.strokeStyle = SKG; ctx.lineWidth = 5 * (1 - k) + 1; gEll(e.x, e.y, 30 + 100 * k); ctx.stroke(); return done();
+    }
+    if (e.type === 'art') {   // 스킬 대표 그림 (가산 합성, 칠레 2는 검정이라 보통 합성)
+      const im = UI.img[e.img]; if (!im || !im.naturalWidth) return done();
+      const t = e.t - (e.delay || 0), L = e.life - (e.delay || 0); if (t < 0) return done();
+      const q = Math.min(1, t / L), fade = q > .65 ? Math.max(0, (1 - q) / .35) : 1, gk = .6;   // 바닥 타원 세로 0.6
+      if (e.black) ctx.globalCompositeOperation = 'source-over';
+      const reps = e.bright ? 2 : 1;
+      for (let rr = 0; rr < reps; rr++) {
+        ctx.save();
+        if (e.mode === 'burst') { const S = e.S * (reduceMotion ? 1 : .7 + .4 * Math.min(1, t / .25)); ctx.globalAlpha = .95 * fade; ctx.translate(e.x, e.y - 6); if (e.rot) ctx.rotate(e.ang); ctx.drawImage(im, -S / 2, -S / 2 * (e.rot ? .8 : 1), S, S * (e.rot ? .8 : 1)); }
+        else if (e.mode === 'zone') { const z = e.z; if (z && z.t < 0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45, br = reduceMotion ? 1 : 1 + .04 * Math.sin(G.t * 3);
+          ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade; ctx.translate(zx, zy); ctx.drawImage(im, -S * br / 2, -S * br / 2, S * br, S * br); }
+        else if (e.mode === 'beam' || e.mode === 'trail') {
+          let x1, y1, ang = e.ang, len = e.len;
+          if (e.mode === 'trail') { const h = G.hero; if (h && h.dash) { e.x1 = h.x; e.y1 = h.y; } x1 = e.x1 == null ? e.x : e.x1; y1 = e.y1 == null ? e.y : e.y1; len = Math.max(70, Math.hypot(x1 - e.x, y1 - e.y)); if (len > 72) ang = Math.atan2(y1 - e.y, x1 - e.x); }
+          const grow = e.mode === 'beam' && !reduceMotion ? Math.min(1, t / .18) : 1, H = e.H;
+          ctx.globalAlpha = fade; ctx.translate(e.x, e.y - (e.floor ? 4 : 24)); ctx.rotate(ang); ctx.drawImage(im, 0, -H / 2, len * grow, H);
+        }
+        else if (e.mode === 'front') { const h = G.hero, S = e.S; ctx.globalAlpha = fade; ctx.translate(h.x + Math.cos(e.ang) * 34, h.y - 26 + Math.sin(e.ang) * 20); ctx.rotate(e.ang); ctx.drawImage(im, -S * .6, -S / 2, S, S); }
+        else if (e.mode === 'orbit') { const h = G.hero, S = 180; ctx.globalAlpha = fade * .95; ctx.translate(h.x, h.y - 14); ctx.scale(1, gk); ctx.rotate(reduceMotion ? 0 : G.t * 5); ctx.drawImage(im, -S / 2, -S / 2, S, S); }
+        else if (e.mode === 'drop') { const pop = reduceMotion ? 1 : 1.25 - .25 * Math.min(1, t / .15), S = e.S * pop, hold = e.hold || 0; ctx.globalAlpha = t < hold ? 1 : fade; ctx.translate(e.x, e.y - S * .3); ctx.drawImage(im, -S / 2, -S / 2, S, S); }
+        ctx.restore();
+      }
+      return done();
     }
     if (e.type === 'boostSlash') { ctx.globalAlpha = e.al * (1 - k); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(e.x, e.y - 24, 44, 44 * .7, 0, e.a - 1.1, e.a + 1.1); ctx.stroke(); return done(); }   // 무적 중 치기 잔상
     if (e.type === 'aimFlash') {   // PC: 커서 자리에 목표 원이 1.25배 → 1배로 줄며 0.35초 동안 사라져요 (움직임 줄이기면 깜빡임만)
