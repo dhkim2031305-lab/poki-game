@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>무적 남은 시간</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p{color:var(--sub);margin:0 0 12px;max-width:900px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:12px}
+.card{background:var(--card);border-radius:12px;padding:10px}.card h2{font-size:14px;margin:0 0 6px}.card p{margin:6px 0 0;font-size:13px}
+canvas{width:100%;height:auto;display:block;border-radius:8px}
+</style></head><body>
+<h1>무적 남은 시간 표시 — 2초</h1>
+<p>무적을 쓰면 2초 동안 남은 시간이 보여요. 3초마다 다시 써요(시안 반복). 화면은 폰 실제 크기의 2배 확대예요.</p>
+<div class="grid" id="g"></div>
+<script>
+const SV="#C9CED6",WH="#FFFFFF",GD="#E8D9A8",DUR=2.0;
+const P=[
+ ['A. 발밑 고리가 줄어듦','장수 발밑 은빛 고리가 시계 방향으로 줄어들며 비어요. 0이 되면 끝. 전투 중 눈이 장수에 있어서 가장 잘 보여요.','ring'],
+ ['B. 머리 위 숫자','장수 머리 위에 "1.2"처럼 남은 초를 0.1초 단위로. 0.4초부터 빨개지며 커졌다 작아져요.','num'],
+ ['C. A + B + 버튼 (추천)','발밑 고리 + 머리 위 숫자 + ↓무적 화살표 버튼에도 같은 시간 채움이 줄어들어요. 끝나기 0.4초 전 깜빡임은 그대로.','all'],
+];
+const g=document.getElementById('g');
+P.forEach(([t,d,k])=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<h2>${t}</h2><canvas width="400" height="220"></canvas><p>${d}</p>`;g.appendChild(c);
+ const x=c.querySelector('canvas').getContext('2d');
+ (function f(ts){const tt=(ts/1000)%3, on=tt<DUR, left=Math.max(0,DUR-tt), r=left/DUR;
+  x.setTransform(1,0,0,1,0,0);x.fillStyle='#2b2a33';x.fillRect(0,0,400,220);x.setTransform(2,0,0,2,0,0);
+  const hx=70,hy=80;
+  // 고리(바닥 타원)
+    if(on&&k!=='num'){x.save();x.translate(hx,hy);x.scale(1,.55);x.strokeStyle='rgba(201,206,214,.25)';x.lineWidth=3;x.beginPath();x.arc(0,0,22,0,7);x.stroke();
+   x.strokeStyle=left<.4?'#ff6b6b':SV;x.lineWidth=3.5;x.beginPath();x.arc(0,0,22,-Math.PI/2,-Math.PI/2+Math.PI*2*r);x.stroke();x.restore()}
+  // 장수
+  const blink=on&&left<.4&&Math.floor(left/.1)%2===0;
+  x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(hx,hy,10,4,0,0,7);x.fill();
+  x.save();if(on){x.shadowColor=SV;x.shadowBlur=blink?0:8}x.fillStyle='#7d5a44';x.fillRect(hx-7,hy-26,14,22);x.fillStyle='#d9b38c';x.beginPath();x.arc(hx,hy-32,6,0,7);x.fill();x.restore();
+  if(on&&!blink){x.strokeStyle=SV;x.lineWidth=1.5;x.strokeRect(hx-8,hy-27,16,24)}
+  // 숫자
+  if(on&&k!=='ring'){const red=left<.4;const s=red?1+.25*Math.abs(Math.sin(left*30)):1;x.save();x.translate(hx,hy-48);x.scale(s,s);x.font='bold 11px system-ui';x.textAlign='center';
+   x.fillStyle='rgba(10,12,20,.6)';x.fillRect(-14,-9,28,13);x.fillStyle=red?'#ff6b6b':WH;x.fillText(left.toFixed(1),0,1);x.restore()}
+  // 무적 화살표 버튼 (C)
+  if(k==='all'){const bx=160,by=70,s=24;x.save();x.translate(bx,by);x.fillStyle='rgba(20,22,34,.85)';x.beginPath();x.moveTo(-s/2,-s/2);x.lineTo(s/2,-s/2);x.lineTo(s/2,s*.2);x.lineTo(0,s/2+4);x.lineTo(-s/2,s*.2);x.closePath();x.fill();
+   if(on){x.save();x.clip();x.fillStyle='rgba(201,206,214,.55)';x.fillRect(-s/2,s/2+4-(s+4)*r,s,(s+4)*r);x.restore()}
+   x.strokeStyle=on?SV:'rgba(255,255,255,.7)';x.lineWidth=1.5;x.stroke();
+   x.fillStyle='#fff';x.beginPath();x.moveTo(0,-7);x.lineTo(6,-4);x.quadraticCurveTo(6,4,0,8);x.quadraticCurveTo(-6,4,-6,-4);x.closePath();x.fill();
+   x.fillStyle='#D9AE4F';x.beginPath();x.arc(10,-10,5,0,7);x.fill();x.fillStyle='#16171f';x.font='bold 7px system-ui';x.textAlign='center';x.fillText('1',10,-7.5);x.restore();
+   x.fillStyle='#9aa0b4';x.font='7px system-ui';x.textAlign='center';x.fillText('↓ 무적 버튼',bx,by+26)}
+  x.fillStyle='#9aa0b4';x.font='7px system-ui';x.textAlign='left';x.fillText(on?'무적 중':'(다시 쓰기 대기)',6,104);
+  requestAnimationFrame(f)})(0)});
+</script></body></html>
