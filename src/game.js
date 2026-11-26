@@ -190,18 +190,18 @@
     const S = safeArea(), d = STICK_R + 4 + ARROW / 2, r = ARROW / 2, cx = VW - S.r - (d + r + 14), cy = VH - S.b - (d + r);
     return {
       stick: { x: cx, y: cy, r: STICK_R },
-      melee: { x: cx - d, y: cy, r, a: Math.PI },
-      skill: { x: cx, y: cy - d, r, a: -Math.PI / 2 },
-      skill2: { x: cx + d, y: cy, r, a: 0 },
+      melee: { x: cx + d, y: cy, r, a: 0 },
+      skill: { x: cx - d, y: cy, r, a: Math.PI },
+      skill2: { x: cx, y: cy - d, r, a: -Math.PI / 2 },
       invuln: { x: cx, y: cy + d, r, a: Math.PI / 2 },
-      // 배치 (사용자 2026-11-25 "무적은 아래로"): ← 치기 · ↑ 스킬1 · → 스킬2 · ↓ 무적
+      // 배치 (사용자 2026-11-26 "기본공격 우측, 스킬1 좌측, 스킬2 북측"): → 치기 · ← 스킬1 · ↑ 스킬2 · ↓ 무적
     };
   };
   const rstick = { id: null, x: 0, y: 0 };
   // 폰 톡 이동 (GDD 0-19, 사용자 "휴대폰 화면 클릭하면 클릭한 위치로 이동"): 짧게(0.25초 안) 거의 안 움직이고(12px 안) 떼면 그 바닥 지점까지 걸어가요
   const TAP_T = .25, TAP_D = 12;
   let tapP = null, moveTo = null;   // 오른쪽 손잡이 (−1..1)
-  const mArrow = { id: null, x0: 0, y0: 0, dir: null };   // ← 치기 화살표: 누르고 있으면 계속, 끌면 끈 방향
+  const mArrow = { id: null, x0: 0, y0: 0, dir: null };   // → 치기 화살표: 누르고 있으면 계속, 끌면 끈 방향
   const arrowHeld = () => aim != null || mArrow.id != null;   // 화살표를 누르는 동안 쏘기 멈춤
   G.btnPos = btnPos;   // 테스트용 (버튼 자리)
   const toV = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / U, y: (e.clientY - b.top) / U }; };
@@ -291,7 +291,7 @@
       const B = btnPos(); let dx = (p.x - B.stick.x) / 40, dy = (p.y - B.stick.y) / 40; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
       rstick.x = dx; rstick.y = dy; return;
     }
-    if (mArrow.id === e.pointerId) { const dx = p.x - mArrow.x0, dy = p.y - mArrow.y0, l = Math.hypot(dx, dy); mArrow.dir = l > 14 ? { x: dx / l, y: dy / l } : null; return; }   // ← 치기를 끌면 끈 방향
+    if (mArrow.id === e.pointerId) { const dx = p.x - mArrow.x0, dy = p.y - mArrow.y0, l = Math.hypot(dx, dy); mArrow.dir = l > 14 ? { x: dx / l, y: dy / l } : null; return; }   // → 치기를 끌면 끈 방향
     if (aim && aim.id === e.pointerId) {   // 스킬 버튼 끌기: 버튼 둘레(취소 원) 밖으로 나가면 조준, 다시 들어오면 취소 상태
       const inC = Math.hypot(p.x - aim.b.x, p.y - aim.b.y) < aim.b.r + 14;
       if (!inC) { aim.left = true; aim.drag = true; }
@@ -484,7 +484,7 @@
   function melee() {
     const h = G.hero, st = G.run.st;
     const near = mouse.on || (mArrow.id != null && mArrow.dir) ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
-    if (mArrow.id != null && mArrow.dir) h.dir = { x: mArrow.dir.x, y: mArrow.dir.y };   // 폰 ← 화살표를 끌면 끈 방향 (GDD 0-18)
+    if (mArrow.id != null && mArrow.dir) h.dir = { x: mArrow.dir.x, y: mArrow.dir.y };   // 폰 → 치기 화살표를 끌면 끈 방향 (GDD 0-18)
     if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
     h.meleeCd = BAL.MELEE_CD / atkSpd(); h.atkT = 0;
     if (h.boostT > 0 && !reduceMotion) for (const [dl, al] of [[.04, .4], [.08, .2]]) after(dl, () => { if (G.hero && G.hero.swing) G.fx.push({ kind: 'skill', type: 'boostSlash', x: G.hero.x, y: G.hero.y, a: G.hero.swing.ang, al, t: 0, life: .12 }); });   // 빨라진 게 보이게: 흰 잔상 2개
