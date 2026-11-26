@@ -1,0 +1,1 @@
+발도술 돌진 이펙트를 이미지 생성 기능으로 제작해 [cell-41.png](/home/user/poki-game/teams/2-디자인/gpt-art/round13/redo/cell-41.png)에 저장했습니다. 생성본의 비율을 유지해 1024×1024 투명 PNG로 맞췄으며, 사방에 최소 48px의 투명 여백을 확인했습니다.
