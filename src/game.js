@@ -774,6 +774,7 @@
     if (sk.type === 'area') {
       if (k === 'fear' || k === 'phalanx' || k === 'crack') return sfx('art', h.x, h.y, .6, Object.assign(b, { mode: 'beam', len: k === 'phalanx' ? 200 : k === 'fear' ? SKB.AREA_R * 1.3 : Math.max(240, dist), H: k === 'phalanx' ? 130 : k === 'fear' ? 200 : 90, floor: k !== 'fear' }));
       const rot = k === 'cone' || k === 'gust';
+      if (k === 'pull') return sfx('art', tx, ty, .6, Object.assign(b, { mode: 'burst', flat: true, S: SKB.AREA_R * 2 / 1.1 }));   // 아일랜드 1 회오리: 바닥에 눕혀 범위 지름 안으로 (가장 클 때 1.1배 = 지름) · 디자인 요청
       return sfx('art', k === 'arcs8' ? h.x : tx, k === 'arcs8' ? h.y : ty, .6, Object.assign(b, { mode: 'burst', rot, S: (k === 'cone' ? SKB.AREA_R * 2 : k === 'widen' ? 300 : k === 'chain3' ? 220 : SKB.AREA_R * 2.1) }));
     }
     // 연사
@@ -1202,7 +1203,7 @@
       }
       for (let rr = 0; rr < reps; rr++) {
         ctx.save();
-        if (e.mode === 'burst') { const S = e.S * (reduceMotion ? 1 : .7 + .4 * Math.min(1, t / .25)); ctx.globalAlpha = .95 * fade; ctx.translate(e.x, e.y - 6); if (e.rot) ctx.rotate(e.ang); ctx.drawImage(im, -S / 2, -S / 2 * (e.rot ? .8 : 1), S, S * (e.rot ? .8 : 1)); }
+        if (e.mode === 'burst') { const S = e.S * (reduceMotion ? 1 : .7 + .4 * Math.min(1, t / .25)); ctx.globalAlpha = .95 * fade; if (e.flat) { ctx.translate(e.x, e.y); ctx.drawImage(im, -S / 2, -S / 2 * GK(), S, S * GK()); } else { ctx.translate(e.x, e.y - 6); if (e.rot) ctx.rotate(e.ang); ctx.drawImage(im, -S / 2, -S / 2 * (e.rot ? .8 : 1), S, S * (e.rot ? .8 : 1)); } }
         else if (e.mode === 'zone') { const z = e.z; if (z && z.t < 0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45, br = reduceMotion ? 1 : 1 + .04 * Math.sin(G.t * 3);
           ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade * (reduceMotion ? 1 : .75 + .25 * Math.sin(G.t * Math.PI * 2)); ctx.translate(zx, zy); ctx.drawImage(im, -S * br / 2, -S * br / 2, S * br, S * br);   // 1초 주기로 숨쉬듯
           if (e.black) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .5 * fade; ctx.strokeStyle = '#8FA6C2'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(0, 0, S * .42, S * .42 * .6, 0, 0, Math.PI * 2); ctx.stroke(); } }   // 칠레 2: 회청 테두리 빛
