@@ -580,7 +580,7 @@
   function useInvuln() {
     const r = G.run, h = G.hero;
     if (!r || r.invuln <= 0 || h.dead || h.skillT > 0) return;
-    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 1.3초 + 그동안 공격 속도 2.5배 (GDD 0-15, 2026-11-26) · 끝나기 0.4초 전부터 2번 깜빡
+    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 2초 + 그동안 공격 속도 2.5배 (GDD 0-15, 2026-11-26) · 끝나기 0.4초 전부터 2번 깜빡
     G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
     if (settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('revive');
@@ -2050,7 +2050,7 @@
     if (h.skillT > 0 && !(h.boostT > 0)) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);   // 돌진 무적 등 (무적 스킬은 아래 은빛 테두리)
     // 몸
     let mo = { flip: h.dir.x < -0.05 };
-    if (h.boostT > 0 && (h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 1.3초: 몸 은빛 테두리, 끝나기 0.4초 전부터 2번 깜빡
+    if (h.boostT > 0 && (h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 2초: 몸 은빛 테두리, 끝나기 0.4초 전부터 2번 깜빡
     let frame = 0;
     if (h.dead && G.scene !== 'ending') { const k = Math.min(1, h.deadT / .6); mo.alpha = 1 - k * .5; mo.sy = 1 - k * .35; }
     else if (h.swing) {
