@@ -402,6 +402,7 @@
           store.set('lang', I18N.lang);
           // 고른 나라의 몸·무기 그림을 불러온 뒤 시작 (이미 있으면 바로)
           const ci = G.sel; G.scene = 'loading'; G.load = 0;
+          { const c = COUNTRIES[ci], v = `assets/sound/shout/${String(c.rank).padStart(2, '0')}-${c.key}-`; AUDIO.load(v + '1.mp3'); AUDIO.load(v + '2.mp3'); }   // 외침 목소리 미리 받기 (없으면 조용히)
           loadList(countryAssets(COUNTRIES[ci]), k => { G.load = k; }).then(() => { if (G.scene === 'loading') newRun(ci); });
         }
         break;
@@ -811,6 +812,7 @@
     G.msgs.push({ text: sk.shout, sub: t_((n === 2 ? 'skill2.name.' : 'skill.name.') + String(G.country.rank).padStart(2, '0')), t: n === 2 ? 1.6 : 1.2, life0: n === 2 ? 1.6 : 1.2, shout: true, rtl: G.country.lang === 'he' });   // 2번 외침은 길어서 1.6초
     if (settings.shake) G.shake = Math.max(G.shake, sk.type === 'area' ? 4 : 2);
     AUDIO.play('skill');
+    AUDIO.voice(`assets/sound/shout/${String(G.country.rank).padStart(2, '0')}-${G.country.key}-${n}.mp3`);   // 외침 목소리 (사용자 "만들어" 2026-11-26): 파일이 아직 없으면 조용히 넘어가요 · 나면 배경음 덕킹
   }
   // 스킬 진행 (updatePlay에서 매 프레임)
   function updateSkills(dt) {

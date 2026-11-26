@@ -10,7 +10,7 @@ const SRC = path.join(ROOT, 'src'), DIST = path.join(ROOT, 'dist');
 const preview = process.argv.includes('--preview');
 const LIMIT_MB = 16;   // 아티팩트 한 파일 한도
 
-const MIME = { '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg' };
+const MIME = { '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp3': 'audio/mpeg' };
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
 const assets = {};
 for (const f of walk(path.join(SRC, 'assets'))) {

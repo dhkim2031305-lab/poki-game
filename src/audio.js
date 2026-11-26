@@ -1,7 +1,7 @@
 // 효과음 — teams/2-디자인/sound.md (Web Audio, 파일 0KB)
 // 첫 탭 전엔 소리가 안 나요(브라우저 정책). 광고 중·소리 끔이면 아무 소리도 안 내요.
 (() => {
-  let ac = null, master = null;
+  let ac = null, master = null, music = null;
   const playing = {};          // 같은 소리 동시 최대 4개
   const A = { enabled: true, adMute: false };
 
@@ -10,12 +10,13 @@
       try {
         ac = new (window.AudioContext || window.webkitAudioContext)();
         master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+        music = ac.createGain(); music.gain.value = 1; music.connect(master);   // 배경음악 자리 (덕킹은 이 노드만)
       } catch { ac = null; }
     }
     return ac;
   }
   A.unlock = () => { const a = ctx(); if (a && a.state === 'suspended') a.resume().catch(() => {}); };
-  A.setAdMute = m => { A.adMute = m; if (master) master.gain.value = m ? 0 : 1; };
+  A.setAdMute = m => { A.adMute = m; if (master) master.gain.value = m ? 0 : 1; if (m) { try { voiceSrc && voiceSrc.stop(); } catch {} } };
 
   function tone(type, f0, f1, dur, vol, at = 0, filter) {
     const a = ac, t = a.currentTime + at;
@@ -72,6 +73,34 @@
     if (list.length >= 4) return;
     list.push(now + s[0]);
     try { s[1](); } catch {}
+  };
+  // 덕킹 (sound.md): 외침·효과음이 날 때 배경음을 0.15초 동안 70%로 → 0.4초에 되돌려요
+  A.duck = () => {
+    if (!music || !ac) return; const t = ac.currentTime, g = music.gain;
+    try { g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(.7, t + .15); g.setValueAtTime(.7, t + .15); g.linearRampToValueAtTime(1, t + .55); } catch {}
+  };
+  // 녹음 파일 (외침 목소리 등): 처음 부를 때 받아서 기억 · 파일이 없거나 못 읽으면 조용히 넘어가요 (다시 받지 않음)
+  const bufs = {};
+  function load(path) {
+    if (path in bufs) return bufs[path];
+    const a = ctx(); if (!a) return Promise.resolve(null);
+    const url = (window.__A && window.__A[path]) || path;   // 한 파일 미리보기는 data URI
+    return (bufs[path] = fetch(url).then(r => r.ok ? r.arrayBuffer() : null)
+      .then(b => b && new Promise(res => a.decodeAudioData(b, res, () => res(null))))
+      .catch(() => null).then(b => (bufs[path] = Promise.resolve(b || null), b || null)));
+  }
+  A.load = load;
+  let voiceSrc = null;
+  A.voice = (path, vol = 1) => {   // 외침 목소리: 한 번에 하나 (새 외침이 오면 앞 것을 끊어요)
+    if (!A.enabled || A.adMute) return Promise.resolve(false);
+    const a = ctx(); if (!a) return Promise.resolve(false);
+    const t0 = performance.now();
+    return load(path).then(b => {
+      if (!b || !A.enabled || A.adMute || a.state !== 'running' || performance.now() - t0 > 400) return false;   // 늦게 받아졌으면 안 틀어요 (외침 글자와 어긋나지 않게)
+      try { if (voiceSrc) voiceSrc.stop(); } catch {}
+      const s = a.createBufferSource(), g = a.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(master); s.start();
+      voiceSrc = s; s.onended = () => { if (voiceSrc === s) voiceSrc = null; }; A.duck(); return true;
+    });
   };
   // 돈 감소: 동전 짤랑 n번, 담담하게
   let pend = [];
