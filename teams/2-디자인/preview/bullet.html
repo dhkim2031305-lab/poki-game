@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>총알 모양 비교</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 10px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:12px}
+.card{background:var(--card);border-radius:12px;padding:10px}.card h2{font-size:14px;margin:0 0 6px}.card p{margin:6px 0 0;color:var(--sub);font-size:13px}
+canvas{width:100%;height:auto;display:block;border-radius:8px}
+</style></head><body>
+<h1>총알이 "날아가는 총알"로 보이게 — 지금 vs 고친 안 (실제 크기 2배로 확대)</h1>
+<div class="grid" id="g"></div>
+<script>
+const P=[
+ ['지금 (미국·핀란드 같음)','흰 막대(약 55×4px)가 총구 앞에서 생겨 미끄러지듯 가요. 섬광·탄피·맞는 효과가 없어서 "날아가는 막대"로 보여요.','now'],
+ ['고친 안 · 미국 에너지 소총','총구 별 섬광(하늘색, 0.035초) → 밝은 흰 탄두(타원 6×4) + 하늘색 빛 꼬리 24px(뒤로 갈수록 가늘고 옅게) + 탄두 둘레 빛무리. 맞으면 하늘색 튀김 + 빨간 점 3개.','usa'],
+ ['고친 안 · 핀란드 소총','총구 불꽃(옅은 금, 3갈래, 0.04초) + 회색 연기 한 줌 → 작은 금빛 탄두(4×3) + 가는 예광 꼬리 18px. 옆으로 탄피 하나가 튀어 떨어져요. 맞으면 불꽃 튐.','fin'],
+];
+const g=document.getElementById('g');
+P.forEach(([t,d,k])=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<h2>${t}</h2><canvas width="420" height="170"></canvas><p>${d}</p>`;g.appendChild(c);
+ const x=c.querySelector('canvas').getContext('2d');const S=2;let shots=[],cas=[],hits=[],flash=0,smoke=[],last=0,recoil=0;
+ (function f(ts){const t=ts/1000,dt=Math.min(.05,t-(last||t));last=t;
+  x.setTransform(1,0,0,1,0,0);x.fillStyle='#2b2a33';x.fillRect(0,0,420,170);x.setTransform(S,0,0,S,0,0);
+  // 장수·총
+  const hx=30,hy=55;x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(hx,hy+22,10,3,0,0,7);x.fill();x.fillStyle='#7d5a44';x.fillRect(hx-6,hy-14,12,18);x.fillStyle='#d9b38c';x.beginPath();x.arc(hx,hy-19,5,0,7);x.fill();
+  const gy=k==='now'?hy+6:hy-4, gx=hx+2-recoil;x.fillStyle=k==='fin'?'#4a4a4a':'#1F2E5C';x.fillRect(gx,gy-2,28,5);x.fillStyle='#C9CED6';x.fillRect(gx+28,gy-1,6,2);x.fillStyle='#5a3a22';x.fillRect(gx-6,gy-1,7,5);
+  const mx=gx+34,my=gy;
+  // 발사
+  if(t%0.32<dt){ if(k==='now')shots.push({x:hx+16,y:gy,v:260});else{shots.push({x:mx,y:my,v:300});flash=k==='usa'?.035:.04;recoil=k==='now'?0:4;if(k==='fin'){cas.push({x:gx+10,y:gy-2,vx:-20,vy:-40,a:0});smoke.push({x:mx,y:my,r:2,a:.5})}}}
+  recoil=Math.max(0,recoil-dt*60);
+  // 과녁
+  x.fillStyle='#A944C8';x.beginPath();x.ellipse(185,my,7,9,0,0,7);x.fill();
+  shots.forEach(s=>{s.x+=s.v*dt;if(s.x>178&&!s.hit){s.hit=1;hits.push({x:180,y:s.y,t:0})}});shots=shots.filter(s=>!s.hit&&s.x<215);
+  for(const s of shots){
+   if(k==='now'){x.fillStyle='#fff';x.fillRect(s.x,s.y-1,27,2.5)}
+   else{const L=k==='usa'?24:18,c=k==='usa'?'95,180,238':'255,214,120';
+    const gr=x.createLinearGradient(s.x-L,0,s.x,0);gr.addColorStop(0,`rgba(${c},0)`);gr.addColorStop(1,`rgba(${c},.9)`);
+    x.fillStyle=gr;x.beginPath();x.moveTo(s.x-L,s.y);x.lineTo(s.x,s.y-(k==='usa'?1.6:1));x.lineTo(s.x,s.y+(k==='usa'?1.6:1));x.fill();
+    if(k==='usa'){x.fillStyle='rgba(95,180,238,.35)';x.beginPath();x.arc(s.x,s.y,4.5,0,7);x.fill()}
+    x.fillStyle=k==='usa'?'#fff':'#FFE6A0';x.beginPath();x.ellipse(s.x,s.y,k==='usa'?3:2,k==='usa'?2:1.5,0,0,7);x.fill()}}
+  if(flash>0){flash-=dt;x.save();x.translate(mx+2,my);x.fillStyle=k==='usa'?'#bfe6ff':'#FFE2A0';
+   if(k==='usa'){for(let i=0;i<4;i++){x.rotate(Math.PI/4);x.fillRect(-7,-1,14,2)}x.fillStyle='#fff';x.beginPath();x.arc(0,0,3,0,7);x.fill()}
+   else{x.beginPath();x.moveTo(0,-3);x.lineTo(10,0);x.lineTo(0,3);x.fill();x.beginPath();x.moveTo(0,0);x.lineTo(5,-5);x.lineTo(3,0);x.lineTo(5,5);x.fill()}x.restore()}
+  cas.forEach(c=>{c.vy+=200*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.a+=dt*15;x.save();x.translate(c.x,c.y);x.rotate(c.a);x.fillStyle='#D9AE4F';x.fillRect(-1.5,-.8,3,1.6);x.restore()});cas=cas.filter(c=>c.y<hy+24);
+  smoke.forEach(s=>{s.r+=dt*12;s.a-=dt*1.2;s.x+=dt*8;x.fillStyle=`rgba(170,170,180,${Math.max(0,s.a)})`;x.beginPath();x.arc(s.x,s.y-2,s.r,0,7);x.fill()});smoke=smoke.filter(s=>s.a>0);
+  hits.forEach(h=>{h.t+=dt;const k2=h.t/.12;if(k==='now')return;x.globalAlpha=1-k2;x.fillStyle=k==='usa'?'#bfe6ff':'#FFE2A0';x.beginPath();x.arc(h.x,h.y,3+k2*5,0,7);x.fill();
+   x.fillStyle=k==='usa'?'#F2452E':'#FFC93C';for(let i=0;i<3;i++){const a=-2.4+i*.6;x.fillRect(h.x+Math.cos(a)*k2*12,h.y+Math.sin(a)*k2*12,2,2)}x.globalAlpha=1});hits=hits.filter(h=>h.t<.12);
+  requestAnimationFrame(f)})(0)});
+</script></body></html>
