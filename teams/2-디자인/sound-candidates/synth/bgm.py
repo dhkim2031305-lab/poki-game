@@ -68,6 +68,23 @@ def horn(note,dur):  # 살짝 우스꽝스러운 호른(풍자): 끝에서 음�
   n=int((dur+.1)*SR); t=np.arange(n)/SR; bend=1-.03*np.clip((t-dur*.7)/(dur*.3),0,1)
   ph=np.cumsum(hz(note)*bend)/SR; x=2*(ph%1)-1
   return lp(x,1500,2)*env(n,.04,.1,.85,.08,dur)
+def choir(notes,dur,g=1.0):   # "아" 합창: 톱니파 여러 개 + 포먼트(700·1150·2800Hz) 대역 통과, 느린 시작·비브라토
+  n=int((dur+.6)*SR); t=np.arange(n)/SR; x=np.zeros(n)
+  for k in notes:
+    for d in (-.007,0,.006):
+      vib=1+.005*np.sin(2*np.pi*(5+d*100)*t+d*50); ph=np.cumsum(hz(k)*(1+d)*vib)/SR; x+=2*(ph%1)-1
+  x/=len(notes)*3; y=bp(x,600,820)*1.0+bp(x,1000,1300)*.7+bp(x,2500,3100)*.25
+  return y*env(n,.45,.3,.85,.6,dur)*g*2.2
+def timpani(note,g=1.0):
+  n=int(1.4*SR); t=np.arange(n)/SR; f=hz(note)*(1+.06*np.exp(-t*12)); ph=2*np.pi*np.cumsum(f)/SR
+  return (np.sin(ph)+.35*np.sin(2*ph*1.5))*np.exp(-t*2.6)*g+.3*lp(rng.standard_normal(n),400)*np.exp(-t*30)
+def troll(note,dur,g=1.0):   # 팀파니 롤
+  T=Track(dur+1.4); k=0
+  while k*.06<dur: T.add(timpani(note,.35+.65*k*.06/dur),k*.06,1,wrap=False); k+=1
+  return T.buf*g
+def lowbrass(notes,dur,g=1.0):  # 트롬본·튜바 합주: 어둡고 두꺼움
+  n=int((dur+.2)*SR); x=sum(saw(hz(k),n,det=.003)+.6*saw(hz(k)/2,n) for k in notes)/len(notes)
+  return lp(x,700,3)*env(n,.08,.2,.85,.18,dur)*g
 def thunder(sec=1.6):
   n=int(sec*SR); t=np.arange(n)/SR; x=lp(rng.standard_normal(n),260,4)*np.exp(-t*1.8)*3
   crack=hp(rng.standard_normal(n),1500)*np.exp(-t*25)*.8; rumble=np.sin(2*np.pi*38*t)*np.exp(-t*2)*.6
@@ -100,9 +117,13 @@ for bar in range(16):
   if bar%2==1: L1.add(tom(m('A2')),t0+3*B,.5); L1.add(tom(m('F2')),t0+3.5*B,.5)
   for e in range(8): L1.add(bass(root[c]+(12 if e%2 else 0),B/2*.9),t0+e*B/2,.55)
   if bar%2==0:
-    L1.add(pad(chord[c],2*BAR-.1),t0,.18)
+    L1.add(pad(chord[c],2*BAR-.1),t0,.14)
+    L1.add(choir([k+12 for k in chord[c]],2*BAR-.2),t0,.30)          # 웅장: 합창
+    L1.add(lowbrass([root[c]+12,root[c]+19],2*BAR-.3),t0,.30)        # 웅장: 낮은 금관 지속음
+    L1.add(timpani(root[c]+24),t0,.55)
     base=root[c]+24
-    for i,s in enumerate(riff): L1.add(cello(base+s,B/2*.85),t0+i*B/2,.32)
+    for i,s in enumerate(riff): L1.add(cello(base+s,B/2*.85),t0+i*B/2,.32); L1.add(cello(base+s-12,B/2*.85,700),t0+i*B/2,.22)
+  if bar%8==7: L1.add(troll(root[c]+24,BAR*.9),t0+BAR*.1,.5)
   # 층 2: 하이햇 16분 + 스네어 2·4박 + 큰북
   for s in range(16): L2.add(hat(s%4==2),t0+s*B/4,.18 if s%2 else .28)
   for bt in [1,3]: L2.add(snare(),t0+bt*B,.45)
@@ -115,8 +136,8 @@ mel=[('D5',2),('F5',1),('E5',.5),('D5',.5),('A4',3),('Bb4',.5),('C5',.5),('D5',2
      ('D5',2),('F5',1),('G5',.5),('A5',.5),('A5',3),('G5',.5),('F5',.5),('E5',2),('C#5',2),('D5',4)]
 t=8*BAR
 for nm,bt in mel:
-  L3.add(horn(m(nm),bt*B*.92),t,.28); t+=bt*B
-mix1=reverb(L1.buf); mix2=reverb(L2.buf,.6,.08)*2.6; mix3=reverb(L3.buf,1.3,.2)*2.0
+  L3.add(brass([m(nm),m(nm)-12],bt*B*.94,1.0),t,.30); L3.add(choir([m(nm)-12],bt*B*.94),t,.12); t+=bt*B
+mix1=reverb(L1.buf,1.8,.24); mix2=reverb(L2.buf,.9,.12)*3.2; mix3=reverb(L3.buf,1.9,.26)*3.6
 g=np.max(np.abs(mix1))/.62                 # 세 층 모두 같은 배율 → 게임에서 그냥 더하면(볼륨 0.8) 미리듣기와 같은 소리
 sc=lambda x,lim: lim*np.tanh(x/g/lim)        # 층마다 부드럽게 눌러 튀는 북소리 정리
 b1,b2,b3=sc(mix1,.62),sc(mix2,.32),sc(mix3,.30)
@@ -136,33 +157,40 @@ for bar in range(8):
   for bt in [1,3]: T.add(anvil(),t0+bt*B,.35); T.add(snare(),t0+bt*B,.4)
   for s in range(16): T.add(bass(broot[c]+12+(1 if s%4==3 else 0),B/4*.9),t0+s*B/4,.5)
   T.add(brass(bch[c],B*1.2,.9),t0,.5); T.add(brass(bch[c],B*.35),t0+2.5*B,.4)
+  T.add(choir([k+12 for k in bch[c]],BAR*.9),t0,.28); T.add(lowbrass([bch[c][0]-12],BAR*.9),t0,.3); T.add(timpani(bch[c][0]-12),t0,.6); T.add(timpani(bch[c][0]-12),t0+2*B,.45)
   for i,k in enumerate([0,1,0,7,6,7,10,12]): T.add(cello(bch[c][0]+k-12,B/2*.8,1800),t0+i*B/2,.3)
   for s in range(8): T.add(hat(),t0+s*B/2,.2)
 # 마지막 마디 필인 → 첫 박으로 이어짐
 for i in range(6): T.add(tom(m('A2')-i*2),7*BAR+2*B+i*B/3,.6)
 T.add(crash(),0,.5)
-export(master(reverb(T.buf,1.0,.14)),f'{OUT}/bgm-boss.mp3',48)
+export(master(reverb(T.buf,1.6,.2)),f'{OUT}/bgm-boss.mp3',48)
 th=thunder(); st=np.zeros(len(th)); b=brass(bch['D'],.6,1.0); i0=int(.9*SR); k=min(len(b),len(th)-i0); st[i0:i0+k]=b[:k]
 export(master(th+st),f'{OUT}/sfx-boss-thunder.mp3',56)
-# ===== 메뉴 루프: 100bpm, 8마디, 류트 아르페지오 + 거들먹 호른(풍자) =====
-BPM=100; B=60/BPM; BAR=4*B; LEN=8*BAR; M=Track(LEN)
-mprog=['D','D','Bb','C','D','D','G','A']
+# ===== 메뉴 루프: 90bpm, 8마디, 웅장한 행진 (금관·합창·팀파니·현악 리프) =====
+BPM=90; B=60/BPM; BAR=4*B; LEN=8*BAR; M=Track(LEN)
+mprog=['D','D','Bb','C','D','G','Bb','A']
 mch={'D':[m('D3'),m('F3'),m('A3')],'Bb':[m('Bb2'),m('D3'),m('F3')],'C':[m('C3'),m('E3'),m('G3')],'G':[m('G2'),m('Bb2'),m('D3')],'A':[m('A2'),m('C#3'),m('E3')]}
 for bar in range(8):
   t0=bar*BAR; ch=mch[mprog[bar]]
-  for i,k in enumerate([0,1,2,1,0,1,2,1]): M.add(pluck(ch[k]+12,B/2),t0+i*B/2,.3)
-  M.add(kick(.5),t0); M.add(kick(.35),t0+2*B); M.add(tom(m('D3')),t0+3.5*B,.25)
-  M.add(pad(ch,BAR-.05),t0,.12)
-hm=[('A4',1.5),('D5',.5),('D5',1),('F5',1),('E5',1.5),('D5',.5),('C5',2),('D5',1.5),('A4',.5),('Bb4',1),('C5',1),('A4',4)]
+  M.add(choir([k+12 for k in ch],BAR-.1),t0,.32); M.add(lowbrass([ch[0]-12,ch[0]-5],BAR-.15),t0,.32); M.add(pad(ch,BAR-.05),t0,.10)
+  M.add(timpani(ch[0]),t0,.6); M.add(timpani(ch[0]),t0+2*B,.4); M.add(kick(.45),t0); M.add(snare(),t0+3.5*B,.18)
+  for i,k in enumerate([0,2,1,2,0,2,1,2]): M.add(cello(ch[k]+12,B/2*.8,1600),t0+i*B/2,.18)
+M.add(troll(m('A2'),BAR*.9),7*BAR+BAR*.1,.45)
+hm=[('D4',1.5),('A4',.5),('A4',1),('D5',1),('C5',1.5),('Bb4',.5),('A4',2),('Bb4',1.5),('A4',.5),('G4',1),('F4',1),('E4',2),('A4',2)]
+t=0
+for nm,bt in hm*1: M.add(brass([m(nm),m(nm)-12],bt*B*.92),t+4*BAR*0,.0); t+=bt*B
 t=4*BAR
-for nm,bt in hm: M.add(horn(m(nm),bt*B*.9),t,.25); t+=bt*B
-export(master(reverb(M.buf,1.4,.2)),f'{OUT}/bgm-menu.mp3',32)
+for nm,bt in hm[:-1]+[('A4',2)]:
+  if t>=8*BAR: break
+  M.add(brass([m(nm),m(nm)-12],bt*B*.92),t,.32); t+=bt*B
+export(master(reverb(M.buf,1.9,.26)),f'{OUT}/bgm-menu.mp3',32)
 # ===== 결말 짧은 곡 (반복 안 함) =====
 def oneshot(sec): return Track(sec)
 B=60/112; V=oneshot(5.0)   # 승리: D장조 팡파르
 for i,(nm,bt) in enumerate([('D4',.5),('F#4',.5),('A4',.5),('D5',2.5)]):
   st=sum(b for _,b in [('',.5)]*i)*B; V.add(brass([m(nm),m(nm)-12],bt*B),st,.6,wrap=False)
 V.add(brass([m('D4'),m('F#4'),m('A4'),m('D5')],2.2),1.5*B,.5,wrap=False); V.add(crash(),1.5*B,.5,wrap=False); V.add(taiko(),1.5*B,.8,wrap=False)
+V.add(troll(m('D2'),1.5*B),0,.4,wrap=False); V.add(choir([m('D4'),m('F#4'),m('A4')],2.4),1.5*B,.35,wrap=False); V.add(lowbrass([m('D2'),m('A2')],2.4),1.5*B,.35,wrap=False)
 export(master(reverb(V.buf,1.5,.25,False)[:V.n]),f'{OUT}/bgm-win.mp3',48)
 L=oneshot(4.5)            # 실패·파산: 내려가는 '와왕' 트롬본 (풍자)
 for i,nm in enumerate(['G3','F#3','F3']): L.add(horn(m(nm),.42),i*.48,.5,wrap=False)
