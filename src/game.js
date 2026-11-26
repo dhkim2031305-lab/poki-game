@@ -2094,6 +2094,7 @@
   const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
   const GUN_REST = 0.175; // 총은 쉴 때 아래로 10°만 (style-guide "총 모션", 사용자 "총검술 몰라?")
   const THROWN = k => FX.THROWN(k) || k === 'boomerang';
+  const GUN_UP = 16;   // 손 자리(발 위 약 20)에서 16 위 = 발 위 36, 장수 키 60의 0.6 (사용자 "총을 어깨 높이로", 2026-11-26)
   const GUN_SC = 32 / 46;   // 코드 총 길이 46 → 32px (style-guide "미국 공격 고치기")
   function weaponAngle(h, a) {
     // 치기: 예비동작(뒤로) → 스윙(반대쪽까지) → 마무리(돌아옴). 찌르기는 각도 대신 앞뒤로 밀어요
@@ -2138,7 +2139,7 @@
     }
     // 던진 직후엔 손이 비어요 (무기가 날아가는 중)
     if (THROW_ANIM[ranged] ? (h.handEmpty && !h.swing) : (THROWN(ranged) && h.rangedT > 0.12)) { ctx.restore(); return; }   // 던진 뒤엔 손이 비어요
-    if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py - 4, a, Math.cos(a) < 0, GUN_SC); ctx.restore(); return; }   // 4px 위로 손에 붙여요 · 총검 포함 32px   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
+    if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py - GUN_UP, a, Math.cos(a) < 0, GUN_SC); ctx.restore(); return; }   // 어깨 높이(발 위 36) · 총검 포함 32px   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
     const im = UI.img['weapon/' + c.key];
     if (im && im.naturalWidth) {
       const sc = len / 192;   // 그림 폭 192 → len
@@ -2236,7 +2237,7 @@
   function weaponTip(aim, ext = 0) {
     const h = G.hero, c = G.country, o = ((Math.round(aim / (Math.PI / 4)) % 8) + 8) % 8, [cell, flip] = OCT[o];
     const kk = 60 / 112, hd = HAND[cell], hx = h.x + (hd[0] - 64) * kk * (flip ? -1 : 1), hy = h.y + (hd[1] - 124) * kk, ca = Math.cos(aim), sa = Math.sin(aim);
-    if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * (32 + ext), y: hy - 4 + sa * (32 + ext) };   // 코드 총: 32px, 손보다 4px 위
+    if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * (32 + ext), y: hy - GUN_UP + sa * (32 + ext) };   // 코드 총: 32px, 어깨 높이
     if (c.ranged === 'arrow') return { x: hx + ca * 8, y: hy + sa * 6 };   // 활 가운데(시위 자리)
     const L = 60 * wLen(c) * .95; return { x: hx + ca * L, y: hy + sa * L };
   }
@@ -2395,17 +2396,17 @@
     const B = btnPos();
     // 조이스틱: 왼쪽 절반 아무 데나 누르면 그 자리에 생겨요
     const SA = safeArea(), jx = joy.id != null ? joy.ox : Math.max(VW * .15, SA.l + 70), jy = joy.id != null ? joy.oy : Math.min(VH * .72, VH - SA.b - 70);   // 안전 영역 안 (QA M15)
-    UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(0,0,0,.45)', 4);
+    UI.circ(jx, jy, 64, 'rgba(10,11,15,.5)'); UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(0,0,0,.45)', 4);   // 어두운 바탕 (뒤 이펙트가 비치지 않게)
     UI.circ(jx, jy, 62, null, 'rgba(255,255,255,.35)', 1.5);
     UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
     // 오른쪽: 큰 원 + 손잡이 + 화살표 4개 (GDD 0-18 · style-guide "폰 오른쪽 조작")
     const h = G.hero, r = G.run, drag = aim && aim.drag, dim = drag ? .35 : 1;
-    ctx.globalAlpha = dim; UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(255,255,255,.12)', 'rgba(255,255,255,.35)', 2);
+    ctx.globalAlpha = dim; UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(10,11,15,.5)'); UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(255,255,255,.12)', 'rgba(255,255,255,.35)', 2);   // 큰 원 아래 어두운 바탕 (뒤 이펙트가 비치지 않게)
     UI.circ(B.stick.x + rstick.x * (STICK_R - 26), B.stick.y + rstick.y * (STICK_R - 26), 26, rstick.id != null ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.5)', null, 0); ctx.globalAlpha = 1;
     const arrow = (b, me, gold, glow, fillQ) => {   // 바깥쪽 끝이 뾰족한 진한 판 · fillQ: 아래에서 위로 은 55% 채움 (무적 남은 비율)
       const R = b.r; ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a);
       ctx.beginPath(); ctx.moveTo(-R, -R); ctx.lineTo(R * .45, -R); ctx.lineTo(R, 0); ctx.lineTo(R * .45, R); ctx.lineTo(-R, R); ctx.closePath();
-      ctx.fillStyle = glow && fillQ == null ? 'rgba(201,206,214,.55)' : 'rgba(20,22,34,.82)'; ctx.fill();
+      ctx.fillStyle = 'rgba(20,22,34,.96)'; ctx.fill(); if (glow && fillQ == null) { ctx.fillStyle = 'rgba(201,206,214,.55)'; ctx.fill(); }   // 판은 거의 불투명: 스킬 그림이 버튼 뒤로 지나가도 버튼이 맨 위로 보여요
       if (fillQ != null) { ctx.save(); ctx.clip(); ctx.rotate(-b.a); ctx.fillStyle = 'rgba(201,206,214,.55)'; ctx.fillRect(-R * 1.5, R - R * 2 * fillQ, R * 3, R * 2 * fillQ); ctx.restore(); }
       ctx.strokeStyle = me ? '#E8D9A8' : gold ? '#E8D9A8' : fillQ != null ? '#C9CED6' : 'rgba(255,255,255,.7)'; ctx.lineWidth = me ? 3 : 2; ctx.stroke(); ctx.restore();
     };
