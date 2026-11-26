@@ -580,7 +580,7 @@
   function useInvuln() {
     const r = G.run, h = G.hero;
     if (!r || r.invuln <= 0 || h.dead || h.skillT > 0) return;
-    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 2초 + 그동안 공격 속도 2.5배 (GDD 0-15, 2026-11-26)
+    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 1.3초 + 그동안 공격 속도 2.5배 (GDD 0-15, 2026-11-26) · 끝나기 0.4초 전부터 2번 깜빡
     G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
     if (settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('revive');
@@ -2036,7 +2036,7 @@
     const money = r ? Math.max(0, r.money) : 50;
     // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
     if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }
-    if (h.boostT > 0 && !reduceMotion) { const sp = G.t * 2.5 * 2; ctx.save(); ctx.strokeStyle = '#C9CED6'; ctx.lineWidth = 2; ctx.globalAlpha = h.boostT > .6 || Math.floor(h.boostT / .1) % 2 === 0 ? .85 : .2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, sp + i * 2.09, sp + i * 2.09 + 1.3); ctx.stroke(); } ctx.restore(); }   // 무적 중: 발밑 은 고리(지름 44)가 평소의 2.5배 속도로 돌아요   // 넓은 그림자 + 발밑 진한 그림자
+    if (h.boostT > 0 && !reduceMotion) { const sp = G.t * 2.5 * 2; ctx.save(); ctx.strokeStyle = '#C9CED6'; ctx.lineWidth = 2; ctx.globalAlpha = h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0 ? .85 : .2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, sp + i * 2.09, sp + i * 2.09 + 1.3); ctx.stroke(); } ctx.restore(); }   // 무적 중: 발밑 은 고리(지름 44)가 평소의 2.5배 속도로 돌아요   // 넓은 그림자 + 발밑 진한 그림자
     { const ga = .25 + .65 * Math.min(1, money / 100);   // 돈 비율만큼 발밑 금빛 (납작한 판 대신 퍼지는 빛)
       ctx.save(); ctx.translate(h.x, h.y); ctx.scale(1, .32); ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); g.addColorStop(0, `rgba(255,209,102,${ga * .75})`); g.addColorStop(.55, `rgba(255,209,102,${ga * .35})`); g.addColorStop(1, 'rgba(255,209,102,0)');
@@ -2050,7 +2050,7 @@
     if (h.skillT > 0 && !(h.boostT > 0)) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);   // 돌진 무적 등 (무적 스킬은 아래 은빛 테두리)
     // 몸
     let mo = { flip: h.dir.x < -0.05 };
-    if (h.boostT > 0 && (h.boostT > .6 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 3초: 몸 은빛 테두리, 끝나기 0.6초 전 3번 깜빡
+    if (h.boostT > 0 && (h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 1.3초: 몸 은빛 테두리, 끝나기 0.4초 전부터 2번 깜빡
     let frame = 0;
     if (h.dead && G.scene !== 'ending') { const k = Math.min(1, h.deadT / .6); mo.alpha = 1 - k * .5; mo.sy = 1 - k * .35; }
     else if (h.swing) {
