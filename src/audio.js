@@ -1,4 +1,4 @@
-// 효과음 — teams/2-디자인/sound.md (Web Audio, 파일 0KB)
+// 효과음·배경음악·외침 목소리 — teams/2-디자인/sound.md (효과음은 Web Audio 합성, 배경음악은 src/assets/sound/bgm/)
 // 첫 탭 전엔 소리가 안 나요(브라우저 정책). 광고 중·소리 끔이면 아무 소리도 안 내요.
 (() => {
   let ac = null, master = null, music = null;
@@ -73,6 +73,7 @@
     if (list.length >= 4) return;
     list.push(now + s[0]);
     try { s[1](); } catch {}
+    if (name === 'skill' || name === 'roundClear') A.duck();   // 큰 효과음만 덕킹 (치기·처치마다 하면 배경음이 계속 출렁여요)
   };
   // 덕킹 (sound.md): 외침·효과음이 날 때 배경음을 0.15초 동안 70%로 → 0.4초에 되돌려요
   A.duck = () => {
@@ -102,6 +103,61 @@
       voiceSrc = s; s.onended = () => { if (voiceSrc === s) voiceSrc = null; }; A.duck(); return true;
     });
   };
+  // 효과음 파일 한 번 (보스 천둥 등)
+  A.sfxFile = (path, vol = 1) => {
+    if (!A.enabled || A.adMute) return; const a = ctx(); if (!a || a.state !== 'running') return;
+    load(path).then(b => { if (!b || !A.enabled || A.adMute) return; const s = a.createBufferSource(), g = a.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(master); s.start(); A.duck(); });
+  };
+  // ---------- 배경음악 (sound.md "배경음악", 디자인 883755e) ----------
+  // WebAudio loop (loopStart 0 · loopEnd = 반복 구간) — MP3 끝 빈 소리 때문에 <audio loop>는 안 써요
+  // 전투는 세 층을 같은 순간에 시작하고 층 2(3라운드~)·층 3(5라운드~)은 볼륨 0 → 1을 1초에 걸쳐 올려요
+  const BGM_DIR = 'assets/sound/bgm/';
+  const BGM = {
+    menu: { f: ['bgm-menu'], loop: 21.333, vol: .55 },
+    battle: { f: ['bgm-battle', 'bgm-battle-perc', 'bgm-battle-brass'], loop: 29.0909, vol: .8 },
+    boss: { f: ['bgm-boss'], loop: 12.8, vol: .6 },
+    win: { f: ['bgm-win'], vol: .7 },
+    lose: { f: ['bgm-lose'], vol: .7 },
+  };
+  A.BGM = BGM;
+  let cur = null, wantKey = null, wantLv = 1;   // cur = { key, bus, srcs, gains, lv }
+  A.preload = key => { const m = BGM[key]; if (m && ctx()) m.f.forEach(f => load(BGM_DIR + f + '.mp3')); };
+  function stopCur(fade = .4) {
+    if (!cur) return; const c = cur, t = ac.currentTime; cur = null;
+    try { c.bus.gain.cancelScheduledValues(t); c.bus.gain.setValueAtTime(c.bus.gain.value, t); c.bus.gain.linearRampToValueAtTime(0, t + fade); } catch {}
+    c.srcs.forEach(s => { try { s.stop(t + fade + .05); } catch {} });
+  }
+  function startKey(key, lv) {
+    const m = BGM[key], a = ac; if (!m) return;
+    const token = (cur = { key, bus: a.createGain(), srcs: [], gains: [], lv, ready: false });
+    token.bus.gain.value = 0; token.bus.connect(music);
+    Promise.all(m.f.map(f => load(BGM_DIR + f + '.mp3'))).then(bs => {
+      if (cur !== token || bs.some(b => !b)) return;   // 그사이 다른 곡으로 바뀌었거나 파일이 없으면 조용히
+      const t = a.currentTime + .05;
+      bs.forEach((b, i) => {
+        const s = a.createBufferSource(), g = a.createGain(); s.buffer = b;
+        if (m.loop) { s.loop = true; s.loopStart = 0; s.loopEnd = Math.min(m.loop, b.duration); }
+        g.gain.value = i < token.lv ? 1 : 0; s.connect(g); g.connect(token.bus); s.start(t);
+        token.srcs.push(s); token.gains.push(g);
+      });
+      token.bus.gain.setValueAtTime(0, t); token.bus.gain.linearRampToValueAtTime(busVol(m), t + .3); token.ready = true;
+    });
+  }
+  const busVol = m => (A.enabled && !A.adMute ? m.vol : 0);
+  // 매 프레임 불러요: 지금 나와야 할 곡 (null = 조용히) · lv = 전투 층 수 (1~3)
+  A.music = (key, lv = 1) => {
+    wantKey = key; wantLv = lv;
+    if (!ac || ac.state !== 'running') return;   // 첫 터치 전엔 기다려요 (폰)
+    if (!key) { stopCur(); return; }
+    if (!cur || cur.key !== key) { stopCur(); startKey(key, lv); return; }
+    if (!cur.ready) { cur.lv = lv; return; }
+    const t = ac.currentTime, m = BGM[key], v = busVol(m), bg = cur.bus.gain;
+    if (Math.abs(bg.value - v) > .01 && !cur.vRamp) { cur.vRamp = true; bg.cancelScheduledValues(t); bg.setValueAtTime(bg.value, t); bg.linearRampToValueAtTime(v, t + .2); setTimeout(() => { if (cur) cur.vRamp = false; }, 250); }   // 소리 끔·켬
+    if (cur.lv !== lv) { cur.gains.forEach((g, i) => { const to = i < lv ? 1 : 0; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(to, t + 1); }); cur.lv = lv; }   // 층 올리기 1초
+  };
+  A.musicKey = () => (cur && cur.ready ? cur.key + ':' + cur.lv : null);   // 테스트용
+  // 탭을 벗어나면 소리를 멈췄다가 돌아오면 이어요 (사이트 규칙)
+  document.addEventListener('visibilitychange', () => { if (!ac) return; try { if (document.hidden) ac.suspend(); else ac.resume(); } catch {} });
   // 돈 감소: 동전 짤랑 n번, 담담하게
   let pend = [];
   A.coins = n => { for (let i = 0; i < n; i++) pend.push(setTimeout(() => A.play('coin'), i * 110)); };

@@ -1,0 +1,23 @@
+// 배경음악·언어 (사용자 2026-11-26 "넣어" · "첫화면과 메뉴만 영어"): 장면마다 곡·층 + 언어 기본값 (node bgm.js)
+const { chromium } = require('playwright');
+(async () => { const b = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] }); const out = [];
+  const p = await (await b.newContext({ viewport: { width: 844, height: 390 } })).newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto('http://localhost:8080/web/?render=2d'); await p.waitForFunction(() => window.G && G.scene === 'title');
+  const st = async label => { await p.waitForTimeout(900); const r = await p.evaluate(() => ({ s: G.scene, m: AUDIO.musicKey(), l: I18N.lang })); out.push(`${label}: 장면 ${r.s} · 곡 ${r.m} · 언어 ${r.l}`); return r; };
+  await st('첫 터치 전');
+  await p.mouse.click(422, 300); await st('첫 클릭 뒤 시작 화면');
+  await p.evaluate(() => { G.scene = 'select'; G.sel = 0; }); await st('나라 고르기');
+  await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await st('1라운드 (룩셈부르크)');
+  await p.evaluate(() => { G.run.round = 3; }); await st('3라운드');
+  await p.evaluate(() => { G.run.round = 5; }); await st('5라운드');
+  await p.evaluate(() => { G.run.killsRound = Math.ceil(G.run.wave.n / 2); }); await p.waitForTimeout(1400); await st('보스 나옴 (천둥 0.9초 뒤)');
+  await p.keyboard.press('Escape'); await st('일시정지 (그 나라 언어 [제안])');
+  const click = id => p.evaluate(id => { const h = UI.hits.find(h => h.id === id); if (!h) return false; const cv = document.getElementById('game'), r = cv.getBoundingClientRect(), s = r.width / UI.VW; const o = { clientX: r.left + (h.x + h.w / 2) * s, clientY: r.top + (h.y + h.h / 2) * s, pointerId: 9, pointerType: 'touch', bubbles: true }; cv.dispatchEvent(new PointerEvent('pointerdown', o)); cv.dispatchEvent(new PointerEvent('pointerup', o)); return true; }, id);
+  out.push('Language 열기 ' + await click('lang')); await p.waitForTimeout(200); out.push('일본어 고르기 ' + await click('lang:ja')); await p.waitForTimeout(200);
+  await st('일본어 고른 뒤 일시정지');
+  await p.keyboard.press('Escape');
+  await p.evaluate(() => { G.hero.hp = 0; G.hero.dead = true; G.hero.deadT = 0; }); await p.waitForFunction(() => G.scene === 'result', null, { timeout: 8000 }).catch(() => {}); await st('실패 결과');
+  await p.evaluate(() => { G.scene = 'title'; }); await st('시작 화면 (고른 언어 우선)');
+  await p.evaluate(() => { AUDIO.enabled = false; }); await p.waitForTimeout(600); out.push('소리 끔: ' + await p.evaluate(() => AUDIO.musicKey()) + ' (버스 볼륨 0)');
+  await p.evaluate(() => { localStorage.removeItem('aw.langPick'); });
+  console.log(out.join('\n') + `\nerrors: ${errs.length ? errs.join('|') : 'none'}`); await b.close(); })();

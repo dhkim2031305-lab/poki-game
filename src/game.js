@@ -24,7 +24,19 @@
   AUDIO.enabled = settings.sound;
   const best = store.get('best', {});     // 나라 key → { rounds, kills }
   let lastCountry = store.get('lastCountry', null);
-  I18N.set(store.get('lang', null) || I18N.deviceLang());
+  // 언어 (GDD 0-6, 2026-11-26 사용자 "첫화면과 메뉴만 영어"): 나라 고르기 전 화면 = 영어 · 나라 고른 뒤 게임 안 = 그 나라 언어 · 설정 Language로 고르면 그 언어가 모든 화면에 우선
+  const PAUSE_LANG = 'country';   // [제안·사용자 확인 중] 일시정지 메뉴 언어: 'country' = 그 나라 언어 · 'en' = 영어로 바꾸려면 이 한 줄만
+  let langPick = store.get('langPick', null);   // 플레이어가 고른 언어 (예전 'lang' 저장값은 자동으로 들어간 것도 섞여 있어서 안 써요)
+  const IN_GAME = { loading: 1, play: 1, roundPanel: 1, ending: 1, result: 1, ad: 1 };
+  function wantLang() {
+    if (langPick) return langPick;
+    const c = G.scene === 'loading' ? COUNTRIES[G.sel] : G.country;
+    if (!c || !IN_GAME[G.scene]) return 'en';
+    if (G.scene === 'play' && G.paused && !G.hold && PAUSE_LANG === 'en') return 'en';
+    return c.lang;
+  }
+  const syncLang = () => { const l = wantLang(); if (I18N.lang !== l) I18N.set(l); };
+  I18N.set('en');
 
   // ---------- 화면 크기 ----------
   let W = 0, H = 0, DPR = 1, U = 1, VW = 844, VH = 390;
@@ -151,7 +163,7 @@
       spawnAlien(shooter ? 'shooter' : 'grunt'); r.spawned++; r.spawnT = TEMP.SPAWN_GAP[r.round - 1];
     }
     // 보스: 그 라운드 외계인이 절반 남았을 때
-    if (!r.bossSpawned && r.killsRound >= Math.ceil(w.n / 2)) { r.bossSpawned = true; spawnAlien('boss'); }
+    if (!r.bossSpawned && r.killsRound >= Math.ceil(w.n / 2)) { r.bossSpawned = true; spawnAlien('boss'); r.bossAt = r.roundT; AUDIO.sfxFile('assets/sound/bgm/sfx-boss-thunder.mp3'); }   // 보스 등장: 천둥 한 번 → 이어서 보스 곡
     // 화폐: 모든 나라 같은 시간·자리·종류
     if (r.itemIdx < BAL.ITEMS_PER_ROUND && r.roundT >= TEMP.ITEM_TIMES[r.itemIdx]) {
       const sp = TEMP.ITEM_SPOTS[((r.round - 1) * 2 + r.itemIdx) % TEMP.ITEM_SPOTS.length], f = FIELD.floor;
@@ -388,7 +400,7 @@
     if (id === 'shake') { settings.shake = !settings.shake; return saveSettings(); }
     if (id === 'flash') { settings.flash = !settings.flash; return saveSettings(); }
     if (id === 'lang') { G.langOpen = !G.langOpen; return; }
-    if (id.startsWith('lang:')) { I18N.set(id.slice(5)); store.set('lang', I18N.lang); G.langOpen = false; return; }
+    if (id.startsWith('lang:')) { I18N.set(id.slice(5)); langPick = I18N.lang; store.set('langPick', langPick); G.langOpen = false; return; }   // 고른 언어가 모든 화면에 우선 (GDD 0-6)
     switch (G.scene) {
       case 'title':
         if (id === 'start') { G.scene = 'select'; G.sel = lastCountry != null ? lastCountry : 0; scrollToSel(); }
@@ -398,11 +410,9 @@
         if (id.startsWith('card:')) { const i = +id.slice(5); if (i === G.sel && G.touchUI) action('confirm'); else G.sel = i; }
         if (id === 'confirm') {
           lastCountry = G.sel; store.set('lastCountry', G.sel);
-          I18N.set(COUNTRIES[G.sel].lang);   // 기본은 고른 나라 언어 (번역이 없으면 영어)
-          store.set('lang', I18N.lang);
           // 고른 나라의 몸·무기 그림을 불러온 뒤 시작 (이미 있으면 바로)
           const ci = G.sel; G.scene = 'loading'; G.load = 0;
-          { const c = COUNTRIES[ci], v = `assets/sound/shout/${String(c.rank).padStart(2, '0')}-${c.key}-`; AUDIO.load(v + '1.mp3'); AUDIO.load(v + '2.mp3'); }   // 외침 목소리 미리 받기 (없으면 조용히)
+          { const c = COUNTRIES[ci], v = `assets/sound/shout/${String(c.rank).padStart(2, '0')}-${c.key}-`; AUDIO.load(v + '1.mp3'); AUDIO.load(v + '2.mp3'); AUDIO.preload('battle'); }   // 외침 목소리 미리 받기 (없으면 조용히)
           loadList(countryAssets(COUNTRIES[ci]), k => { G.load = k; }).then(() => { if (G.scene === 'loading') newRun(ci); });
         }
         break;
@@ -1609,8 +1619,23 @@
   }
 
   let wasPortrait = false;
+  // 배경음악 고르기 (sound.md): 시작·나라 고르기 = 메뉴 · 전투 = 세 층 (3라운드~ 타악, 5라운드~ 금관) · 보스가 살아 있으면 보스 곡 · 결말 = 승리/패배 (반복 없음)
+  const BOSS_MUSIC_DELAY = .9;   // 천둥(1.6초)이 울리기 시작하고 0.9초 뒤 보스 곡 [제안]
+  let musicLast = [null, 1];
+  function musicWant() {
+    const s = G.scene, r = G.run;
+    if (s === 'title' || s === 'select' || s === 'loading') return ['menu', 1];
+    if ((s === 'play' || s === 'roundPanel') && r) {
+      if (s === 'play' && r.bossSpawned && r.roundT - (r.bossAt || 0) > BOSS_MUSIC_DELAY && G.aliens.some(a => a.type === 'boss' && !a.dead)) return ['boss', 1];
+      return ['battle', r.round >= 5 ? 3 : r.round >= 3 ? 2 : 1];
+    }
+    if (s === 'ending') return ['win', 1];   // 1위 클리어·2~15위 "여기까지" 둘 다 승리 곡 [제안]
+    if (s === 'result' && G.result) return [G.result.kind === 'clear' || G.result.kind === 'far' ? 'win' : 'lose', 1];
+    return musicLast;   // 광고 중 등: 그대로 (광고 중엔 전체 음소거)
+  }
   function update(dt) {
     G.t += dt;
+    syncLang(); musicLast = musicWant(); AUDIO.music(musicLast[0], musicLast[1]);
     const pt = portrait();
     if (pt !== wasPortrait) { wasPortrait = pt; clearInput(); if (pt && G.scene === 'play' && !G.paused) setPause(true); }
     G.shake = Math.max(0, G.shake - dt * 20); G.hurtFlash = Math.max(0, G.hurtFlash - dt); G.skillFlash = Math.max(0, (G.skillFlash || 0) - dt);
