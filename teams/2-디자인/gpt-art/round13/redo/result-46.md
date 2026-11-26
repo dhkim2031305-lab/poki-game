@@ -1,0 +1,1 @@
+‘기병창 휩쓸기’ 이펙트를 생성해 [cell-46.png](/home/user/poki-game/teams/2-디자인/gpt-art/round13/redo/cell-46.png)로 저장했습니다. 1024×1024 RGBA PNG로 크기를 맞추고, 네 가장자리의 48px 여백이 완전히 투명한지 확인했습니다.
