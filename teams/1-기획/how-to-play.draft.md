@@ -31,7 +31,7 @@
 | 치기 (가까이) | 왼쪽 클릭 / J | Left-click / J |
 | 쏘기 (멀리) | 오른쪽 클릭 / K | Right-click / K |
 | 스킬 1 · 스킬 2 | 오른쪽 두 번 / L · 왼쪽 두 번 / ; — 마우스 자리에 써요 | Right ×2 / L · Left ×2 / ; — cast at the cursor |
-| 무적 2초 | 양쪽 동시 / Space — 그동안 공격이 빨라져요 | Both buttons / Space — attack faster while invincible |
+| 무적 1.3초 | 양쪽 동시 / Space — 그동안 공격이 빨라져요 | Both buttons / Space — attack faster while invincible |
 | 일시정지 | Esc | Esc |
 
 ## 카드 3-폰 — 조작 (폰)
@@ -41,7 +41,7 @@
 | 쏘기 | 오른쪽 큰 원을 밀면 그쪽으로 계속 쏴요 | Push the right circle to keep firing that way |
 | 치기 | ← 화살표 | ← arrow |
 | 스킬 1 · 스킬 2 | ↑ · → 화살표 — 꾹 누르고 끌어서 조준, 톡 누르면 가까운 적 | ↑ · → arrows — hold and drag to aim, tap for the nearest alien |
-| 무적 2초 | ↓ 화살표 | ↓ arrow |
+| 무적 1.3초 | ↓ 화살표 | ↓ arrow |
 
 ## 정할 것 (사용자 확인)
 1. 보여 주는 방식: 위 [제안]대로 (처음 한 번 + "?" 버튼)?
