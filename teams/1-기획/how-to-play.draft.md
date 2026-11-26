@@ -39,8 +39,8 @@
 |---|---|---|
 | 이동 | 왼쪽 조이스틱 · 또는 가고 싶은 곳을 톡 | Left stick · or tap where you want to go |
 | 쏘기 | 오른쪽 큰 원을 밀면 그쪽으로 계속 쏴요 | Push the right circle to keep firing that way |
-| 치기 | ← 화살표 | ← arrow |
-| 스킬 1 · 스킬 2 | ↑ · → 화살표 — 꾹 누르고 끌어서 조준, 톡 누르면 가까운 적 | ↑ · → arrows — hold and drag to aim, tap for the nearest alien |
+| 치기 | → 화살표 | → arrow |
+| 스킬 1 · 스킬 2 | ← · ↑ 화살표 — 꾹 누르고 끌어서 조준, 톡 누르면 가까운 적 | ← · ↑ arrows — hold and drag to aim, tap for the nearest alien |
 | 무적 2초 | ↓ 화살표 | ↓ arrow |
 
 ## 정할 것 (사용자 확인)
