@@ -8,7 +8,7 @@ for it in items:
     out = os.path.join(D, it['id'] + '.mp3')
     if os.path.exists(out): continue
     lang = FIX.get(it['id'], it['lang'])
-    prompt = f"Shout loudly like a warrior charging into battle, in {lang} as a native speaker from {it['country']}: {it['text']}"
+    prompt = "[shouting] " + it['text']   # 지시문을 길게 쓰면 지시문을 읽어 버려요 (2026-11-26 확인)
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"responseModalities": ["AUDIO"],
         "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": "Fenrir"}}}}}).encode()
     req = urllib.request.Request(URL, body, {'Content-Type': 'application/json', 'x-goog-api-key': 'dummy'})
@@ -29,5 +29,5 @@ for it in items:
     os.remove(src)
     dur = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out], capture_output=True, text=True).stdout.strip()
     print(it['id'], mt, dur + 's', os.path.getsize(out), 'B', flush=True)
-    time.sleep(21)   # 분당 3번 이하
+    time.sleep(12)   # 분당 3번 이하
 print('ALL DONE')
