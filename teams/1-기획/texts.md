@@ -51,13 +51,13 @@
 | `how.3.title` | 조작 | Controls | 설명서 카드 3 제목 · 내용은 PC는 `x.keys`, 폰은 화살표 그림 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.next` | 다음 | Next | 설명서 넘기기 버튼 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.skip` | 건너뛰기 | Skip | 설명서 건너뛰기 버튼 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
-| `vault.gain` | 금고에 {sym}{n} 쌓였어요. (모두 {sym}{t}) | {sym}{n} added to the treasury. (Total {sym}{t}) | 결과 화면 한 줄 (파산·실패·클리어 모두, GDD 0-23) | 확정 (2026-11-27) · 18개 언어 번역 필요 |
-| `vault.title` | 국가 금고 | National Treasury | 금고 화면 제목 | 확정 · 번역 필요 |
-| `vault.atk` | 공격력 | Attack | 금고 강화 | 확정 · 번역 필요 |
-| `vault.hp` | 체력 | Health | 금고 강화 | 확정 · 번역 필요 |
-| `vault.move` | 이동 속도 | Move Speed | 금고 강화 | 확정 · 번역 필요 |
-| `vault.buy` | 강화 ({sym}{c}) | Upgrade ({sym}{c}) | 강화 버튼 | 확정 · 번역 필요 |
-| `vault.max` | 최대 | Max | 다 산 강화 | 확정 · 번역 필요 |
+| `vault.gain` | 금고에 {sym}{n} 쌓였어요. (모두 {sym}{t}) | {sym}{n} added to the treasury. (Total {sym}{t}) | 결과 화면 한 줄 (파산·실패·클리어 모두, GDD 0-23) | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
+| `vault.title` | 국가 금고 | National Treasury | 금고 화면 제목 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
+| `vault.atk` | 공격력 | Attack | 금고 강화 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
+| `vault.hp` | 체력 | Health | 금고 강화 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
+| `vault.move` | 이동 속도 | Move Speed | 금고 강화 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
+| `vault.buy` | 강화 ({sym}{c}) | Upgrade ({sym}{c}) | 강화 버튼 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
+| `vault.max` | 최대 | Max | 다 산 강화 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
 | `vault.satire` | 금고는 쌓여도, 출발선은 그대로예요. | The treasury grows. The starting line doesn't. | 파산 화면에 가끔 (GDD 0-23) | **[제안]** 사용자 확인 전 |
 | `end.clear.title` | 클리어! | Clear! | 1위가 6라운드를 깼을 때 제목. 장수는 안 쓰러지고, 아래에 `end.after.*` 10개 중 하나 (GDD 0-4 "가") | 확정 (2026-11-26) |
 | `end.far.title` | 여기까지 | This Far | 2~15위가 6라운드를 깼을 때 제목 (클리어도 실패도 아님) | 확정 (2026-11-26) |
