@@ -895,10 +895,6 @@
         for (const shot of shots) {
           if (shot.landed) continue;
           drawLinkFlight(shot.path, clamp((this.t - shot.when) / CANNON.FLY, 0, 1), at, () => {
-            const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 6);
-            glow.addColorStop(0, '#FF8A2E');
-            glow.addColorStop(1, 'transparent');
-            UI.circ(0, 0, 6, glow);
             UI.circ(0, 0, 4.25, '#161215', '#FFC93C', 1.5);
           });
         }
@@ -1077,6 +1073,7 @@
   // 흔들림 설정과 움직임 줄이기 설정에 따라 추가 효과를 적용해요.
   const layerFx = () => settings.shake && !reduceMotion;
   function skillLayers(sk, m, tx, ty, col) {
+    if (layerFx()) G.skillFlash = .06;   // 쓰는 순간 화면 번쩍 (흰 8%)
     const h = G.hero, k = m.k;
     if (sk.type === 'dash') {   // 끝에서 충격 고리 40→120 + 파편 8개 · 지나간 길 바닥 긁힘 1초
       const d = h.dash, T = (d ? d.dur * (k === 'returnDash' ? 2 : 1) : .2) + (d && d.wait || 0), lite = feelOn();
@@ -1091,7 +1088,7 @@
       }
       const atHero = ['fear', 'phalanx', 'crack', 'arcs8', 'spinMove'].includes(k);
       const cx = atHero ? h.x : tx, cy = atHero ? h.y : ty, R = SKB.AREA_R;
-      sfx('coreFlash', cx, cy, .08, { col }); sfx('ringFx', cx, cy, .35, { r0: 20, r1: R, col }); after(.1, () => sfx('ringFx', cx, cy, .35, { r0: 20, r1: R * .8, col }));
+      sfx('coreFlash', cx, cy, .08); sfx('ringFx', cx, cy, .35, { r0: 20, r1: R, col }); after(.1, () => sfx('ringFx', cx, cy, .35, { r0: 20, r1: R * .8, col }));
       skillImpact(cx, cy, col);
       if (!NO_AFTER) sfx('scorch', cx, cy, feelOn() ? .4 : 1.5, { r: R * .55, al: feelOn() ? .15 : .32 });   // 잔상 예산: 그을림 0.4초·≤0.15
     }
@@ -1348,7 +1345,7 @@
         skillImpact(z.x, z.y, z.col);
       }
       if (z.k === 'rings') {   // 미국 2: 1초마다 퍼지는 고리가 지나가며 맞혀요
-        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing += 1; sfx('beatRings', z.x, z.y, .6); }   // 0 / 0.22 / 0.44초 작은 고리 + 가운데 빨강
+        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing += 1; sfx('beatRings', z.x, z.y, .6); }   // 0 / 0.22 / 0.44초 작은 고리
         for (const rg of z.rings) { const r = (z.t - rg.t0) / .6 * SKB.ZONE_D / 2; if (r > SKB.ZONE_D / 2 + 10) continue;
           hitCircle(z.x, z.y, r + 8, z.base / z.mod.div, { skip: rg.hit, heavy: false, main: false, test: (a, ex, ey, d) => d > r - 14 }); }
         continue;
@@ -1440,13 +1437,11 @@
     ctx.ellipse(x, y, r, r * skillFloorRatio(), 0, a0, a1);
   };
 
-  function coneShape(x, y, r, angle, fill, stroke) {
+  function coneShape(x, y, r, angle, stroke) {
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.arc(x, y, r, angle - Math.PI / 3, angle + Math.PI / 3);
     ctx.closePath();
-    ctx.fillStyle = fill;
-    ctx.fill();
     ctx.strokeStyle = stroke;
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -1454,6 +1449,7 @@
 
   function floorRing(x, y, r, col, alpha = ctx.globalAlpha) {
     ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = alpha * .55;
     ctx.strokeStyle = col;
     ctx.lineWidth = 2;
@@ -1484,7 +1480,7 @@
       const [x, y] = coneOrigin(h.x, h.y, tx, ty);
       lookAt(at, x, y, () => {
         ctx.globalAlpha = aim.cancel ? .35 : 1;
-        coneShape(0, 0, R, ang, 'rgba(255,255,255,.1)', SKW);
+        coneShape(0, 0, R, ang, SKW);
       });
     }
     const rings = [];
@@ -1492,42 +1488,41 @@
     at(h.x, h.y, () => {
       ctx.save(); ctx.globalAlpha = aim.cancel ? .35 : 1; ctx.lineCap = 'round';
       const link = () => { ctx.strokeStyle = 'rgba(201,206,214,.85)'; ctx.lineWidth = 2; dash(4, 8, -G.t * 60); ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]); };
-      const ring = (x, y, r, solid, fillA, col = solid ? SKW : SKS) => {
-        rings.push({ x, y, r, solid, fillA, col, alpha: ctx.globalAlpha });
+      const ring = (x, y, r, solid, col = solid ? SKW : SKS) => {
+        rings.push({ x, y, r, solid, col, alpha: ctx.globalAlpha });
       };
-      if (k === 'orbit') { ring(h.x, h.y, 62, true, .06); ctx.restore(); return; }   // 튀르키예 1: 자리 지정 없음
-      if (sk.type === 'zone') { link(); ring(tx, ty, R, false, .06); ring(tx, ty, R * .7, true, 0, SKG); }
-      else if (sk.type === 'area' && k === 'fear') { link(); ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * skillFloorRatio(), 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      if (k === 'orbit') { ring(h.x, h.y, 62, true); ctx.restore(); return; }   // 튀르키예 1: 자리 지정 없음
+      if (sk.type === 'zone') { link(); ring(tx, ty, R, false); ring(tx, ty, R * .7, true, SKG); }
+      else if (sk.type === 'area' && k === 'fear') { link(); ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * skillFloorRatio(), 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.stroke(); }
       else if (sk.type === 'area' && k === 'phalanx') { const L = 180, W = 46, c = Math.cos(ang), s2 = Math.sin(ang), P = [[0, -W], [L, -W], [L, W], [0, W]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + s2 * u + c * v]);   // 판정과 같은 바닥 좌표
-        ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill(); ctx.stroke(); }
-      else if (sk.type === 'area' && k === 'crack') { link(); ring(tx, ty, 20, true, 0); }
+        ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'crack') { link(); ring(tx, ty, 20, true); }
       else if (sk.type === 'area' && k === 'cone') link();
-      else if (sk.type === 'area') { link(); ring(tx, ty, R, true, .1); ring(tx, ty, R + 8, false, 0); }
+      else if (sk.type === 'area') { link(); ring(tx, ty, R, true); ring(tx, ty, R + 8, false); }
       else if (sk.type === 'dash') {   // 몸 폭 30 띠 + 흐르는 › 3개 + 도착 원
         let ex = tx, ey = ty; if (k === 'long') { ex = clamp(h.x + (tx - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ty - h.y) * 2, f.y0 + 22, f.y1); }
         const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v * g, h.y + s2 * u + c * v * g]);   // 길이는 바닥 좌표 그대로(끝 = 도착 원), 폭만 납작하게
-          ctx.globalAlpha = (aim.cancel ? .35 : 1) * a; ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
+          ctx.globalAlpha = (aim.cancel ? .35 : 1) * a;
           ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40); for (const [i, j] of [[0, 1], [3, 2]]) { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); } ctx.setLineDash([]); return L; };
         if (k === 'long') band(ex, ey, .4);   // 리투아니아 1: 목표 너머까지 옅게 (40%, 디자인 463e6b5)
         const L = band(tx, ty, 1);
         ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const u = ((G.t * 120 + i * L / 3) % Math.max(1, L)), x = h.x + Math.cos(ang) * u, y = h.y + Math.sin(ang) * u;
           ctx.beginPath(); ctx.moveTo(x - Math.cos(ang - .6) * 7, y - Math.sin(ang - .6) * 7 * .6); ctx.lineTo(x, y); ctx.lineTo(x - Math.cos(ang + .6) * 7, y - Math.sin(ang + .6) * 7 * .6); ctx.stroke(); }
-        ring(tx, ty, 20, true, 0);
+        ring(tx, ty, 20, true);
       }
-      else if (k === 'javelin3') { link(); [1 / 3, 2 / 3, 1].forEach((q, i) => { const on = Math.floor(G.t * 3) % 3 === i; ctx.globalAlpha = (aim.cancel ? .35 : 1) * (on || i === 2 ? 1 : .5); ring(h.x + (tx - h.x) * q, h.y + (ty - h.y) * q, 26, i === 2, on ? .12 : .04); }); }
-      else if (k === 'lob') { link(); ring(tx, ty, R, true, .06); }
+      else if (k === 'javelin3') { link(); [1 / 3, 2 / 3, 1].forEach((q, i) => { const on = Math.floor(G.t * 3) % 3 === i; ctx.globalAlpha = (aim.cancel ? .35 : 1) * (on || i === 2 ? 1 : .5); ring(h.x + (tx - h.x) * q, h.y + (ty - h.y) * q, 26, i === 2); }); }
+      else if (k === 'lob') { link(); ring(tx, ty, R, true); }
       else {   // 연사(쏘기): ±12° 부채꼴 + 목표 십자 원
-        const L = Math.hypot(tx - h.x, ty - h.y) + 30, sp = 12 * Math.PI / 180; ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40);
-        ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(ang - sp) * L, h.y + Math.sin(ang - sp) * L); ctx.lineTo(h.x + Math.cos(ang + sp) * L, h.y + Math.sin(ang + sp) * L); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-        ring(tx, ty, 20, true, 0); ctx.strokeStyle = SKW; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 26, ty); ctx.lineTo(tx + 26, ty); ctx.moveTo(tx, ty - 26 * GK()); ctx.lineTo(tx, ty + 26 * GK()); ctx.stroke();
+        const L = Math.hypot(tx - h.x, ty - h.y) + 30, sp = 12 * Math.PI / 180; ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40);
+        ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(ang - sp) * L, h.y + Math.sin(ang - sp) * L); ctx.lineTo(h.x + Math.cos(ang + sp) * L, h.y + Math.sin(ang + sp) * L); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+        ring(tx, ty, 20, true); ctx.strokeStyle = SKW; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 26, ty); ctx.lineTo(tx + 26, ty); ctx.moveTo(tx, ty - 26 * GK()); ctx.lineTo(tx, ty + 26 * GK()); ctx.stroke();
       }
       ctx.restore();
     });
-    for (const { x, y, r, solid, fillA, col, alpha } of rings) at(x, y, () => {
+    for (const { x, y, r, solid, col, alpha } of rings) at(x, y, () => {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.lineCap = 'round';
-      if (fillA) { ctx.fillStyle = `rgba(255,255,255,${fillA})`; gEll(x, y, r); ctx.fill(); }
       if (!solid) dash(10, 6, -G.t * Math.PI * r * .5);
       floorRing(x, y, r, col);
       ctx.restore();
@@ -2194,9 +2189,8 @@
     if (e.type === 'casing') {   // 핀란드 탄피: 금색 3×1.6, 옆으로 튀어 0.4초에 바닥으로
       ctx.globalCompositeOperation = 'source-over'; const t = e.t, x = e.x + e.side * 40 * t, y = e.y - 30 * t + 220 * t * t; ctx.translate(x, Math.min(y, e.y + e.h0)); ctx.rotate(t * 25); ctx.fillStyle = '#D9AE4F'; ctx.fillRect(-1.5, -.8, 3, 1.6); return done();
     }
-    if (e.type === 'beatRings') {   // 미국 2: 0 / 0.22 / 0.44초에 고리 하나씩 (0.14초 반지름 8→55) + 박자마다 가운데 빨강 0.04초
+    if (e.type === 'beatRings') {   // 미국 2: 0 / 0.22 / 0.44초에 고리 하나씩 (0.14초 반지름 8→55)
       for (const b of [0, .22, .44]) { const q = (e.t - b) / .14; if (q < 0 || q > 1) continue; ctx.globalAlpha = 1 - q; floorRing(e.x, e.y, 8 + 47 * q, q < .5 ? SKW : '#F2452E'); }
-      for (const b of [0, .22, .44]) if (e.t >= b && e.t < b + .04) { ctx.globalAlpha = .9; ctx.fillStyle = '#F2452E'; gEll(e.x, e.y - 2, 9); ctx.fill(); }
       return done();
     }
     if (e.type === 'pull') {   // 안으로 감기는 나선 3줄
@@ -2296,26 +2290,25 @@
       if (e.black) ctx.globalCompositeOperation = 'source-over';
       const reps = e.bright ? 2 : 1, cc = e.col || ['#FFFFFF', '#E8D9A8'];
       const motes = (x, y, R, n, tt, a) => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = cc[0]; for (let i = 0; i < n; i++) { const u = hash(i * 7 + (e.seed || 3)), v = hash(i * 13 + 5), px = x + (u - .5) * R, py = y + (v - .5) * R * .5 - tt * 70 * (.6 + v * .6); ctx.globalAlpha = a * Math.max(0, 1 - tt * 2); ctx.fillRect(px - 1.5, py - 1.5, 3, 3); } ctx.restore(); };   // 빛 입자 0.5초 떠오름
-      { const ax = e.mode === 'zone' && e.z ? e.z.x : e.mode === 'orbit' || e.mode === 'front' ? G.hero.x : e.mode === 'beam' || e.mode === 'trail' ? (e.x + (e.x1 == null ? e.x + Math.cos(e.ang) * (e.len || 80) * .5 : e.x1)) / 2 : e.x;
-        const ay = e.mode === 'zone' && e.z ? e.z.y : e.mode === 'orbit' || e.mode === 'front' ? G.hero.y - 20 : e.mode === 'beam' || e.mode === 'trail' ? (e.y + (e.y1 == null ? e.y + Math.sin(e.ang) * (e.len || 80) * .5 : e.y1)) / 2 - 20 : e.y - (e.mode === 'drop' ? e.S * .3 : 6);
-        const RR = (e.mode === 'zone' ? SKB.ZONE_D * 1.45 : e.S || e.len || e.H || 150) * .65;   // 빛 입자 분포 범위
-        if (t < .5 && !e.bright && !(e.z && e.z.t < 0)) motes(ax, ay, RR, 10, e.z ? Math.max(0, e.z.t) : t, 1); }   // 설치는 도착 뒤에
+      if (e.mode !== 'zone') { const ax = e.mode === 'orbit' || e.mode === 'front' ? G.hero.x : e.mode === 'beam' || e.mode === 'trail' ? (e.x + (e.x1 == null ? e.x + Math.cos(e.ang) * (e.len || 80) * .5 : e.x1)) / 2 : e.x;
+        const ay = e.mode === 'orbit' || e.mode === 'front' ? G.hero.y - 20 : e.mode === 'beam' || e.mode === 'trail' ? (e.y + (e.y1 == null ? e.y + Math.sin(e.ang) * (e.len || 80) * .5 : e.y1)) / 2 - 20 : e.y - (e.mode === 'drop' ? e.S * .3 : 6);
+        const RR = (e.S || e.len || e.H || 150) * .65;   // 빛 입자 분포 범위
+        if (t < .5 && !e.bright) motes(ax, ay, RR, 10, t, 1); }
       if (e.mode === 'trail' && !reduceMotion) for (const [off, al] of (NO_AFTER ? [] : e.lite ? [[22, AFTER.TRAIL_AL]] : [[22, .5], [44, .3], [66, .15]])) {   // 돌진 잔상 3겹 (그림을 뒤로 밀어 옅게)
         const x1 = e.x1 == null ? e.x : e.x1, y1 = e.y1 == null ? e.y : e.y1, L0 = Math.max(70, Math.hypot(x1 - e.x, y1 - e.y)), an = L0 > 72 ? Math.atan2(y1 - e.y, x1 - e.x) : e.ang;
         ctx.save(); ctx.globalAlpha = al * fade; ctx.translate(e.x - Math.cos(an) * off, e.y - 24 - Math.sin(an) * off * .6); ctx.rotate(an); ctx.drawImage(im, 0, -e.H / 2, L0, e.H); ctx.restore();
       }
-      if (e.mode === 'zone' && e.z && e.z.t >= 0) {   // 설치: 빛 기둥 입자가 위로 · 사라질 때 바깥으로 흩어짐
+      if (e.mode === 'zone' && e.z && e.z.t >= 0) {   // 설치: 빛 기둥 입자가 위로
         const z = e.z, Rz = SKB.ZONE_D / 2; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = cc[0];
         for (let i = 0; i < 10; i++) { const u = hash(i * 3 + 1), ph = (G.t * .8 + u) % 1, px = z.x + (hash(i * 5 + 2) - .5) * Rz * 1.6, py = z.y + (hash(i * 7 + 3) - .5) * Rz * .9; ctx.globalAlpha = Math.sin(ph * Math.PI) * .7 * fade; ctx.fillRect(px - 1, py - ph * 60, 2, 10); }
-        if (q > .85) for (let i = 0; i < 14; i++) { const an = i / 14 * Math.PI * 2, rr = Rz * (.6 + (q - .85) / .15 * .9); ctx.globalAlpha = (1 - q) / .15; ctx.fillRect(z.x + Math.cos(an) * rr - 1.5, z.y + Math.sin(an) * rr * .6 - 1.5, 3, 3); }
         ctx.restore();
       }
       for (let rr = 0; rr < reps; rr++) {
         ctx.save();
         if (e.mode === 'burst') { const S = e.S * (reduceMotion ? 1 : .7 + .4 * Math.min(1, t / .25)); ctx.globalAlpha = .95 * fade; if (e.flat) { ctx.translate(e.x, e.y); ctx.drawImage(im, -S / 2, -S / 2 * GK(), S, S * GK()); } else { ctx.translate(e.x, e.y - 6); if (e.rot) ctx.rotate(e.ang); ctx.drawImage(im, -S / 2, -S / 2 * (e.rot ? .8 : 1), S, S * (e.rot ? .8 : 1)); } }
-        else if (e.mode === 'zone') { const z = e.z, z0 = z && z.artAt || 0; if (z && z.t < z0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45 * (z && z.launch && z.t - z0 < .08 ? .85 + .15 * (z.t - z0) / .08 : 1), br = reduceMotion ? 1 : 1 + .04 * Math.sin(G.t * 3);   // 시전감: 도착 순간 0.85→1배 0.08초
-          ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade * (reduceMotion ? 1 : .75 + .25 * Math.sin(G.t * Math.PI * 2)); ctx.translate(zx, zy); ctx.drawImage(im, -S * br / 2, -S * br / 2, S * br, S * br);   // 1초 주기로 숨쉬듯
-          if (e.black) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .5 * fade; ctx.strokeStyle = '#8FA6C2'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(0, 0, S * .42, S * .42 * .6, 0, 0, Math.PI * 2); ctx.stroke(); } }   // 칠레 2: 회청 테두리 빛
+        else if (e.mode === 'zone') { const z = e.z, z0 = z && z.artAt || 0; if (z && z.t < z0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45 * (z && z.launch && z.t - z0 < .08 ? .85 + .15 * (z.t - z0) / .08 : 1);   // 시전감: 도착 순간 0.85→1배 0.08초
+          ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade; ctx.translate(zx, zy); ctx.drawImage(im, -S / 2, -S / 2, S, S);
+          if (e.black) { ctx.globalAlpha = .5 * fade * (reduceMotion ? 1 : .75 + .25 * Math.sin(G.t * Math.PI * 2)); ctx.strokeStyle = '#8FA6C2'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(0, 0, S * .42, S * .42 * .6, 0, 0, Math.PI * 2); ctx.stroke(); } }   // 칠레 2: 회청 테두리 빛
         else if (e.mode === 'beam' || e.mode === 'trail') {
           let x1, y1, ang = e.ang, len = e.len;
           if (e.mode === 'trail') { const h = G.hero; if (h && h.dash) { e.x1 = h.x; e.y1 = h.y; } x1 = e.x1 == null ? e.x : e.x1; y1 = e.y1 == null ? e.y : e.y1; len = Math.max(70, Math.hypot(x1 - e.x, y1 - e.y)); if (len > 72) ang = Math.atan2(y1 - e.y, x1 - e.x);
@@ -2331,7 +2324,7 @@
       return done();
     }
     if (e.type === 'ringFx') { const r0 = e.r0 + (e.r1 - e.r0) * k; ctx.globalAlpha = (1 - k) * .9; floorRing(e.x, e.y, r0, e.col[1]); return done(); }   // 충격 고리
-    if (e.type === 'coreFlash') { const g = ctx.createRadialGradient(e.x, e.y - 6, 0, e.x, e.y - 6, 70); g.addColorStop(0, '#FFFFFF'); g.addColorStop(.4, e.col[0]); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = 1 - k; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(e.x, e.y - 6, 70, 0, Math.PI * 2); ctx.fill(); return done(); }   // 가운데 섬광
+    if (e.type === 'coreFlash') { ctx.globalAlpha = 1 - k; ctx.fillStyle = '#FFFFFF'; gEll(e.x, e.y - 6, 5 * (1 - k)); ctx.fill(); return done(); }   // 가운데 작은 흰 섬광
     if (e.type === 'pillar') {
       const height = e.height * Math.min(1, e.t / PILLAR_RISE);
       const top = e.y - height;
@@ -2466,7 +2459,7 @@
     if (e.type === 'cone') {   // 프랑스 1: 앞 120° 부채꼴 원호
       const R = SKB.AREA_R * 2;
       ctx.globalAlpha = 1 - k;
-      coneShape(e.x, e.y, R, e.a, 'rgba(63,118,223,.22)', '#8FC2FF');
+      coneShape(e.x, e.y, R, e.a, '#8FC2FF');
       for (let i = 0; i < 5; i++) {
         const a = e.a + (i - 2) * Math.PI / 8;
         lookDisc(e.x + Math.cos(a) * R, e.y + Math.sin(a) * R, 3, '#FFC93C');
@@ -2631,7 +2624,6 @@
     } else {   // 빛 덩이 (orb·snow·seed): 지름 10(눈 8·씨앗 6) + 흰 심 + 꼬리 16px
       const d = style === 'snow' ? 8 : style === 'seed' ? 6 : 10, c0 = style === 'snow' ? '#FFFFFF' : style === 'seed' ? '#DDE6F2' : col[0];
       ctx.globalAlpha = .6; ctx.strokeStyle = c0; ctx.lineWidth = d * .6; ctx.beginPath(); ctx.moveTo(x - Math.cos(a) * 16, y - Math.sin(a) * 16); ctx.lineTo(x, y); ctx.stroke();
-      { const g = ctx.createRadialGradient(x, y, 0, x, y, d * 1.8); g.addColorStop(0, c0); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = .7; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, d * 1.8, 0, 7); ctx.fill(); }   // 빛무리 (작은 화면에서도 보이게)
       ctx.globalAlpha = 1; ctx.fillStyle = c0; ctx.beginPath(); ctx.arc(x, y, d / 2, 0, 7); ctx.fill(); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(x, y, d / 4, 0, 7); ctx.fill();
     }
     ctx.restore();
@@ -3953,8 +3945,23 @@
       else if (m.shout) {   // 외침: 장수 머리 위 1.2초, 양피지색 글자 + 어두운 반투명 띠 (style-guide)
         const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
         UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, Math.max(UI.x.measureText(m.text).width, m.sub ? (UI.x.font = `700 ${11 * p}px system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`, UI.x.measureText(m.sub).width) : 0) + 36));
-        const HUD_B = VH * .17 + 16, x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8), y = clamp(hd.y - 22 - 18 * p < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + 18 * p, VH - 40);   // 위 HUD(체력·남은 외계인·일시정지)를 가리면 장수 발밑으로
-        UI.rr(x - w / 2, y - 18 * p, w, (m.sub ? 50 : 36) * p, 10, 'rgba(10,11,15,.62)'); shoutBox = { x0: x - w / 2, x1: x + w / 2, y0: y - 18 * p, y1: y - 18 * p + (m.sub ? 50 : 36) * p };
+        const HUD_B = VH * .17 + 16, top = 18 * p, height = (m.sub ? 50 : 36) * p;
+        let x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8);
+        let y = clamp(hd.y - 22 - top < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + top, VH - 40);
+        if (G.touchUI) {
+          const buttons = Object.values(btnPos());
+          const left = Math.min(...buttons.map(b => b.x - b.r)) - 8;
+          const right = Math.max(...buttons.map(b => b.x + b.r)) + 8;
+          const upper = Math.min(...buttons.map(b => b.y - b.r)) - 8;
+          const lower = Math.max(...buttons.map(b => b.y + b.r)) + 8;
+          const overlaps = () => x + w / 2 > left && x - w / 2 < right && y - top + height > upper && y - top < lower;
+          if (overlaps()) {
+            x = Math.max(w / 2 + 8, left - w / 2);
+            if (overlaps()) y = Math.max(HUD_B + top, upper + top - height);
+          }
+        }
+        shoutBox = { x0: x - w / 2, x1: x + w / 2, y0: y - top, y1: y - top + height };
+        UI.rr(shoutBox.x0, shoutBox.y0, w, height, 10, 'rgba(10,11,15,.62)');
         if (m.rtl) ctx.direction = 'rtl';
         UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, w - 28);
         ctx.direction = 'ltr';
@@ -4078,9 +4085,15 @@
 
   // ---------- 루프 ----------
   let lastT = 0, slowT = 0;
-  // 진단 표시 (?debug=1 또는 미리보기 window.__DEBUG): 렌더러·기기 정보 + 오류를 화면 왼쪽 아래에 — 아이폰에서 캡처해 보낼 수 있게
-  const diag = {
-    on: (() => { try { return /[?&]debug=1/.test(location.search) || !!window.__DEBUG; } catch { return false; } })(), errs: [], el: null,
+  // 미리보기 전용 진단 표시
+  const renderToggle = document.getElementById('rt');
+  const diag = renderToggle ? {
+    on: new URLSearchParams(location.search).get('debug') === '1', errs: [], el: null,
+    show(on) {
+      this.on = on;
+      renderToggle.hidden = !on;
+      if (this.el) this.el.hidden = !on;
+    },
     err(m) { const s = String(m).split('\n').slice(0, 2).join(' | ').slice(0, 220); if (this.errs[this.errs.length - 1] !== s) this.errs.push(s); if (this.errs.length > 6) this.errs.shift(); },
     draw() {
       if (!this.el) { this.el = document.createElement('div'); this.el.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9;max-width:70vw;font:10px/1.35 monospace;color:#F2E3C6;background:rgba(0,0,0,.72);padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre-wrap;word-break:break-all'; document.body.appendChild(this.el); }
@@ -4088,9 +4101,24 @@
       const t = `${use3d ? '3D' : '2D'}${R3D.lost ? '(lost)' : ''} · maxTex ${i ? i.maxTex : '-'} · filter ${UI.FILTER_OK ? 'O' : 'X'} · dpr ${(window.devicePixelRatio || 1).toFixed(1)} · ${innerWidth}×${innerHeight}${i && i.low ? ' · low' : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 110)}` + (this.errs.length ? '\n⚠ ' + this.errs.join('\n⚠ ') : '');
       if (t !== this.last) { this.el.textContent = t; this.last = t; }
     },
-  };
-  window.addEventListener('error', e => diag.err((e.message || 'error') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
-  window.addEventListener('unhandledrejection', e => diag.err('promise: ' + (e.reason && (e.reason.message || e.reason))));
+  } : null;
+  if (diag) {
+    try { diag.on ||= localStorage.getItem('aw.debug') === '1'; } catch {}
+    diag.show(diag.on);
+    const taps = [];
+    window.addEventListener('pointerup', e => {
+      if (!e.isPrimary || e.button !== 0 || e.clientX < 0 || e.clientX >= 40 || e.clientY < 0 || e.clientY >= 40) return;
+      const now = performance.now();
+      while (taps.length && now - taps[0] > 1500) taps.shift();
+      taps.push(now);
+      if (taps.length < 5) return;
+      taps.length = 0;
+      diag.show(!diag.on);
+      try { localStorage.setItem('aw.debug', diag.on ? '1' : '0'); } catch {}
+    }, true);
+    window.addEventListener('error', e => diag.err((e.message || 'error') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
+    window.addEventListener('unhandledrejection', e => diag.err('promise: ' + (e.reason && (e.reason.message || e.reason))));
+  }
   function loop(t) {
     let left = Math.min((t - lastT) / 1000 || 0, 0.25);
     lastT = t;
@@ -4099,8 +4127,8 @@
     try {
       while (left > 0) { const step = Math.min(left, 1 / 30); update(step); left -= step; }
       draw();
-    } catch (err) { console.error(err); diag.err(err && (err.stack || err.message) || String(err)); }
-    if (diag.on) diag.draw();
+    } catch (err) { console.error(err); diag?.err(err && (err.stack || err.message) || String(err)); }
+    if (diag?.on) diag.draw();
     requestAnimationFrame(loop);
   }
 

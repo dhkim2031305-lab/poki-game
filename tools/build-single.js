@@ -21,9 +21,9 @@ const shim = `<script>window.__A=${JSON.stringify(assets)};(function(){var d=Obj
 
 // 미리보기 전용: 2D/3D 비교 버튼 + 진단 표시(아이폰에서 캡처해 보내기용)
 const extra = preview ? `<style>#rt{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:5;font:700 12px system-ui,sans-serif;color:#F2E3C6;background:rgba(24,22,26,.85);border:1px solid #8C6B32;border-radius:10px;padding:6px 12px;min-height:32px;cursor:pointer}</style>
-<button id="rt" type="button"></button>
+<button id="rt" type="button" hidden></button>
 <script>(function(){var k="aw.settings",st={};try{st=JSON.parse(localStorage.getItem(k))||{}}catch(e){}var b=document.getElementById("rt"),is2=st.render==="2d";b.textContent=is2?"지금: 2D (예전) · 3D로 보기":"지금: 3D (B안) · 2D로 보기";b.onclick=function(){st.render=is2?"3d":"2d";try{localStorage.setItem(k,JSON.stringify(st))}catch(e){}location.reload()};
-window.__DEBUG=true;window.addEventListener('error',function(e){var d=document.getElementById('early-err')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'early-err'}));d.style.cssText='position:fixed;left:4px;top:4px;z-index:10;font:11px monospace;color:#fff;background:#900;padding:4px;max-width:90vw;white-space:pre-wrap';d.textContent+=(e.message||'error')+' :'+e.lineno+'\\n';});})();</script>
+})();</script>
 ` : '';
 
 let html = renderIndex('web');

@@ -15,7 +15,15 @@
     }
     return ac;
   }
-  A.unlock = () => { const a = ctx(); if (a && a.state === 'suspended') a.resume().catch(() => {}); };
+  A.unlock = () => {
+    const a = ctx();
+    if (!a || a.state === 'closed') return;
+    if (cur?.failed) stopCur(0);
+    if (a.state === 'running') return;
+    try {
+      Promise.resolve(a.resume()).catch(() => {});
+    } catch {}
+  };
   A.setAdMute = m => { A.adMute = m; if (master) master.gain.value = m ? 0 : 1; if (m) { try { voiceSrc && voiceSrc.stop(); } catch {} } };
 
   function tone(type, f0, f1, dur, vol, at = 0, filter) {
@@ -87,7 +95,10 @@
     const a = ctx(); if (!a) return Promise.resolve(null);
     const url = (window.__A && window.__A[path]) || path;   // 한 파일 미리보기는 data URI
     return (bufs[path] = fetch(url).then(r => r.ok ? r.arrayBuffer() : null)
-      .then(b => b && new Promise(res => a.decodeAudioData(b, res, () => res(null))))
+      .then(b => b && new Promise(res => {
+        const decoded = a.decodeAudioData(b, res, () => res(null));
+        decoded?.catch(() => res(null));
+      }))
       .catch(() => null).then(b => (bufs[path] = Promise.resolve(b || null), b || null)));
   }
   A.load = load;
@@ -101,12 +112,12 @@
       try { if (voiceSrc) voiceSrc.stop(); } catch {}
       const s = a.createBufferSource(), g = a.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(master); s.start();
       voiceSrc = s; s.onended = () => { if (voiceSrc === s) voiceSrc = null; }; A.duck(); return true;
-    });
+    }).catch(() => false);
   };
   // 효과음 파일 한 번 (보스 천둥 등)
   A.sfxFile = (path, vol = 1) => {
     if (!A.enabled || A.adMute) return; const a = ctx(); if (!a || a.state !== 'running') return;
-    load(path).then(b => { if (!b || !A.enabled || A.adMute) return; const s = a.createBufferSource(), g = a.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(master); s.start(); A.duck(); });
+    load(path).then(b => { if (!b || !A.enabled || A.adMute) return; const s = a.createBufferSource(), g = a.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(master); s.start(); A.duck(); }).catch(() => {});
   };
   // ---------- 배경음악 (sound.md "배경음악", 디자인 883755e) ----------
   // WebAudio loop (loopStart 0 · loopEnd = 반복 구간) — MP3 끝 빈 소리 때문에 <audio loop>는 안 써요
@@ -124,6 +135,7 @@
   A.preload = key => { const m = BGM[key]; if (m && ctx()) m.f.forEach(f => load(BGM_DIR + f + '.mp3')); };
   function stopCur(fade = .4) {
     if (!cur) return; const c = cur, t = ac.currentTime; cur = null;
+    if (c.failed) return;
     try { c.bus.gain.cancelScheduledValues(t); c.bus.gain.setValueAtTime(c.bus.gain.value, t); c.bus.gain.linearRampToValueAtTime(0, t + fade); } catch {}
     c.srcs.forEach(s => { try { s.stop(t + fade + .05); } catch {} });
   }
@@ -141,6 +153,10 @@
         token.srcs.push(s); token.gains.push(g);
       });
       token.bus.gain.setValueAtTime(0, t); token.bus.gain.linearRampToValueAtTime(busVol(m), t + .3); token.ready = true;
+    }).catch(() => {
+      if (cur !== token) return;
+      stopCur(0);
+      cur = { key, failed: true };
     });
   }
   const busVol = m => (A.enabled && !A.adMute ? m.vol : 0);
@@ -149,7 +165,7 @@
     wantKey = key; wantLv = lv;
     if (!ac || ac.state !== 'running') return;   // 첫 터치 전엔 기다려요 (폰)
     if (!key) { stopCur(); return; }
-    if (!cur || cur.key !== key) { stopCur(); startKey(key, lv); return; }
+    if (!cur || cur.key !== key) { stopCur(); try { startKey(key, lv); } catch { cur = { key, failed: true }; } return; }
     if (!cur.ready) { cur.lv = lv; return; }
     const t = ac.currentTime, m = BGM[key], v = busVol(m), bg = cur.bus.gain;
     if (Math.abs(bg.value - v) > .01 && !cur.vRamp) { cur.vRamp = true; bg.cancelScheduledValues(t); bg.setValueAtTime(bg.value, t); bg.linearRampToValueAtTime(v, t + .2); setTimeout(() => { if (cur) cur.vRamp = false; }, 250); }   // 소리 끔·켬
@@ -157,7 +173,13 @@
   };
   A.musicKey = () => (cur && cur.ready ? cur.key + ':' + cur.lv : null);   // 테스트용
   // 탭을 벗어나면 소리를 멈췄다가 돌아오면 이어요 (사이트 규칙)
-  document.addEventListener('visibilitychange', () => { if (!ac) return; try { if (document.hidden) ac.suspend(); else ac.resume(); } catch {} });
+  document.addEventListener('visibilitychange', () => {
+    if (!ac) return;
+    if (!document.hidden) { A.unlock(); return; }
+    try { Promise.resolve(ac.suspend()).catch(() => {}); } catch {}
+  });
+  // Safari는 터치가 끝날 때 다시 사용자 활성화를 받을 수 있어요.
+  window.addEventListener('touchend', A.unlock, { passive: true });
   // 돈 감소: 동전 짤랑 n번, 담담하게
   let pend = [];
   A.coins = n => { for (let i = 0; i < n; i++) pend.push(setTimeout(() => A.play('coin'), i * 110)); };
