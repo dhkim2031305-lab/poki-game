@@ -1,0 +1,37 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>스킬 효과가 날아가기</title><style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:940px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:10px}
+.c{background:var(--card);border-radius:10px;padding:8px}.c h2{font-size:14px;margin:0 0 4px}.c p{font-size:12.5px;margin:6px 0 0}canvas{width:100%;height:auto;display:block;border-radius:8px;cursor:crosshair}
+button{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer;margin-bottom:10px}
+</style></head><body><h1>스킬 효과 그림이 3D처럼 날아가기 — 시안</h1>
+<p>장수 손에서 <b>스킬 효과 그림 자체</b>가 솟았다 떨어지며(포물선) 날아가고, 멀리 갈수록 작아지고 가까울수록 커지며, 바닥 그림자가 따라가요. 날면서 살짝 돌고 속도 방향으로 늘어나요. 도착하면 연속 그림으로 펼쳐져요. 화면을 누르면 그 자리로 다시 날려요. 새 그림 없이 지금 그림으로 만들었어요.</p>
+<button id="slow">느리게 보기: 끔</button><div class="g" id="g"></div>
+<script>
+let SPD=1;document.getElementById('slow').onclick=e=>{SPD=SPD===1?.3:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬')};
+const L=s=>{const i=new Image();i.src='fly/'+s;return i};
+const C=[['미국 2 자유의 종 파동 (설치)','usa-2','usa',true,'도착하면 6칸 연속 그림(3·4·5 반복)으로 깔려요.'],['스웨덴 2 룬스톤 원진 (설치)','sweden-2','sweden',true,'도착하면 6칸 연속 그림으로 펼쳐져요.'],['프랑스 1 백합 깃발 휩쓸기 (범위)','france-1','france',false,'연속 그림이 아직 없어 대표 그림이 톡 커지며 펼쳐져요(21차가 나오면 연속 그림으로).']];
+const W=460,H=260,S=2;const g=document.getElementById('g');
+C.forEach(([t,k,hero,hasSeq,note])=>{const c=document.createElement('div');c.className='c';c.innerHTML=`<h2>${t}</h2><canvas width="${W*S}" height="${H*S}"></canvas><p>${note}</p>`;g.appendChild(c);
+ const cv=c.querySelector('canvas'),x=cv.getContext('2d');const art=L('art-'+k+'.webp'),hr=L(hero+'.webp'),sq=hasSeq?L('seq-'+k+'.webp'):null;
+ const hx=70,hy=200;let T={x:340,y:150},t0=performance.now(),last=performance.now(),tt=0;
+ cv.onclick=e=>{const r=cv.getBoundingClientRect();T={x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};tt=0};
+ const persp=y=>.55+.45*(y/H);   // 화면 위(먼 쪽)일수록 작게
+ (function f(now){const dt=Math.min(.05,(now-last)/1000)*SPD;last=now;tt+=dt;if(tt>2.6)tt=0;
+  x.setTransform(S,0,0,S,0,0);x.fillStyle='#2b2a33';x.fillRect(0,0,W,H);x.strokeStyle='rgba(255,255,255,.05)';for(let i=0;i<10;i++){x.beginPath();x.moveTo(0,30+i*24);x.lineTo(W,30+i*24);x.stroke()}
+  // 목표 원
+  x.strokeStyle='rgba(255,255,255,.3)';x.lineWidth=1.5;x.beginPath();x.ellipse(T.x,T.y,40*persp(T.y),18*persp(T.y),0,0,7);x.stroke();
+  // 장수
+  if(hr.complete){const hh=70*persp(hy);x.drawImage(hr,hx-hh/2,hy-hh,hh,hh)}
+  const sx=hx+14,sy=hy-30,D=Math.hypot(T.x-sx,T.y-sy),FLY=Math.max(.32,Math.min(.6,D/700)),peak=Math.max(40,D*.35);
+  if(tt<FLY){const p=tt/FLY,bx=sx+(T.x-sx)*p,gy=hy+(T.y-hy)*p,z=4*peak*p*(1-p)+30*(1-p),by=gy-z;
+   const sc=persp(gy)*(0.45+0.55*p)*(1+z/400);   // 원근 + 다가오며 커짐
+   const vx=(T.x-sx)/FLY,vy=(T.y-hy)/FLY-4*peak*(1-2*p)/FLY,ang=Math.atan2(vy,vx),sp=Math.min(1,Math.hypot(vx,vy)/900);
+   // 그림자
+   x.fillStyle=`rgba(0,0,0,${.32-z/600})`;x.beginPath();x.ellipse(bx,gy,26*sc*(1-z/500),9*sc*(1-z/500),0,0,7);x.fill();
+   if(art.complete){x.save();x.translate(bx,by);x.rotate(ang*.35+p*1.2);x.scale(1+.25*sp,1-.18*sp);const s=90*sc;x.globalCompositeOperation='lighter';x.drawImage(art,-s/2,-s/2,s,s);x.restore()}}
+  else{const q=tt-FLY,ps=persp(T.y);x.save();x.globalCompositeOperation='lighter';
+   if(sq&&sq.complete){let fr=Math.floor(q/.06);if(fr>=2){const pp=[2,3,4,3];fr=pp[(fr-2)%4]}if(q>1.6)fr=5;const s=150*ps,a=q>1.6?Math.max(0,1-(q-1.6)/.3):1;x.globalAlpha=a;x.drawImage(sq,fr*256,0,256,256,T.x-s/2,T.y-s*.62,s,s)}
+   else if(art.complete){const k2=Math.min(1,q/.08),s=150*ps*(.85+.15*k2),a=q>1.6?Math.max(0,1-(q-1.6)/.3):1;x.globalAlpha=a;x.drawImage(art,T.x-s/2,T.y-s*.62,s,s)}
+   x.restore()}
+  requestAnimationFrame(f)})(performance.now())});
+</script></body></html>
