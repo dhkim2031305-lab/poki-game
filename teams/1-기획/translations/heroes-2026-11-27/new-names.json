@@ -1,0 +1,272 @@
+[
+ {
+  "key": "skill.name.01",
+  "ko": "눈먼 기사왕의 돌격",
+  "en": "Blind King's Charge",
+  "note": "룩셈부르크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 사자 문장 돌격 / Lion Crest Charge)"
+ },
+ {
+  "key": "skill.name.02",
+  "ko": "광전사 회오리",
+  "en": "Battle-Frenzy Whirl",
+  "note": "아일랜드 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 회오리 도끼 / Whirlwind Axe)"
+ },
+ {
+  "key": "skill.name.03",
+  "ko": "알프스 미늘창 덫",
+  "en": "Alpine Halberd Trap",
+  "note": "스위스 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 미늘창 덫 / Halberd Trap)"
+ },
+ {
+  "key": "skill.name.04",
+  "ko": "랜턴 신호탄 튕김",
+  "en": "Lantern Signal Ricochet",
+  "note": "미국 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 에너지 난사 / Energy Barrage)"
+ },
+ {
+  "key": "skill.name.05",
+  "ko": "함포 일제 사격",
+  "en": "Broadside Volley",
+  "note": "네덜란드 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 연속 찌르기 / Flurry Thrust)"
+ },
+ {
+  "key": "skill.name.06",
+  "ko": "잠든 거인의 표식 돌격",
+  "en": "Sleeping Giant's Mark",
+  "note": "덴마크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 표식 돌격 / Marked Charge)"
+ },
+ {
+  "key": "skill.name.07",
+  "ko": "용기병 돌격",
+  "en": "Dragoon Charge",
+  "note": "오스트리아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기병 돌격 / Cavalry Charge)"
+ },
+ {
+  "key": "skill.name.09",
+  "ko": "강철 손 회전베기",
+  "en": "Iron Hand Spin",
+  "note": "독일 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 대검 회전베기 / Greatsword Spin)"
+ },
+ {
+  "key": "skill.name.10",
+  "ko": "캐롤린 돌격 대형",
+  "en": "Carolean Formation",
+  "note": "스웨덴 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 돌격 대형 / Charge Formation)"
+ },
+ {
+  "key": "skill.name.12",
+  "ko": "히이시 엘크 스키 질주",
+  "en": "Elk of Hiisi Ski Dash",
+  "note": "핀란드 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 설원 질주 / Snowfield Dash)"
+ },
+ {
+  "key": "skill.name.13",
+  "ko": "백합 깃발 휩쓸기",
+  "en": "Lily Banner Sweep",
+  "note": "프랑스 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병검 휩쓸기 / Saber Sweep)"
+ },
+ {
+  "key": "skill.name.14",
+  "ko": "군단 진영",
+  "en": "Legion Camp",
+  "note": "이탈리아 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 로마 진영 / Roman Camp)"
+ },
+ {
+  "key": "skill.name.16",
+  "ko": "티소나 일섬",
+  "en": "Tizona Flash",
+  "note": "스페인 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 일섬 / Single Flash)"
+ },
+ {
+  "key": "skill.name.17",
+  "ko": "전차 요새",
+  "en": "Wagon Fort",
+  "note": "체코 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 방패 진지 / Shield Fort)"
+ },
+ {
+  "key": "skill.name.19",
+  "ko": "게디미나스 기둥 창돌격",
+  "en": "Columns Lance Charge",
+  "note": "리투아니아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기마 창돌격 / Mounted Lance Charge)"
+ },
+ {
+  "key": "skill.name.21",
+  "ko": "노 목검 일격",
+  "en": "Oar Sword Strike",
+  "note": "일본 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 발도술 돌진 / Quickdraw Dash)"
+ },
+ {
+  "key": "skill.name.24",
+  "ko": "후사르 사브르 연격",
+  "en": "Hussar Saber Flurry",
+  "note": "헝가리 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 사브르 연격 / Saber Combo)"
+ },
+ {
+  "key": "skill.name.25",
+  "ko": "타트라 도끼 내려찍기",
+  "en": "Tatra Axe Slam",
+  "note": "슬로바키아 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 산악 도끼 내려찍기 / Mountain Axe Slam)"
+ },
+ {
+  "key": "skill.name.26",
+  "ko": "스파르타 팔랑크스",
+  "en": "Spartan Phalanx",
+  "note": "그리스 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 팔랑크스 창끝 / Phalanx Spearpoints)"
+ },
+ {
+  "key": "skill.name.27",
+  "ko": "코푸즈 칼날 고리",
+  "en": "Kopuz Blade Ring",
+  "note": "튀르키예 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 곡도 칼날 고리 / Scimitar Blade Ring)"
+ },
+ {
+  "key": "skill.name.29",
+  "ko": "독수리 전사 일격",
+  "en": "Eagle Warrior Strike",
+  "note": "멕시코 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 독수리 일격 / Eagle Strike)"
+ },
+ {
+  "key": "skill.name.30",
+  "ko": "엘도라도 황금 함성",
+  "en": "El Dorado Golden Roar",
+  "note": "콜롬비아 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 함성 / Battle Cry)"
+ },
+ {
+  "key": "skill2.name.01",
+  "ko": "사자 깃발 포효",
+  "en": "Lion Banner Roar",
+  "note": "룩셈부르크 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 사자의 포효 / Lion's Roar)"
+ },
+ {
+  "key": "skill2.name.02",
+  "ko": "게 볼그 돌격",
+  "en": "Gáe Bulg Rush",
+  "note": "아일랜드 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 도끼 돌격 / Axe Rush)"
+ },
+ {
+  "key": "skill2.name.03",
+  "ko": "사과 과녁 석궁",
+  "en": "Apple-Shot Crossbow",
+  "note": "스위스 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 미늘창 연속 찌르기 / Halberd Flurry)"
+ },
+ {
+  "key": "skill2.name.04",
+  "ko": "자유의 종 파동",
+  "en": "Liberty Bell Wave",
+  "note": "미국 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 에너지 파동 / Energy Pulse)"
+ },
+ {
+  "key": "skill2.name.05",
+  "ko": "바닷바람 순간 돌파",
+  "en": "Sea-Wind Blink",
+  "note": "네덜란드 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 레이피어 돌파 / Rapier Breakthrough)"
+ },
+ {
+  "key": "skill2.name.06",
+  "ko": "크론보르 수호 회전",
+  "en": "Kronborg Guardian Spin",
+  "note": "덴마크 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도끼 회전 / Axe Spin)"
+ },
+ {
+  "key": "skill2.name.07",
+  "ko": "빈 성벽 이중 베기",
+  "en": "Vienna Wall Double Slash",
+  "note": "오스트리아 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병검 원베기 / Cavalry Circle Slash)"
+ },
+ {
+  "key": "skill2.name.09",
+  "ko": "강철 손 내려찍기",
+  "en": "Iron Hand Slam",
+  "note": "독일 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 대검 돌파 / Greatsword Breakthrough)"
+ },
+ {
+  "key": "skill2.name.10",
+  "ko": "룬스톤 원진",
+  "en": "Runestone Circle",
+  "note": "스웨덴 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 장검 원진 / Longsword Circle)"
+ },
+ {
+  "key": "skill2.name.12",
+  "ko": "칸텔레 노래 함정",
+  "en": "Kantele Song Snare",
+  "note": "핀란드 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 눈 함정 / Snow Trap)"
+ },
+ {
+  "key": "skill2.name.13",
+  "ko": "오를레앙 돌파",
+  "en": "Orléans Breakthrough",
+  "note": "프랑스 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 흉갑기병 돌격 / Cuirassier Charge)"
+ },
+ {
+  "key": "skill2.name.14",
+  "ko": "자마 군단 전진 찌르기",
+  "en": "Zama Legion Advance",
+  "note": "이탈리아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 글라디우스 연속 찌르기 / Gladius Flurry)"
+ },
+ {
+  "key": "skill2.name.16",
+  "ko": "콜라다 회전베기",
+  "en": "Colada Whirl",
+  "note": "스페인 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 톨레도 회전베기 / Toledo Spin Slash)"
+ },
+ {
+  "key": "skill2.name.17",
+  "ko": "후스 도리깨",
+  "en": "Hussite Flail",
+  "note": "체코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도리깨 휘두르기 / Flail Swing)"
+ },
+ {
+  "key": "skill2.name.19",
+  "ko": "기마 투창 3연",
+  "en": "Mounted Javelin Trio",
+  "note": "리투아니아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 투창 3연 / Triple Javelin)"
+ },
+ {
+  "key": "skill2.name.21",
+  "ko": "이도류 삼연 베기",
+  "en": "Two-Sword Triple Cut",
+  "note": "일본 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 삼연 베기 / Triple Cut)"
+ },
+ {
+  "key": "skill2.name.22",
+  "ko": "루시타니아 창 찌르기",
+  "en": "Lusitanian Spear Thrust",
+  "note": "포르투갈 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 물보라 찌르기 / Spray Thrust)"
+ },
+ {
+  "key": "skill2.name.23",
+  "ko": "검은 기사 장창 휩쓸기",
+  "en": "Black Knight Lance Sweep",
+  "note": "폴란드 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병창 휩쓸기 / Lance Sweep)"
+ },
+ {
+  "key": "skill2.name.24",
+  "ko": "맷돌 장사 돌진",
+  "en": "Millstone Strongman Rush",
+  "note": "헝가리 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 경기병 돌진 / Hussar Dash)"
+ },
+ {
+  "key": "skill2.name.26",
+  "ko": "아킬레우스 창 돌격",
+  "en": "Achilles' Spear Rush",
+  "note": "그리스 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 창 돌격 / Spear Rush)"
+ },
+ {
+  "key": "skill2.name.27",
+  "ko": "서사시 영웅 돌파",
+  "en": "Epic Hero Dash",
+  "note": "튀르키예 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 곡도 돌파 / Scimitar Breakthrough)"
+ },
+ {
+  "key": "skill2.name.29",
+  "ko": "마쿠아우이틀 날개 베기",
+  "en": "Macuahuitl Wing Slash",
+  "note": "멕시코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 독수리 날개 베기 / Eagle Wing Slash)"
+ },
+ {
+  "key": "skill2.name.30",
+  "ko": "황금 그림자 돌격",
+  "en": "Golden Shadow Rush",
+  "note": "콜롬비아 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 잔상 돌격 / Afterimage Rush)"
+ }
+]
