@@ -34,3 +34,6 @@
 | `job8a.js` | 60개 스킬 쓰는 순간 번쩍(G.skillFlash) + 목표 둘레 밝기. 세 번째 인자 1이면 예전 game.js(backup)로 바꿔 끼워 비교 | `node job8a.js OUT 8080 0` / `… 1` |
 | `job8a-ui.js` | 미리보기 디버그 숨김·5번 톡 토글·출시 빌드에 없음, iOS 소리 시작 실패 흉내, 폰 외침 말풍선 × 오른쪽 버튼 겹침(4화면×3스킬×16자리) | `node job8a-ui.js OUT 8080` (build:single --preview 뒤) |
 | `job8a-ui2.js` | 디버그 톡 간격·자리 경계, 소리 실패 뒤 다음 톡 다시 시도 | `node job8a-ui2.js` |
+| `job11.js` | 60개 스킬: 쓴 뒤에만 나오는 캔버스 fill·stroke를 game.js 줄별로 셈(코드 도형 남았는지) + 소품(skill/prop) 그림 위치·복제 수·회전·높이 기록 | `node job11.js OUT 8080 [ci,…] [2d]` |
+| `cannon6.js` | 한국2 천자총통 6발: 착탄 시각·발마다 피해 배수·가운데/둘레 합계·장수 이동·화포 사라짐 | `node cannon6.js OUT 8080` |
+| `prop3d.js` | 소품 3D 빌보드 캡처(0.1·0.25·0.6·1.2초) | `node prop3d.js OUT 8080 14:2,3:2` |
