@@ -125,5 +125,15 @@
   "how.2.a": "Mitä enemmän maalla on rahaa, sitä vahvempi kenraali on. Jokainen läpäisty erä maksaa rahaa. Jos summa putoaa nollaan… se on konkurssi.",
   "how.3.title": "Ohjaus",
   "how.next": "Seuraava",
-  "how.skip": "Ohita"
+  "how.skip": "Ohita",
+  "how.2.b": "Kerää kolikoita valitaksesi 1 kolmesta tehosteesta eräksi. Arvokkaammat kolikot antavat parempia tehosteita.",
+  "item.pick": "Valitse yksi",
+  "item.card.atk": "Hyökkäys",
+  "item.card.aspd": "Hyökkäysnopeus",
+  "item.card.small": "Kutistuminen",
+  "item.card.big": "Kasvaminen",
+  "item.card.move": "Liikenopeus",
+  "item.card.pierce": "Lävistyslaukaus",
+  "item.card.split": "Kolmoislaukaus",
+  "item.card.skill": "Taito +1"
 }

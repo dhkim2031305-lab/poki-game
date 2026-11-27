@@ -125,5 +125,15 @@
   "how.2.a": "Je mehr Geld ein Land hat, desto stärker ist sein General. Jede geschaffte Runde kostet Geld. Fällt es auf 0… bist du bankrott.",
   "how.3.title": "Steuerung",
   "how.next": "Weiter",
-  "how.skip": "Überspringen"
+  "how.skip": "Überspringen",
+  "how.2.b": "Sammle Münzen, um 1 von 3 Boni für die Runde zu wählen. Wertvollere Münzen bringen stärkere Boni.",
+  "item.pick": "Wähle eins",
+  "item.card.atk": "Angriff",
+  "item.card.aspd": "Angriffstempo",
+  "item.card.small": "Schrumpfen",
+  "item.card.big": "Wachsen",
+  "item.card.move": "Lauftempo",
+  "item.card.pierce": "Durchschuss",
+  "item.card.split": "Dreifachschuss",
+  "item.card.skill": "Fähigkeit +1"
 }

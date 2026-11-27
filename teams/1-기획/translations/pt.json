@@ -125,5 +125,15 @@
   "how.2.a": "Quanto mais dinheiro um país tem, mais forte é o seu general. Cada rodada concluída custa dinheiro. Se chegar a 0… é falência.",
   "how.3.title": "Controles",
   "how.next": "Avançar",
-  "how.skip": "Pular"
+  "how.skip": "Pular",
+  "how.2.b": "Colete moedas no campo para escolher 1 de 3 melhorias para a rodada. Moedas mais valiosas concedem bônus maiores.",
+  "item.pick": "Escolha um",
+  "item.card.atk": "Ataque",
+  "item.card.aspd": "Vel. de Ataque",
+  "item.card.small": "Encolher",
+  "item.card.big": "Crescer",
+  "item.card.move": "Vel. Movimento",
+  "item.card.pierce": "Tiro Perfurante",
+  "item.card.split": "Tiro Triplo",
+  "item.card.skill": "Habilidade +1"
 }

@@ -125,5 +125,15 @@
   "how.2.a": "Hoe meer geld een land heeft, hoe sterker de generaal. Elke voltooide ronde kost geld. Komt het op 0… dan ben je failliet.",
   "how.3.title": "Besturing",
   "how.next": "Volgende",
-  "how.skip": "Overslaan"
+  "how.skip": "Overslaan",
+  "how.2.b": "Pak munten op om 1 van 3 boosts voor de ronde te kiezen. Waardevollere munten geven grotere boosts.",
+  "item.pick": "Kies er een",
+  "item.card.atk": "Aanval",
+  "item.card.aspd": "Aanvalssnelheid",
+  "item.card.small": "Krimpen",
+  "item.card.big": "Groeien",
+  "item.card.move": "Loopsnelheid",
+  "item.card.pierce": "Doorborend schot",
+  "item.card.split": "Driewegschot",
+  "item.card.skill": "Vaardigheid +1"
 }

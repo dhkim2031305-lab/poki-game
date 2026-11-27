@@ -1,0 +1,12 @@
+{
+ "how.2.b": "戦場に落ちる通貨を拾うと、3枚のカードから1つ選んでそのラウンド中パワーアップできます。高価な通貨ほど効果が上がります。",
+ "item.pick": "ひとつ選ぶ",
+ "item.card.atk": "攻撃力",
+ "item.card.aspd": "攻撃速度",
+ "item.card.small": "縮小",
+ "item.card.big": "巨大化",
+ "item.card.move": "移動速度",
+ "item.card.pierce": "貫通弾",
+ "item.card.split": "3方向ショット",
+ "item.card.skill": "スキル+1"
+}

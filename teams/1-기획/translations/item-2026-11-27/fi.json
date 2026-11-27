@@ -1,0 +1,12 @@
+{
+ "how.2.b": "Kerää kolikoita valitaksesi 1 kolmesta tehosteesta eräksi. Arvokkaammat kolikot antavat parempia tehosteita.",
+ "item.pick": "Valitse yksi",
+ "item.card.atk": "Hyökkäys",
+ "item.card.aspd": "Hyökkäysnopeus",
+ "item.card.small": "Kutistuminen",
+ "item.card.big": "Kasvaminen",
+ "item.card.move": "Liikenopeus",
+ "item.card.pierce": "Lävistyslaukaus",
+ "item.card.split": "Kolmoislaukaus",
+ "item.card.skill": "Taito +1"
+}

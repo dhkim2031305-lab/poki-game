@@ -125,5 +125,15 @@
   "how.2.a": "Kuo šalis turi daugiau pinigų, tuo stipresnis jos generolas. Kiekvienas įveiktas raundas kainuoja pinigus. Kai liks 0… bankrotas.",
   "how.3.title": "Valdymas",
   "how.next": "Kitas",
-  "how.skip": "Praleisti"
+  "how.skip": "Praleisti",
+  "how.2.b": "Rinkite mūšio lauke valiutą, kad pasirinktumėte 1 iš 3 sustiprinimų šiam raundui. Vertingesnė valiuta suteikia didesnį pastiprinimą.",
+  "item.pick": "Pasirinkite",
+  "item.card.atk": "Ataka",
+  "item.card.aspd": "Atakos greitis",
+  "item.card.small": "Sumažėjimas",
+  "item.card.big": "Padidėjimas",
+  "item.card.move": "Judėjimo greitis",
+  "item.card.pierce": "Veriantis šūvis",
+  "item.card.split": "Trigubas šūvis",
+  "item.card.skill": "Įgūdis +1"
 }

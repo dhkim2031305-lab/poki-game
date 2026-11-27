@@ -125,5 +125,15 @@
   "how.2.a": "Jo flere penge et land har, desto stærkere er generalen. Hver klaret runde koster penge. Når du rammer 0… går du konkurs.",
   "how.3.title": "Styring",
   "how.next": "Næste",
-  "how.skip": "Spring over"
+  "how.skip": "Spring over",
+  "how.2.b": "Saml mønter for at vælge 1 af 3 boosts i runden. Jo mere værdifuld mønt, desto større boost.",
+  "item.pick": "Vælg én",
+  "item.card.atk": "Angreb",
+  "item.card.aspd": "Angrebshastighed",
+  "item.card.small": "Krymp",
+  "item.card.big": "Voks",
+  "item.card.move": "Løbehastighed",
+  "item.card.pierce": "Gennembrydning",
+  "item.card.split": "Tredobbelt skud",
+  "item.card.skill": "Evne +1"
 }

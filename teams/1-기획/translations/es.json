@@ -125,5 +125,15 @@
   "how.2.a": "Cuanto más dinero tiene un país, más fuerte es su general. Cada ronda superada cuesta dinero. Si llega a 0… estás en bancarrota.",
   "how.3.title": "Controles",
   "how.next": "Siguiente",
-  "how.skip": "Saltar"
+  "how.skip": "Saltar",
+  "how.2.b": "Recoge monedas para elegir 1 de 3 mejoras para la ronda. Las monedas más valiosas otorgan mejores mejoras.",
+  "item.pick": "Elige uno",
+  "item.card.atk": "Ataque",
+  "item.card.aspd": "Vel. de ataque",
+  "item.card.small": "Encoger",
+  "item.card.big": "Crecer",
+  "item.card.move": "Vel. movimiento",
+  "item.card.pierce": "Tiro perforante",
+  "item.card.split": "Disparo triple",
+  "item.card.skill": "Habilidad +1"
 }

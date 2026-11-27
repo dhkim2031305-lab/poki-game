@@ -125,5 +125,15 @@
   "how.2.a": "Plus un pays a d'argent, plus son général est fort. Chaque manche réussie coûte de l'argent. À zéro… c'est la faillite.",
   "how.3.title": "Commandes",
   "how.next": "Suivant",
-  "how.skip": "Passer"
+  "how.skip": "Passer",
+  "how.2.b": "Ramassez les pièces pour choisir 1 amélioration sur 3 pour la manche. Plus la pièce est rare, plus le bonus est fort.",
+  "item.pick": "Choisissez-en un",
+  "item.card.atk": "Attaque",
+  "item.card.aspd": "Vitesse d'att.",
+  "item.card.small": "Rétrécir",
+  "item.card.big": "Grandir",
+  "item.card.move": "Vitesse dépl.",
+  "item.card.pierce": "Tir perforant",
+  "item.card.split": "Tir triple",
+  "item.card.skill": "Compétence +1"
 }

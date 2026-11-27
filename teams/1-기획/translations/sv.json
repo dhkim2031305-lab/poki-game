@@ -125,5 +125,15 @@
   "how.2.a": "Ju mer pengar ett land har, desto starkare är generalen. Varje avklarad runda kostar pengar. Når det 0… är du bankrutt.",
   "how.3.title": "Styrning",
   "how.next": "Nästa",
-  "how.skip": "Hoppa över"
+  "how.skip": "Hoppa över",
+  "how.2.b": "Plocka upp mynt för att välja 1 av 3 boosts under rundan. Värdefullare mynt ger större boosts.",
+  "item.pick": "Välj en",
+  "item.card.atk": "Attack",
+  "item.card.aspd": "Attackhastighet",
+  "item.card.small": "Krymp",
+  "item.card.big": "Väx",
+  "item.card.move": "Rörelsehastighet",
+  "item.card.pierce": "Genomträngande",
+  "item.card.split": "Trippelskott",
+  "item.card.skill": "Förmåga +1"
 }
