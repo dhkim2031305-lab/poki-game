@@ -77,7 +77,7 @@
 | `skill.name.12` | 설원 질주 | Snowfield Dash | 핀란드 스킬 이름 (돌진) | 확정 |
 | `skill.name.13` | 기병검 휩쓸기 | Saber Sweep | 프랑스 스킬 이름 (범위) | 확정 |
 | `skill.name.14` | 로마 진영 | Roman Camp | 이탈리아 스킬 이름 (설치) | 확정 (2026-11-25 방어 대체) |
-| `skill.name.15` | 화살비 | Arrow Rain | 한국 스킬 이름 (설치) | 확정 |
+| `skill.name.15` | 학익진 | Crane Wing Formation | 한국 1번 스킬 이름 (설치) · 2026-11-27 재설계(전: 화살비 / Arrow Rain). 진법 이름이에요(실존 인물·전쟁 구호 아님) | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
 | `skill.name.16` | 일섬 | Single Flash | 스페인 스킬 이름 (돌진) | 확정 |
 | `skill.name.17` | 방패 진지 | Shield Fort | 체코 스킬 이름 (설치) | 확정 |
 | `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | 확정 |
