@@ -26,4 +26,5 @@
 | `safe.js` | 안전 영역: 스킬2 취소 원 화면 안·무적 아래 ≥12px·?safe= 흉내에서 HUD·일시정지 안쪽·화살표 ≥44px | `node safe.js OUT` |
 | `smartbot.js` | 자동 봇 밸런스 (smart 잘함·mid 보통·dumb 서툼): 실제 키·마우스 입력, 게임 시간 1/60초씩 빨리 돌림 · 2026-11-25 사용자 요청으로 중간에 멈춤 | `node smartbot.js OUT 8080 0,1 5 smart` |
 | `skillprobe.js` | 1라운드에서 스킬 1·2만 번갈아 5번씩 (30개국): 쓸 때마다 처치 환산·피해 배수·맞힌 수·첫 피해까지 시간·이동·무적. 장수 안 맞게·외계인 체력 9999로 측정 | `node skillprobe.js OUT 8080 0,1,2` |
+| `skillframes.js` | 스킬을 누른 순간~0.6초를 0.05초 간격 캡처 (3D 기본) + 시각별 시전 상태·피해·흔들림·멈춤 | `node skillframes.js OUT 8080 "14:1:1,14:2:1" 3d` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
