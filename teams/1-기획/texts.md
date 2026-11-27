@@ -77,7 +77,7 @@
 | `skill.name.12` | 설원 질주 | Snowfield Dash | 핀란드 스킬 이름 (돌진) | 확정 |
 | `skill.name.13` | 기병검 휩쓸기 | Saber Sweep | 프랑스 스킬 이름 (범위) | 확정 |
 | `skill.name.14` | 로마 진영 | Roman Camp | 이탈리아 스킬 이름 (설치) | 확정 (2026-11-25 방어 대체) |
-| `skill.name.15` | 학익진 | Crane Wing Formation | 한국 1번 스킬 이름 (설치) · 2026-11-27 재설계(전: 화살비 / Arrow Rain). 진법 이름이에요(실존 인물·전쟁 구호 아님) | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
+| `skill.name.15` | 거북선 돌격 | Turtle Ship Charge | 한국 1번 스킬 이름 (돌진) · 2026-11-27 다시 바꿈(전: 학익진 ← 화살비). 배 이름이에요(실존 인물 아님) | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
 | `skill.name.16` | 일섬 | Single Flash | 스페인 스킬 이름 (돌진) | 확정 |
 | `skill.name.17` | 방패 진지 | Shield Fort | 체코 스킬 이름 (설치) | 확정 |
 | `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | 확정 |
@@ -107,7 +107,7 @@
 | `skill2.name.12` | 눈 함정 | Snow Trap | 핀란드 2번 스킬 이름 (설치) | 확정 |
 | `skill2.name.13` | 흉갑기병 돌격 | Cuirassier Charge | 프랑스 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.14` | 글라디우스 연속 찌르기 | Gladius Flurry | 이탈리아 2번 스킬 이름 (연사) | 확정 |
-| `skill2.name.15` | 연발 화살 | Rapid Arrows | 한국 2번 스킬 이름 (연사) | 확정 |
+| `skill2.name.15` | 천자총통 포격 | Cheonja Cannon Barrage | 한국 2번 스킬 이름 (범위) · 2026-11-27 바꿈(전: 연발 화살 / Rapid Arrows). 화포 이름이에요 | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
 | `skill2.name.16` | 톨레도 회전베기 | Toledo Spin Slash | 스페인 2번 스킬 이름 (범위) | 확정 |
 | `skill2.name.17` | 도리깨 휘두르기 | Flail Swing | 체코 2번 스킬 이름 (범위) | 확정 |
 | `skill2.name.18` | 검 돌격 | Sword Rush | 이스라엘 2번 스킬 이름 (돌진) | 확정 |
