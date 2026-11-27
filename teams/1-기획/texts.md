@@ -58,7 +58,7 @@
 | `vault.move` | 이동 속도 | Move Speed | 금고 강화 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
 | `vault.buy` | 강화 ({sym}{c}) | Upgrade ({sym}{c}) | 강화 버튼 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
 | `vault.max` | 최대 | Max | 다 산 강화 | 확정 · 18개 언어 Gemini 번역 반영 (팀장 cf6bb11, 원어민 확인 필요) |
-| `vault.satire` | 금고는 쌓여도, 출발선은 그대로예요. | The treasury grows. The starting line doesn't. | 파산 화면에 가끔 (GDD 0-23) | **[제안]** 사용자 확인 전 |
+| `vault.satire` | 금고는 쌓여도, 출발선은 그대로예요. | The treasury grows. The starting line doesn't. | 파산 화면에 가끔 (GDD 0-23) · 뜻: 나라마다 다른 시작 돈은 금고로 안 바뀜 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (원어민 확인 필요) |
 | `end.clear.title` | 클리어! | Clear! | 1위가 6라운드를 깼을 때 제목. 장수는 안 쓰러지고, 아래에 `end.after.*` 10개 중 하나 (GDD 0-4 "가") | 확정 (2026-11-26) |
 | `end.far.title` | 여기까지 | This Far | 2~15위가 6라운드를 깼을 때 제목 (클리어도 실패도 아님) | 확정 (2026-11-26) |
 | `end.far.01` | 당신은 뭐든 할 수 있어요! …이 나라로는 빼고요. 진짜 클리어는 다른 나라로 해 보세요. | You can do anything! …Except with this country. For a real clear, try another one. | 2~15위 6라운드 클리어 화면 문구. 장수는 서 있어요 (GDD 0-4 "2번") | 확정 (2026-11-26) · 18개 언어는 번역 단계 |

@@ -41,7 +41,7 @@
 | `vault.buy` | 강화 ({sym}{c}) | Upgrade ({sym}{c}) |
 | `vault.max` | 최대 | Max |
 - 파산 풍자와 "이런다고 없던 돈이 생길까?"는 **그대로**예요. "다시 도전하면 깰 수 있다"는 말은 **넣지 않아요** (결말을 바꾸지 않으니까).
-- [제안] 풍자 한 줄 (파산 화면에 가끔): "금고는 쌓여도, 출발선은 그대로예요." / "The treasury grows. The starting line doesn't."
+- ✅ 풍자 한 줄 (파산 화면에 가끔, 확정 2026-11-27 — 나라마다 다른 시작 돈은 그대로라는 뜻): "금고는 쌓여도, 출발선은 그대로예요." / "The treasury grows. The starting line doesn't."
 
 ## ⑤ 저장 (출시팀 `teams/5-출시/save-progress.md` 기준)
 - CrazyGames: **Data 모듈** · Poki: **localStorage**(자동) · GameDistribution·itch.io: **localStorage**
