@@ -29,6 +29,8 @@ def norm(c,cx):  # 칸 하나를 키 167·발 185·가로 중심 cx로
 def grid4(p): im=Image.open(p).convert('RGBA'); return [im.crop((x*512,y*512,x*512+512,y*512+512)).resize((192,192),Image.LANCZOS) for y in (0,1) for x in (0,1)]
 DIRN=['1 아래(정면)','2 오른아래','3 오른쪽','4 오른위','5 위(뒤)']
 P_DIR=open(D+'/p-dir.txt').read(); P_WALK=open(D+'/p-walk.txt').read()
+SHIELD={'czechia','denmark','greece','italy','lithuania','luxembourg'}
+SH=' **중요: 이 장수는 한쪽 팔에 방패를 들고 있어요(첨부 정면·옆 칸 참고). 새로 그리는 모든 칸에서도 같은 방패를 같은 팔에 들고 있게 그려 주세요(방향에 맞게 보이는 면만 다르게). 방패를 빼면 안 돼요.** 손에 드는 무기만 빼요.'
 only=sys.argv[1:] or KEYS
 for k in only:
   dp=f'{D}/{k}'; os.makedirs(dp,exist_ok=True)
@@ -36,14 +38,15 @@ for k in only:
   if not os.path.exists(dp+'/ref-dir.png'): ref_sheet(dirc,DIRN,dp+'/ref-dir.png')
   if not os.path.exists(dp+'/ref-walk.png'): ref_sheet(walkc,[f'{DIRN[i//2]} {"AB"[i%2]}' for i in range(10)],dp+'/ref-walk.png')
   if k=='korea' and not os.path.exists(dp+'/mid4.png'): Image.open(D+'/../korea-dir16/mid4.png').save(dp+'/mid4.png')
-  if not codex(dp,P_DIR,[dp+'/ref-dir.png'],'mid4.png'): print('FAIL dir',k,flush=True); continue
+  if not codex(dp,P_DIR+(SH if k in SHIELD else ''),[dp+'/ref-dir.png'],'mid4.png'): print('FAIL dir',k,flush=True); continue
   mids=grid4(dp+'/mid4.png')
   # 새 dir 9칸 (정리)
   cx=[float(np.where(np.array(c)[...,3]>40)[1].mean()) for c in dirc]
   dir9=[dirc[0],None,dirc[1],None,dirc[2],None,dirc[3],None,dirc[4]]
   for j in range(4): dir9[2*j+1]=norm(mids[j],(cx[j]+cx[j+1])/2)
   if not os.path.exists(dp+'/ref-dir9.png'): ref_sheet(dir9,['0°','A 22.5°','45°','B 67.5°','90°','C 112.5°','135°','D 157.5°','180°'],dp+'/ref-dir9.png')
-  ok=codex(dp,P_WALK.replace('{X}','A').replace('{Y}','B'),[dp+'/ref-dir9.png',dp+'/ref-walk.png'],'walkAB.png') and codex(dp,P_WALK.replace('{X}','C').replace('{Y}','D'),[dp+'/ref-dir9.png',dp+'/ref-walk.png'],'walkCD.png')
+  PW=P_WALK+(SH if k in SHIELD else '')
+  ok=codex(dp,PW.replace('{X}','A').replace('{Y}','B'),[dp+'/ref-dir9.png',dp+'/ref-walk.png'],'walkAB.png') and codex(dp,PW.replace('{X}','C').replace('{Y}','D'),[dp+'/ref-dir9.png',dp+'/ref-walk.png'],'walkCD.png')
   if not ok: print('FAIL walk',k,flush=True); continue
   w=grid4(dp+'/walkAB.png')+grid4(dp+'/walkCD.png')   # A걷A, A걷B, B걷A, B걷B, C걷A, C걷B, D걷A, D걷B
   walk18=[]
