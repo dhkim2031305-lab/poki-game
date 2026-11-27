@@ -25,7 +25,7 @@
   const best = store.get('best', {});     // 나라 key → { rounds, kills }
   let lastCountry = store.get('lastCountry', null);
   // 언어 (GDD 0-6, 2026-11-26 사용자 "첫화면과 메뉴만 영어"): 나라 고르기 전 화면 = 영어 · 나라 고른 뒤 게임 안 = 그 나라 언어 · 설정 Language로 고르면 그 언어가 모든 화면에 우선
-  const PAUSE_LANG = 'country';   // [제안·사용자 확인 중] 일시정지 메뉴 언어: 'country' = 그 나라 언어 · 'en' = 영어로 바꾸려면 이 한 줄만
+  const PAUSE_LANG = 'country';   // [확정 2026-11-27 사용자 결정] 일시정지 메뉴 언어: 'country' = 그 나라 언어 · 'en' = 영어로 바꾸려면 이 한 줄만
   let langPick = store.get('langPick', null);   // 플레이어가 고른 언어 (예전 'lang' 저장값은 자동으로 들어간 것도 섞여 있어서 안 써요)
   const IN_GAME = { loading: 1, play: 1, roundPanel: 1, ending: 1, result: 1, ad: 1 };
   function wantLang() {
