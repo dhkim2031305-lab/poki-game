@@ -28,4 +28,5 @@
 | `skillprobe.js` | 1라운드에서 스킬 1·2만 번갈아 5번씩 (30개국): 쓸 때마다 처치 환산·피해 배수·맞힌 수·첫 피해까지 시간·이동·무적. 장수 안 맞게·외계인 체력 9999로 측정 | `node skillprobe.js OUT 8080 0,1,2` |
 | `skillframes.js` | 스킬을 누른 순간~0.6초를 0.05초 간격 캡처 (3D 기본) + 시각별 시전 상태·피해·흔들림·멈춤 | `node skillframes.js OUT 8080 "14:1:1,14:2:1" 3d` |
 | `cannon.js` | 한국2 천자총통: 움직이는 외계인(속도 0·80·120)에 포탄 3발 명중률 + 장수 둘레 확대 캡처 | `node cannon.js OUT` |
+| `conegrid.js` | 프랑스1 부채꼴: 목표 둘레 격자 25마리에 본타·빛구슬만·안 맞음 지도 (속도 0·80) | `node conegrid.js 8080 80` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
