@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>아이템 카드 고르기</title>
+<style>
+:root{--bg:#16171f;--fg:#eef0f6;--sub:#9aa0b4;--gold:#FFD166;--parch:#F2E3C6;--panel:#1E1C1F;--line:#8C6B32}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:900px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}button.b{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.wrap{max-width:844px;aspect-ratio:844/390;position:relative;border-radius:12px;overflow:hidden;container-type:inline-size;background:#2b2a33 repeating-linear-gradient(0deg,transparent 0 38px,rgba(255,255,255,.04) 38px 39px),#2b2a33}
+.dim{position:absolute;inset:0;background:rgba(6,5,10,.72);opacity:0;transition:opacity .12s}.on .dim{opacity:1}
+.cur{position:absolute;left:50%;top:13%;transform:translate(-50%,-50%);display:flex;gap:1.2cqw;align-items:center;font-weight:800;font-size:2.4cqw;color:var(--gold)}
+.coin{width:5cqw;height:5cqw;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe9a6,#d9ae4f 60%,#8c6b32);display:grid;place-items:center;color:#5a3d12;font-size:2.6cqw;box-shadow:0 0 0 .2cqw #5a3d12}
+.title{position:absolute;left:50%;top:25%;transform:translate(-50%,-50%);font-weight:800;font-size:2.1cqw;color:var(--parch)}
+.cards{position:absolute;inset:0}
+.card{position:absolute;top:61%;width:19.9cqw;height:25.1cqw;transform:translate(-50%,-50%) translateY(2.8cqw) scale(.9);opacity:0;border-radius:1.4cqw;background:var(--panel);border:.24cqw solid var(--line);transition:transform .22s cubic-bezier(.2,.8,.3,1),opacity .22s,border-color .1s;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding-top:2.2cqw;box-sizing:border-box;color:var(--parch);font:inherit}
+.card.rich{border:.36cqw solid var(--gold)}
+.on .card{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.card:hover,.card:focus-visible{transform:translate(-50%,-50%) scale(1.03);border-color:var(--gold);outline:none}
+.card.pick{transform:translate(-50%,-50%) scale(1.06);border-color:var(--gold)}.card.gone{opacity:0}
+.ic{width:12.3cqw;height:12.3cqw;border-radius:50%;background:#141218;display:grid;place-items:center}
+.ic canvas{width:11.4cqw;height:11.4cqw}
+.nm{font-weight:800;font-size:1.9cqw;margin-top:.9cqw;text-align:center;line-height:1.15;max-width:17cqw}
+.val{font-weight:800;font-size:2.8cqw;color:var(--gold);margin-top:.3cqw}
+.bad{font-size:1.5cqw;color:#FF8A80;min-height:2cqw}
+.pips{position:absolute;right:1.2cqw;top:1.1cqw;display:flex;gap:.5cqw}.pips i{width:.95cqw;height:.95cqw;border-radius:50%;background:#24365A}.pips i.f{background:var(--gold)}
+.key{position:absolute;bottom:-3.2cqw;left:50%;transform:translateX(-50%);font-size:1.4cqw;border:1px solid #5a5f78;border-radius:.4cqw;padding:0 .7cqw;color:var(--sub)}
+.hud{position:absolute;left:6%;top:24%;display:flex;gap:.8cqw}.hud img,.hud canvas{width:3.3cqw;height:3.3cqw}
+</style></head><body>
+<h1>아이템 카드 3장 고르기 — 화면 시안 (폰 가로 844×390)</h1>
+<p>카드를 눌러 골라 보세요(PC는 1·2·3 키). 아이콘은 자리 확인용 임시 그림이고, 실제 아이콘 8종은 GPT로 그려 바꿔요. 숫자는 화폐 배율에 따라 달라져요(item-choice.md 수치).</p>
+<div class="bar"><button class="b" id="again">다시 (다른 화폐)</button></div>
+<div class="wrap" id="w"><div class="dim"></div><div class="cur" id="cur"></div><div class="title">하나를 골라요</div><div class="cards" id="cards"></div><div class="hud" id="hud"></div></div>
+<script>
+const CUR=[['£',5.0],['$',2.9],['₩',1.6],['€',3.4],['¥',2.2]];
+const K={atk:['공격력',m=>'+'+Math.round(8*m)+'%',''],aspd:['공격 속도',m=>'−'+Math.round(6*m)+'%',''],small:['작아지기',m=>'×0.7','⚔ −15%'],big:['커지기',m=>'×1.4','♥ ↓'],move:['이동 속도',m=>'+'+Math.round(5*m)+'%',''],pierce:['관통 쏘기',m=>m>=3?'2':'1',''],split:['세 갈래 쏘기',m=>'3',' ×0.5'],skill:['스킬 +1',m=>'+1','']};
+function icon(cv,k){const x=cv.getContext('2d');x.scale(cv.width/100,cv.height/100);x.lineCap='round';x.lineJoin='round';
+ const G='#FFD166',S='#C9CED6',B='#5FB4EE',R='#F2452E';x.lineWidth=7;
+ const sword=(a,col)=>{x.save();x.translate(50,52);x.rotate(a);x.strokeStyle=col;x.beginPath();x.moveTo(0,28);x.lineTo(0,-30);x.stroke();x.strokeStyle=G;x.beginPath();x.moveTo(-12,18);x.lineTo(12,18);x.stroke();x.restore()};
+ const arrow=(x1,y1,x2,y2,c)=>{x.strokeStyle=c;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();const a=Math.atan2(y2-y1,x2-x1);x.beginPath();x.moveTo(x2,y2);x.lineTo(x2-12*Math.cos(a-.5),y2-12*Math.sin(a-.5));x.moveTo(x2,y2);x.lineTo(x2-12*Math.cos(a+.5),y2-12*Math.sin(a+.5));x.stroke()};
+ const knight=s=>{x.fillStyle=S;x.beginPath();x.arc(50,38,9*s,0,7);x.fill();x.fillRect(50-10*s,48,20*s,24*s)};
+ if(k==='atk'){sword(0,S);arrow(76,70,76,30,R)}
+ if(k==='aspd'){sword(-.5,S);sword(.5,S);[30,45,60].forEach(y=>{x.strokeStyle=B;x.beginPath();x.moveTo(8,y);x.lineTo(24,y);x.stroke()})}
+ if(k==='small'){knight(.7);[[10,10,28,28],[90,10,72,28],[10,90,28,72],[90,90,72,72]].forEach(a=>arrow(...a,'#2FBF71'))}
+ if(k==='big'){knight(1.3);[[28,28,10,10],[72,28,90,10],[28,72,10,90],[72,72,90,90]].forEach(a=>arrow(...a,'#FF8A2E'))}
+ if(k==='move'){x.fillStyle=S;x.fillRect(40,30,18,34);x.fillRect(40,58,34,12);[38,50,62].forEach(y=>{x.strokeStyle=B;x.beginPath();x.moveTo(10,y);x.lineTo(30,y);x.stroke()})}
+ if(k==='pierce'){[40,66].forEach(cx=>{x.strokeStyle=S;x.beginPath();x.arc(cx,50,12,0,7);x.stroke()});arrow(10,50,92,50,'#fff')}
+ if(k==='split'){arrow(18,70,84,22,B);arrow(18,70,90,70,B);arrow(18,70,80,40,G)}
+ if(k==='skill'){x.fillStyle=G;x.beginPath();x.moveTo(52,10);x.lineTo(30,56);x.lineTo(48,56);x.lineTo(40,90);x.lineTo(70,42);x.lineTo(52,42);x.lineTo(60,10);x.fill();x.strokeStyle=G;x.beginPath();x.moveTo(80,14);x.lineTo(80,34);x.moveTo(70,24);x.lineTo(90,24);x.stroke()}}
+let run=0,held={};
+function deal(){run++;const [sym,m]=CUR[run%CUR.length];const w=document.getElementById('w');w.classList.remove('on');
+ document.getElementById('cur').innerHTML=`<span class="coin">${sym}</span>${sym} ×${m.toFixed(1)}${m>=3?' ✦':''}`;
+ const pool=Object.keys(K).filter(k=>!(k==='skill'&&m<3)&&(held[k]||0)<2&&!(k==='small'&&held.big)&&!(k==='big'&&held.small));
+ const pick=[];while(pick.length<3){const k=pool[(run*7+pick.length*3+pick.length*pick.length)%pool.length];if(!pick.includes(k))pick.push(k);else pool.push(pool.shift())}
+ const C=document.getElementById('cards');C.innerHTML='';let ready=false;setTimeout(()=>ready=true,300);
+ pick.forEach((k,i)=>{const [nm,vf,bad]=K[k];const b=document.createElement('button');b.className='card'+(m>=3?' rich':'');b.style.left=(28+i*22)+'%';b.style.transitionDelay=(i*.06)+'s';
+  b.innerHTML=`<div class="pips">${[0,1].map(j=>`<i class="${j<(held[k]||0)?'f':''}"></i>`).join('')}</div><div class="ic"><canvas width="200" height="200"></canvas></div><div class="nm">${nm}</div><div class="val">${vf(m)}</div><div class="bad">${bad}</div><span class="key">${i+1}</span>`;
+  icon(b.querySelector('canvas'),k);b.onclick=()=>{if(!ready)return;choose(b,k)};C.appendChild(b)});
+ requestAnimationFrame(()=>requestAnimationFrame(()=>w.classList.add('on')));
+ function choose(b,k){ready=false;[...C.children].forEach(c=>{c.style.transitionDelay='0s';if(c!==b)c.classList.add('gone')});b.classList.add('pick');held[k]=(held[k]||0)+1;
+  setTimeout(()=>{w.classList.remove('on');const h=document.getElementById('hud');h.innerHTML='';Object.keys(held).forEach(kk=>{for(let n=0;n<held[kk];n++){const cv=document.createElement('canvas');cv.width=cv.height=66;icon(cv,kk);h.appendChild(cv)}})},350)}
+ window.onkeydown=e=>{const n=+e.key;if(n>=1&&n<=3&&ready)C.children[n-1].click()}}
+document.getElementById('again').onclick=deal;deal();
+</script></body></html>
