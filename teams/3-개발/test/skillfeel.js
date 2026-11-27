@@ -7,7 +7,7 @@ const TIMES = process.argv[4] ? Array.from({ length: +process.argv[4] }, (_, i) 
   const b = await chromium.launch();
   for (const [ci, n] of LIST) {
     const p = await b.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1 });
-    await p.goto('http://localhost:8080/web/'); await p.waitForFunction(() => window.G && G.scene === 'title');
+    await p.goto((process.env.BASE || 'http://localhost:8080') + '/web/'); await p.waitForFunction(() => window.G && G.scene === 'title');
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter'); await p.waitForTimeout(1500);
     await p.evaluate(() => { G.run.spawnT = 99; G.aliens = []; G.hero.x = 260; G.hero.y = 230; G.hero.dir = { x: 1, y: 0 }; G.msgs = []; G.hero.inv = 99;
       const mk = (x, y) => ({ type: 'grunt', x, y, dx: 0, dy: 0, entering: false, hp: 99999, max: 99999, speed: 0, r: 15, flash: 0, shootT: 99, seed: 0, vx: -1, kb: { x: 0, y: 0 }, recoil: 0 });
