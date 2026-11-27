@@ -86,7 +86,7 @@
   const SKILLS = [
     SK('dash', 'Hopp Lëtzebuerg!'), SK('area', "G'wan!"), SK('zone', 'Hopp Schwiiz!'), SK('barrage', "Let's go!"), SK('barrage', "Zet 'm op!"),
     SK('dash', 'Kom så!'), SK('dash', "Auf geht's!"), SK('barrage', 'Give it a burl!'), SK('area', "Los geht's!"), SK('dash', 'Heja!'),
-    SK('barrage', "Giv'er!"), SK('dash', 'Tsemppiä!'), SK('area', 'Allez !'), SK('zone', 'Andiamo!'), SK('zone', '파이팅!'),
+    SK('barrage', "Giv'er!"), SK('dash', 'Tsemppiä!'), SK('area', 'Allez !'), SK('zone', 'Andiamo!'), SK('dash', '파이팅!'),
     SK('dash', '¡Vamos!'), SK('zone', 'Do toho!'), SK('barrage', 'יאללה!'), SK('dash', 'Pirmyn!'), SK('zone', 'Good on ya!'),
     SK('dash', '頑張れ！'), SK('area', 'Vamos lá!'), SK('dash', 'Dajesz!'), SK('barrage', 'Hajrá!'), SK('area', 'Poďme!'),
     SK('area', 'Πάμε!'), SK('area', 'Haydi!'), SK('area', '¡Dale, po!'), SK('dash', '¡Échale ganas!'), SK('area', '¡Hágale!'),
@@ -109,7 +109,7 @@
     SK('zone', 'Rahaa ei ole, mutta ylpeyttä on!'),
     SK('dash', "Je suis peut-être fauché, mais j'ai ma fierté !"),
     SK('barrage', 'Sarò anche al verde, ma ho il mio orgoglio!'),
-    SK('barrage', '내가 돈이 없지 가오가 없나!'),
+    SK('area', '내가 돈이 없지 가오가 없나!'),
     SK('area', '¡Estaré sin un duro, pero tengo mi orgullo!'),
     SK('area', 'Možná nemám peníze, ale mám svou hrdost!'),
     SK('dash', 'אולי אין לי כסף, אבל יש לי כבוד!'),
@@ -145,7 +145,7 @@
     finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 6 }],
     france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
     italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 5 }],
-    korea: [{ k: 'hak', hit: .5, div: 3, life: 1.5 }, { k: 'spread3', div: 6 }],   // 1번 학익진 (사용자 2026-11-27 "가"): 날개 두 번 각 ×0.5 + 장판 1.5초 0.5초마다 ÷3 × 3번 (전: 화살비 sky)
+    korea: [{ k: 'turtle', mul: .6, smoke: .4, r: 110 }, { k: 'cannon', side: .25, mid: .5 }],   // 사용자 "추천대로" 2026-11-27 · [제안 수치] · 연기 부채꼴 반지름 110은 개발 제안
     spain: [{ k: 'focus', first: 1.6, rest: .3 }, { k: 'spinMove', mul: .8 }],
     czechia: [{ k: 'half', div: 8 }, { k: 'widen', mul: .35 }],
     israel: [{ k: 'lob', div: 4 }, { k: 'returnDash', mul: .4 }],
