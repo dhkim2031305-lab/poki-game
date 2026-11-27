@@ -31,3 +31,6 @@
 | `conegrid.js` | 프랑스1 부채꼴: 목표 둘레 격자 25마리에 본타·빛구슬만·안 맞음 지도 (속도 0·80) | `node conegrid.js 8080 80` |
 | `castinv.js` | 시전 중 무적: 외계인을 장수에 붙이고 사격 탄을 쏘며 60개 스킬마다 시전 중 피격 0·끝난 뒤 다시 맞는지 | `node castinv.js 8080 0,1,2` |
 | `sheet.py` | 캡처 여러 장을 한 장으로 | `python3 -I sheet.py out.png 6 300 a.png b.png …` |
+| `job8a.js` | 60개 스킬 쓰는 순간 번쩍(G.skillFlash) + 목표 둘레 밝기. 세 번째 인자 1이면 예전 game.js(backup)로 바꿔 끼워 비교 | `node job8a.js OUT 8080 0` / `… 1` |
+| `job8a-ui.js` | 미리보기 디버그 숨김·5번 톡 토글·출시 빌드에 없음, iOS 소리 시작 실패 흉내, 폰 외침 말풍선 × 오른쪽 버튼 겹침(4화면×3스킬×16자리) | `node job8a-ui.js OUT 8080` (build:single --preview 뒤) |
+| `job8a-ui2.js` | 디버그 톡 간격·자리 경계, 소리 실패 뒤 다음 톡 다시 시도 | `node job8a-ui2.js` |
