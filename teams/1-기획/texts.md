@@ -38,7 +38,16 @@
 | `how.1.b` | 사방에서 몰려오는 외계인을 모두 물리치면 라운드 클리어! 6라운드까지 버텨 보세요. | Defeat every alien coming from all four sides to clear the round. Survive all 6 rounds. | 설명서 카드 1 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.2.title` | 돈이 곧 힘이에요. | Money is power. | 설명서 카드 2 제목 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.2.a` | 돈이 많은 나라일수록 장수가 세요. 라운드를 깰 때마다 돈이 줄어요. 돈이 0이 되면… 파산이에요. | Countries with more money field stronger generals. Every round you clear costs money. Hit zero and… you're bankrupt. | 설명서 카드 2 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
-| `how.2.b` | 전장에 떨어지는 화폐를 주우면 잠깐 공격력이 올라요. 비싼 화폐일수록 더 세요. | Pick up currency on the field for a short attack boost. Stronger currencies hit harder. | 설명서 카드 2 · ⚠️ 아이템 고르기 기획(2026-11-27 사용자 제안)에 따라 바뀔 수 있어요 | 확정 (바뀔 수 있음) |
+| `how.2.b` | 전장에 떨어지는 화폐를 주우면 카드 3장 중 하나를 골라 그 라운드 동안 세져요. 비싼 화폐일수록 효과가 커요. | Pick up currency on the field to choose 1 of 3 boosts for the round. Stronger currencies give bigger boosts. | 설명서 카드 2 (GDD 4-3으로 바뀜 2026-11-27) | 확정 · 18개 언어 번역 필요 |
+| `item.pick` | 하나를 골라요 | Choose one | 화폐를 먹었을 때 카드 3장 위 제목 (GDD 4-3) | 확정 · 18개 언어 번역 필요 |
+| `item.card.atk` | 공격력 | Attack | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.aspd` | 공격 속도 | Attack Speed | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.small` | 작아지기 | Shrink | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.big` | 커지기 | Grow | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.move` | 이동 속도 | Move Speed | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.pierce` | 관통 쏘기 | Piercing Shot | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.split` | 세 갈래 쏘기 | Triple Shot | 카드 이름 | 확정 · 번역 필요 |
+| `item.card.skill` | 스킬 +1 | Skill +1 | 카드 이름 (그 라운드 안에서만) | 확정 · 번역 필요 |
 | `how.3.title` | 조작 | Controls | 설명서 카드 3 제목 · 내용은 PC는 `x.keys`, 폰은 화살표 그림 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.next` | 다음 | Next | 설명서 넘기기 버튼 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.skip` | 건너뛰기 | Skip | 설명서 건너뛰기 버튼 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
