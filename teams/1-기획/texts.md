@@ -63,66 +63,66 @@
 | `bankrupt.again.03` | 통장은 그대로예요. | Your bank balance hasn't changed. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `continue.ad` | 이런다고 없던 돈이 생길까? | Think this will make money appear out of nowhere? | 광고를 보고 이어 갈 때 | 확정 |
 | `skill.shout` | (나라별) `skills.md` "skill-shout" 표의 그 나라 말 | (나라별, 번역 안 함) | 스킬 쓸 때 외침 · 글자 + 목소리 · **번역하지 않고 그 나라 말 그대로** 보여 줘요. 다른 언어 설정에서는 한 줄 뜻풀이를 작게 덧붙일 수 있어요 [제안] | 확정 (2026-11-25, 외침 방식) |
-| `skill.name.01` | 눈먼 기사왕의 돌격 | Blind King's Charge | 룩셈부르크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 사자 문장 돌격 / Lion Crest Charge) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.02` | 광전사 회오리 | Battle-Frenzy Whirl | 아일랜드 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 회오리 도끼 / Whirlwind Axe) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.03` | 알프스 미늘창 덫 | Alpine Halberd Trap | 스위스 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 미늘창 덫 / Halberd Trap) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.04` | 랜턴 신호탄 튕김 | Lantern Signal Ricochet | 미국 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 에너지 난사 / Energy Barrage) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.05` | 함포 일제 사격 | Broadside Volley | 네덜란드 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 연속 찌르기 / Flurry Thrust) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.06` | 잠든 거인의 표식 돌격 | Sleeping Giant's Mark | 덴마크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 표식 돌격 / Marked Charge) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.07` | 용기병 돌격 | Dragoon Charge | 오스트리아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기병 돌격 / Cavalry Charge) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.01` | 눈먼 기사왕의 돌격 | Blind King's Charge | 룩셈부르크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 사자 문장 돌격 / Lion Crest Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.02` | 광전사 회오리 | Battle-Frenzy Whirl | 아일랜드 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 회오리 도끼 / Whirlwind Axe) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.03` | 알프스 미늘창 덫 | Alpine Halberd Trap | 스위스 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 미늘창 덫 / Halberd Trap) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.04` | 랜턴 신호탄 튕김 | Lantern Signal Ricochet | 미국 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 에너지 난사 / Energy Barrage) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.05` | 함포 일제 사격 | Broadside Volley | 네덜란드 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 연속 찌르기 / Flurry Thrust) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.06` | 잠든 거인의 표식 돌격 | Sleeping Giant's Mark | 덴마크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 표식 돌격 / Marked Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.07` | 용기병 돌격 | Dragoon Charge | 오스트리아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기병 돌격 / Cavalry Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.08` | 부메랑 투척 | Boomerang Throw | 호주 스킬 이름 (연사) | 확정 |
-| `skill.name.09` | 강철 손 회전베기 | Iron Hand Spin | 독일 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 대검 회전베기 / Greatsword Spin) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.10` | 캐롤린 돌격 대형 | Carolean Formation | 스웨덴 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 돌격 대형 / Charge Formation) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.09` | 강철 손 회전베기 | Iron Hand Spin | 독일 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 대검 회전베기 / Greatsword Spin) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.10` | 캐롤린 돌격 대형 | Carolean Formation | 스웨덴 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 돌격 대형 / Charge Formation) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.11` | 도끼 던지기 | Axe Toss | 캐나다 스킬 이름 (연사) | 확정 |
-| `skill.name.12` | 히이시 엘크 스키 질주 | Elk of Hiisi Ski Dash | 핀란드 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 설원 질주 / Snowfield Dash) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.13` | 백합 깃발 휩쓸기 | Lily Banner Sweep | 프랑스 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병검 휩쓸기 / Saber Sweep) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.14` | 군단 진영 | Legion Camp | 이탈리아 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 로마 진영 / Roman Camp) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.12` | 히이시 엘크 스키 질주 | Elk of Hiisi Ski Dash | 핀란드 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 설원 질주 / Snowfield Dash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.13` | 백합 깃발 휩쓸기 | Lily Banner Sweep | 프랑스 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병검 휩쓸기 / Saber Sweep) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.14` | 군단 진영 | Legion Camp | 이탈리아 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 로마 진영 / Roman Camp) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.15` | 거북선 돌격 | Turtle Ship Charge | 한국 1번 스킬 이름 (돌진) · 2026-11-27 다시 바꿈(전: 학익진 ← 화살비). 배 이름이에요(실존 인물 아님) | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
-| `skill.name.16` | 티소나 일섬 | Tizona Flash | 스페인 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 일섬 / Single Flash) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.17` | 전차 요새 | Wagon Fort | 체코 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 방패 진지 / Shield Fort) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.16` | 티소나 일섬 | Tizona Flash | 스페인 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 일섬 / Single Flash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.17` | 전차 요새 | Wagon Fort | 체코 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 방패 진지 / Shield Fort) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | 확정 |
-| `skill.name.19` | 게디미나스 기둥 창돌격 | Columns Lance Charge | 리투아니아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기마 창돌격 / Mounted Lance Charge) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.19` | 게디미나스 기둥 창돌격 | Columns Lance Charge | 리투아니아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기마 창돌격 / Mounted Lance Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.20` | 은빛 고사리 결계 | Silver Fern Ward | 뉴질랜드 스킬 이름 (설치) | 확정 |
-| `skill.name.21` | 노 목검 일격 | Oar Sword Strike | 일본 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 발도술 돌진 / Quickdraw Dash) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.21` | 노 목검 일격 | Oar Sword Strike | 일본 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 발도술 돌진 / Quickdraw Dash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.22` | 항해의 바람 | Sailing Wind | 포르투갈 스킬 이름 (범위) | 확정 |
 | `skill.name.23` | 날개 기병 돌격 | Winged Cavalry Charge | 폴란드 스킬 이름 (돌진) | 확정 |
-| `skill.name.24` | 후사르 사브르 연격 | Hussar Saber Flurry | 헝가리 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 사브르 연격 / Saber Combo) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.25` | 타트라 도끼 내려찍기 | Tatra Axe Slam | 슬로바키아 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 산악 도끼 내려찍기 / Mountain Axe Slam) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.26` | 스파르타 팔랑크스 | Spartan Phalanx | 그리스 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 팔랑크스 창끝 / Phalanx Spearpoints) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.27` | 코푸즈 칼날 고리 | Kopuz Blade Ring | 튀르키예 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 곡도 칼날 고리 / Scimitar Blade Ring) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.24` | 후사르 사브르 연격 | Hussar Saber Flurry | 헝가리 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 사브르 연격 / Saber Combo) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.25` | 타트라 도끼 내려찍기 | Tatra Axe Slam | 슬로바키아 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 산악 도끼 내려찍기 / Mountain Axe Slam) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.26` | 스파르타 팔랑크스 | Spartan Phalanx | 그리스 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 팔랑크스 창끝 / Phalanx Spearpoints) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.27` | 코푸즈 칼날 고리 | Kopuz Blade Ring | 튀르키예 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 곡도 칼날 고리 / Scimitar Blade Ring) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.28` | 산바람 | Mountain Gale | 칠레 스킬 이름 (범위) | 확정 |
-| `skill.name.29` | 독수리 전사 일격 | Eagle Warrior Strike | 멕시코 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 독수리 일격 / Eagle Strike) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill.name.30` | 엘도라도 황금 함성 | El Dorado Golden Roar | 콜롬비아 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 함성 / Battle Cry) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.01` | 사자 깃발 포효 | Lion Banner Roar | 룩셈부르크 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 사자의 포효 / Lion's Roar) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.02` | 게 볼그 돌격 | Gáe Bulg Rush | 아일랜드 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 도끼 돌격 / Axe Rush) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.03` | 사과 과녁 석궁 | Apple-Shot Crossbow | 스위스 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 미늘창 연속 찌르기 / Halberd Flurry) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.04` | 자유의 종 파동 | Liberty Bell Wave | 미국 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 에너지 파동 / Energy Pulse) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.05` | 바닷바람 순간 돌파 | Sea-Wind Blink | 네덜란드 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 레이피어 돌파 / Rapier Breakthrough) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.06` | 크론보르 수호 회전 | Kronborg Guardian Spin | 덴마크 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도끼 회전 / Axe Spin) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.07` | 빈 성벽 이중 베기 | Vienna Wall Double Slash | 오스트리아 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병검 원베기 / Cavalry Circle Slash) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill.name.29` | 독수리 전사 일격 | Eagle Warrior Strike | 멕시코 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 독수리 일격 / Eagle Strike) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.30` | 엘도라도 황금 함성 | El Dorado Golden Roar | 콜롬비아 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 함성 / Battle Cry) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.01` | 사자 깃발 포효 | Lion Banner Roar | 룩셈부르크 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 사자의 포효 / Lion's Roar) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.02` | 게 볼그 돌격 | Gáe Bulg Rush | 아일랜드 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 도끼 돌격 / Axe Rush) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.03` | 사과 과녁 석궁 | Apple-Shot Crossbow | 스위스 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 미늘창 연속 찌르기 / Halberd Flurry) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.04` | 자유의 종 파동 | Liberty Bell Wave | 미국 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 에너지 파동 / Energy Pulse) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.05` | 바닷바람 순간 돌파 | Sea-Wind Blink | 네덜란드 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 레이피어 돌파 / Rapier Breakthrough) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.06` | 크론보르 수호 회전 | Kronborg Guardian Spin | 덴마크 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도끼 회전 / Axe Spin) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.07` | 빈 성벽 이중 베기 | Vienna Wall Double Slash | 오스트리아 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병검 원베기 / Cavalry Circle Slash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.08` | 부메랑 회오리 | Boomerang Whirl | 호주 2번 스킬 이름 (설치) | 확정 |
-| `skill2.name.09` | 강철 손 내려찍기 | Iron Hand Slam | 독일 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 대검 돌파 / Greatsword Breakthrough) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.10` | 룬스톤 원진 | Runestone Circle | 스웨덴 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 장검 원진 / Longsword Circle) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.09` | 강철 손 내려찍기 | Iron Hand Slam | 독일 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 대검 돌파 / Greatsword Breakthrough) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.10` | 룬스톤 원진 | Runestone Circle | 스웨덴 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 장검 원진 / Longsword Circle) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.11` | 단풍 소용돌이 | Maple Vortex | 캐나다 2번 스킬 이름 (설치) | 확정 (2026-11-25 방어 대체) |
-| `skill2.name.12` | 칸텔레 노래 함정 | Kantele Song Snare | 핀란드 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 눈 함정 / Snow Trap) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.13` | 오를레앙 돌파 | Orléans Breakthrough | 프랑스 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 흉갑기병 돌격 / Cuirassier Charge) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.14` | 자마 군단 전진 찌르기 | Zama Legion Advance | 이탈리아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 글라디우스 연속 찌르기 / Gladius Flurry) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.12` | 칸텔레 노래 함정 | Kantele Song Snare | 핀란드 2번 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 눈 함정 / Snow Trap) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.13` | 오를레앙 돌파 | Orléans Breakthrough | 프랑스 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 흉갑기병 돌격 / Cuirassier Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.14` | 자마 군단 전진 찌르기 | Zama Legion Advance | 이탈리아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 글라디우스 연속 찌르기 / Gladius Flurry) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.15` | 천자총통 포격 | Cheonja Cannon Barrage | 한국 2번 스킬 이름 (범위) · 2026-11-27 바꿈(전: 연발 화살 / Rapid Arrows). 화포 이름이에요 | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
-| `skill2.name.16` | 콜라다 회전베기 | Colada Whirl | 스페인 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 톨레도 회전베기 / Toledo Spin Slash) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.17` | 후스 도리깨 | Hussite Flail | 체코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도리깨 휘두르기 / Flail Swing) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.16` | 콜라다 회전베기 | Colada Whirl | 스페인 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 톨레도 회전베기 / Toledo Spin Slash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.17` | 후스 도리깨 | Hussite Flail | 체코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도리깨 휘두르기 / Flail Swing) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.18` | 검 돌격 | Sword Rush | 이스라엘 2번 스킬 이름 (돌진) | 확정 |
-| `skill2.name.19` | 기마 투창 3연 | Mounted Javelin Trio | 리투아니아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 투창 3연 / Triple Javelin) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.19` | 기마 투창 3연 | Mounted Javelin Trio | 리투아니아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 투창 3연 / Triple Javelin) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.20` | 고사리 씨앗 질주 | Fern Seed Dash | 뉴질랜드 2번 스킬 이름 (돌진) | 확정 (2026-11-25 이름 바꿈) |
-| `skill2.name.21` | 이도류 삼연 베기 | Two-Sword Triple Cut | 일본 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 삼연 베기 / Triple Cut) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.22` | 루시타니아 창 찌르기 | Lusitanian Spear Thrust | 포르투갈 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 물보라 찌르기 / Spray Thrust) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.23` | 검은 기사 장창 휩쓸기 | Black Knight Lance Sweep | 폴란드 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병창 휩쓸기 / Lance Sweep) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.24` | 맷돌 장사 돌진 | Millstone Strongman Rush | 헝가리 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 경기병 돌진 / Hussar Dash) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.21` | 이도류 삼연 베기 | Two-Sword Triple Cut | 일본 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 삼연 베기 / Triple Cut) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.22` | 루시타니아 창 찌르기 | Lusitanian Spear Thrust | 포르투갈 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 물보라 찌르기 / Spray Thrust) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.23` | 검은 기사 장창 휩쓸기 | Black Knight Lance Sweep | 폴란드 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 기병창 휩쓸기 / Lance Sweep) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.24` | 맷돌 장사 돌진 | Millstone Strongman Rush | 헝가리 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 경기병 돌진 / Hussar Dash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.25` | 발라슈카 연속 던지기 | Valaška Volley | 슬로바키아 2번 스킬 이름 (연사) | 확정 |
-| `skill2.name.26` | 아킬레우스 창 돌격 | Achilles' Spear Rush | 그리스 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 창 돌격 / Spear Rush) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.27` | 서사시 영웅 돌파 | Epic Hero Dash | 튀르키예 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 곡도 돌파 / Scimitar Breakthrough) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.26` | 아킬레우스 창 돌격 | Achilles' Spear Rush | 그리스 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 창 돌격 / Spear Rush) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.27` | 서사시 영웅 돌파 | Epic Hero Dash | 튀르키예 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 곡도 돌파 / Scimitar Breakthrough) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.28` | 산바람 소용돌이 | Mountain Wind Vortex | 칠레 2번 스킬 이름 (설치) | 확정 |
-| `skill2.name.29` | 마쿠아우이틀 날개 베기 | Macuahuitl Wing Slash | 멕시코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 독수리 날개 베기 / Eagle Wing Slash) | 확정 · **18개 언어 다시 번역 필요** |
-| `skill2.name.30` | 황금 그림자 돌격 | Golden Shadow Rush | 콜롬비아 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 잔상 돌격 / Afterimage Rush) | 확정 · **18개 언어 다시 번역 필요** |
+| `skill2.name.29` | 마쿠아우이틀 날개 베기 | Macuahuitl Wing Slash | 멕시코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 독수리 날개 베기 / Eagle Wing Slash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.30` | 황금 그림자 돌격 | Golden Shadow Rush | 콜롬비아 2번 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 잔상 돌격 / Afterimage Rush) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.shout.01` | 룩셈부르크: Je suis peut-être fauché, mais j'ai ma fierté ! | 돈은 없어도 자존심(체면)은 있다 | 룩셈부르크 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
 | `skill2.shout.02` | 아일랜드: I may be skint, but I've got my pride! | 돈은 없어도 자존심(체면)은 있다 | 아일랜드 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
 | `skill2.shout.03` | 스위스: Ich bin vielleicht pleite, aber ich hab meinen Stolz! | 돈은 없어도 자존심(체면)은 있다 | 스위스 2번 스킬 외침 · 의역 | 웹·사전 확인함 (2026-11-25) |
