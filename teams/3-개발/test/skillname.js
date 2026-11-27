@@ -1,7 +1,7 @@
 // 스킬 이름이 칸을 넘치지 않는지: 언어 20개 × (나라 고르기 화면, 스킬 쓴 직후 외침) 캡처
 // 사용: node skillname.js 폴더 [나라번호=14] [스킬=1]
 const { chromium } = require('playwright');
-(async () => { const [S, ci = '14', n = '1'] = process.argv.slice(2); const b = await chromium.launch();
+(async () => { const [S = require('os').tmpdir(), ci = '14', n = '1'] = process.argv.slice(2); const b = await chromium.launch();
   const LANGS = ['en', 'ko', 'fr', 'de', 'nl', 'da', 'sv', 'fi', 'it', 'es', 'cs', 'he', 'lt', 'ja', 'pt', 'pl', 'hu', 'sk', 'el', 'tr'];
   for (const L of LANGS) {
     const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
