@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} toegevoegd aan de schatkist. (Totaal {sym}{t})",
+ "vault.title": "Staatskas",
+ "vault.atk": "Aanval",
+ "vault.hp": "Gezondheid",
+ "vault.move": "Loopsnelheid",
+ "vault.buy": "Upgrade ({sym}{c})",
+ "vault.max": "Max"
+}

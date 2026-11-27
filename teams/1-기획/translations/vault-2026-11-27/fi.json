@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} lisätty valtionkassaan. (Yhteensä {sym}{t})",
+ "vault.title": "Valtionkassa",
+ "vault.atk": "Hyökkäys",
+ "vault.hp": "Terveys",
+ "vault.move": "Liikenopeus",
+ "vault.buy": "Päivitä ({sym}{c})",
+ "vault.max": "Maks."
+}

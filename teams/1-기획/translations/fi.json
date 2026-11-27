@@ -135,5 +135,12 @@
   "item.card.move": "Liikenopeus",
   "item.card.pierce": "Lävistyslaukaus",
   "item.card.split": "Kolmoislaukaus",
-  "item.card.skill": "Taito +1"
+  "item.card.skill": "Taito +1",
+  "vault.gain": "{sym}{n} lisätty valtionkassaan. (Yhteensä {sym}{t})",
+  "vault.title": "Valtionkassa",
+  "vault.atk": "Hyökkäys",
+  "vault.hp": "Terveys",
+  "vault.move": "Liikenopeus",
+  "vault.buy": "Päivitä ({sym}{c})",
+  "vault.max": "Maks."
 }

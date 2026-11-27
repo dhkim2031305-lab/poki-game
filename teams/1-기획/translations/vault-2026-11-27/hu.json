@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} a kincstárba került. (Összesen {sym}{t})",
+ "vault.title": "Államkincstár",
+ "vault.atk": "Támadás",
+ "vault.hp": "Életerő",
+ "vault.move": "Mozgási sebesség",
+ "vault.buy": "Fejlesztés ({sym}{c})",
+ "vault.max": "Max"
+}

@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} dodano do skarbca. (Łącznie {sym}{t})",
+ "vault.title": "Skarb Państwa",
+ "vault.atk": "Atak",
+ "vault.hp": "Zdrowie",
+ "vault.move": "Szybkość ruchu",
+ "vault.buy": "Ulepsz ({sym}{c})",
+ "vault.max": "Maks"
+}

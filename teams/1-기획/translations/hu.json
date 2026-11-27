@@ -135,5 +135,12 @@
   "item.card.move": "Mozgási sebesség",
   "item.card.pierce": "Átütő lövés",
   "item.card.split": "Hármas lövés",
-  "item.card.skill": "Képesség +1"
+  "item.card.skill": "Képesség +1",
+  "vault.gain": "{sym}{n} a kincstárba került. (Összesen {sym}{t})",
+  "vault.title": "Államkincstár",
+  "vault.atk": "Támadás",
+  "vault.hp": "Életerő",
+  "vault.move": "Mozgási sebesség",
+  "vault.buy": "Fejlesztés ({sym}{c})",
+  "vault.max": "Max"
 }

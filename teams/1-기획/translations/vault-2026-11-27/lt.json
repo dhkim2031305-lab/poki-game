@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} pridėta į iždą. (Iš viso {sym}{t})",
+ "vault.title": "Valstybės iždas",
+ "vault.atk": "Ataka",
+ "vault.hp": "Gyvybė",
+ "vault.move": "Judėjimo greitis",
+ "vault.buy": "Pagerinti ({sym}{c})",
+ "vault.max": "Maks."
+}

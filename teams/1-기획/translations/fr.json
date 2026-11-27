@@ -135,5 +135,12 @@
   "item.card.move": "Vitesse dépl.",
   "item.card.pierce": "Tir perforant",
   "item.card.split": "Tir triple",
-  "item.card.skill": "Compétence +1"
+  "item.card.skill": "Compétence +1",
+  "vault.gain": "{sym}{n} ajoutés au trésor. (Total {sym}{t})",
+  "vault.title": "Trésor national",
+  "vault.atk": "Attaque",
+  "vault.hp": "Santé",
+  "vault.move": "Vitesse dépl.",
+  "vault.buy": "Améliorer ({sym}{c})",
+  "vault.max": "Max"
 }

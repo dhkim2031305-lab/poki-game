@@ -135,5 +135,12 @@
   "item.card.move": "Vel. Movimento",
   "item.card.pierce": "Tiro Perfurante",
   "item.card.split": "Tiro Triplo",
-  "item.card.skill": "Habilidade +1"
+  "item.card.skill": "Habilidade +1",
+  "vault.gain": "{sym}{n} adicionados ao tesouro. (Total {sym}{t})",
+  "vault.title": "Tesouro Nacional",
+  "vault.atk": "Ataque",
+  "vault.hp": "Vida",
+  "vault.move": "Vel. Movimento",
+  "vault.buy": "Melhorar ({sym}{c})",
+  "vault.max": "Máx"
 }

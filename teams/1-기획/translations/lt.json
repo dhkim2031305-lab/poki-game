@@ -135,5 +135,12 @@
   "item.card.move": "Judėjimo greitis",
   "item.card.pierce": "Veriantis šūvis",
   "item.card.split": "Trigubas šūvis",
-  "item.card.skill": "Įgūdis +1"
+  "item.card.skill": "Įgūdis +1",
+  "vault.gain": "{sym}{n} pridėta į iždą. (Iš viso {sym}{t})",
+  "vault.title": "Valstybės iždas",
+  "vault.atk": "Ataka",
+  "vault.hp": "Gyvybė",
+  "vault.move": "Judėjimo greitis",
+  "vault.buy": "Pagerinti ({sym}{c})",
+  "vault.max": "Maks."
 }

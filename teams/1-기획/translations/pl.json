@@ -135,5 +135,12 @@
   "item.card.move": "Szybkość ruchu",
   "item.card.pierce": "Strzał przebij.",
   "item.card.split": "Potrójny strzał",
-  "item.card.skill": "Umiejętność +1"
+  "item.card.skill": "Umiejętność +1",
+  "vault.gain": "{sym}{n} dodano do skarbca. (Łącznie {sym}{t})",
+  "vault.title": "Skarb Państwa",
+  "vault.atk": "Atak",
+  "vault.hp": "Zdrowie",
+  "vault.move": "Szybkość ruchu",
+  "vault.buy": "Ulepsz ({sym}{c})",
+  "vault.max": "Maks"
 }

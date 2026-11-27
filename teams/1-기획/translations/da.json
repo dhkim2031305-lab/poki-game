@@ -135,5 +135,12 @@
   "item.card.move": "Løbehastighed",
   "item.card.pierce": "Gennembrydning",
   "item.card.split": "Tredobbelt skud",
-  "item.card.skill": "Evne +1"
+  "item.card.skill": "Evne +1",
+  "vault.gain": "{sym}{n} føjet til statskassen. (I alt {sym}{t})",
+  "vault.title": "Statskasse",
+  "vault.atk": "Angreb",
+  "vault.hp": "Liv",
+  "vault.move": "Løbehastighed",
+  "vault.buy": "Opgradér ({sym}{c})",
+  "vault.max": "Maks"
 }

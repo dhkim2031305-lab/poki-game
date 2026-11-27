@@ -1,0 +1,9 @@
+{
+ "vault.gain": "Hazineye {sym}{n} eklendi. (Toplam {sym}{t})",
+ "vault.title": "Ulusal Hazine",
+ "vault.atk": "Saldırı",
+ "vault.hp": "Can",
+ "vault.move": "Hareket Hızı",
+ "vault.buy": "Yükselt ({sym}{c})",
+ "vault.max": "Maks"
+}

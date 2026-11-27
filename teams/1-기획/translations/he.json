@@ -135,5 +135,12 @@
   "item.card.move": "מהירות תנועה",
   "item.card.pierce": "ירייה חודרת",
   "item.card.split": "ירייה משולשת",
-  "item.card.skill": "מיומנות +1"
+  "item.card.skill": "מיומנות +1",
+  "vault.gain": "נוספו {sym}{n} לאוצר. (סך הכל {sym}{t})",
+  "vault.title": "אוצר המדינה",
+  "vault.atk": "התקפה",
+  "vault.hp": "חיים",
+  "vault.move": "מהירות תנועה",
+  "vault.buy": "שדרוג ({sym}{c})",
+  "vault.max": "מקס׳"
 }

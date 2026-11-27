@@ -135,5 +135,12 @@
   "item.card.move": "Rýchlosť pohybu",
   "item.card.pierce": "Prierazná strela",
   "item.card.split": "Trojitá strela",
-  "item.card.skill": "Schopnosť +1"
+  "item.card.skill": "Schopnosť +1",
+  "vault.gain": "{sym}{n} pridané do pokladnice. (Spolu {sym}{t})",
+  "vault.title": "Štátna pokladňa",
+  "vault.atk": "Útok",
+  "vault.hp": "Zdravie",
+  "vault.move": "Rýchlosť pohybu",
+  "vault.buy": "Vylepšiť ({sym}{c})",
+  "vault.max": "Max"
 }

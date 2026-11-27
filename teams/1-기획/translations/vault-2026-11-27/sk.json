@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} pridané do pokladnice. (Spolu {sym}{t})",
+ "vault.title": "Štátna pokladňa",
+ "vault.atk": "Útok",
+ "vault.hp": "Zdravie",
+ "vault.move": "Rýchlosť pohybu",
+ "vault.buy": "Vylepšiť ({sym}{c})",
+ "vault.max": "Max"
+}

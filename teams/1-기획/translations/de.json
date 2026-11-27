@@ -135,5 +135,12 @@
   "item.card.move": "Lauftempo",
   "item.card.pierce": "Durchschuss",
   "item.card.split": "Dreifachschuss",
-  "item.card.skill": "Fähigkeit +1"
+  "item.card.skill": "Fähigkeit +1",
+  "vault.gain": "{sym}{n} zur Schatzkammer hinzugefügt. (Gesamt {sym}{t})",
+  "vault.title": "Staatsschatz",
+  "vault.atk": "Angriff",
+  "vault.hp": "Leben",
+  "vault.move": "Lauftempo",
+  "vault.buy": "Upgrade ({sym}{c})",
+  "vault.max": "Max"
 }

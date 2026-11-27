@@ -135,5 +135,12 @@
   "item.card.move": "Rörelsehastighet",
   "item.card.pierce": "Genomträngande",
   "item.card.split": "Trippelskott",
-  "item.card.skill": "Förmåga +1"
+  "item.card.skill": "Förmåga +1",
+  "vault.gain": "{sym}{n} lades till i statskassan. (Totalt {sym}{t})",
+  "vault.title": "Statskassan",
+  "vault.atk": "Attack",
+  "vault.hp": "Hälsa",
+  "vault.move": "Rörelsehastighet",
+  "vault.buy": "Uppgradera ({sym}{c})",
+  "vault.max": "Max"
 }

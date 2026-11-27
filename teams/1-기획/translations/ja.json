@@ -135,5 +135,12 @@
   "item.card.move": "移動速度",
   "item.card.pierce": "貫通弾",
   "item.card.split": "3方向ショット",
-  "item.card.skill": "スキル+1"
+  "item.card.skill": "スキル+1",
+  "vault.gain": "金庫に{sym}{n}が追加されました。(合計 {sym}{t})",
+  "vault.title": "国家金庫",
+  "vault.atk": "攻撃力",
+  "vault.hp": "体力",
+  "vault.move": "移動速度",
+  "vault.buy": "強化 ({sym}{c})",
+  "vault.max": "最大"
 }

@@ -1,0 +1,9 @@
+{
+ "vault.gain": "נוספו {sym}{n} לאוצר. (סך הכל {sym}{t})",
+ "vault.title": "אוצר המדינה",
+ "vault.atk": "התקפה",
+ "vault.hp": "חיים",
+ "vault.move": "מהירות תנועה",
+ "vault.buy": "שדרוג ({sym}{c})",
+ "vault.max": "מקס׳"
+}

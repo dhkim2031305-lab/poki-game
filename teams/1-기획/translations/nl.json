@@ -135,5 +135,12 @@
   "item.card.move": "Loopsnelheid",
   "item.card.pierce": "Doorborend schot",
   "item.card.split": "Driewegschot",
-  "item.card.skill": "Vaardigheid +1"
+  "item.card.skill": "Vaardigheid +1",
+  "vault.gain": "{sym}{n} toegevoegd aan de schatkist. (Totaal {sym}{t})",
+  "vault.title": "Staatskas",
+  "vault.atk": "Aanval",
+  "vault.hp": "Gezondheid",
+  "vault.move": "Loopsnelheid",
+  "vault.buy": "Upgrade ({sym}{c})",
+  "vault.max": "Max"
 }

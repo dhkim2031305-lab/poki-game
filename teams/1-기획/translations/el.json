@@ -135,5 +135,12 @@
   "item.card.move": "Ταχύτητα κίν.",
   "item.card.pierce": "Διατρητική βολή",
   "item.card.split": "Τριπλή βολή",
-  "item.card.skill": "Ικανότητα +1"
+  "item.card.skill": "Ικανότητα +1",
+  "vault.gain": "{sym}{n} προστέθηκαν στο θησαυροφυλάκιο. (Σύνολο {sym}{t})",
+  "vault.title": "Εθνικό ταμείο",
+  "vault.atk": "Επίθεση",
+  "vault.hp": "Υγεία",
+  "vault.move": "Ταχύτητα κίν.",
+  "vault.buy": "Αναβάθμιση ({sym}{c})",
+  "vault.max": "Μέγιστο"
 }

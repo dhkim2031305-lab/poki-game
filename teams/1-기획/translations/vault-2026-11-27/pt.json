@@ -1,0 +1,9 @@
+{
+ "vault.gain": "{sym}{n} adicionados ao tesouro. (Total {sym}{t})",
+ "vault.title": "Tesouro Nacional",
+ "vault.atk": "Ataque",
+ "vault.hp": "Vida",
+ "vault.move": "Vel. Movimento",
+ "vault.buy": "Melhorar ({sym}{c})",
+ "vault.max": "Máx"
+}

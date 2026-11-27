@@ -135,5 +135,12 @@
   "item.card.move": "Velocità mov.",
   "item.card.pierce": "Tiro perforante",
   "item.card.split": "Tiro triplo",
-  "item.card.skill": "Abilità +1"
+  "item.card.skill": "Abilità +1",
+  "vault.gain": "{sym}{n} aggiunti al tesoro. (Totale {sym}{t})",
+  "vault.title": "Tesoro nazionale",
+  "vault.atk": "Attacco",
+  "vault.hp": "Salute",
+  "vault.move": "Velocità mov.",
+  "vault.buy": "Potenzia ({sym}{c})",
+  "vault.max": "Max"
 }
