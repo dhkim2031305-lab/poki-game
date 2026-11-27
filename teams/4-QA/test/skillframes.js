@@ -2,7 +2,7 @@
 // node skillframes.js OUT [port] "나라번호:스킬번호:번째,..." [3d|2d]
 const { chromium } = require('playwright');
 (async () => {
-  const [OUT, port = 8080, list = '14:1:1,14:2:1', mode = '3d'] = process.argv.slice(2);
+  const [OUT, port = 8080, list = '14:1:1,14:2:1', mode = '3d', DUR = '0.6'] = process.argv.slice(2); const NF = Math.round(+DUR / .05);
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const out = [];
   for (const item of list.split(',')) {
     const [ci, n, k] = item.split(':').map(Number);
@@ -23,7 +23,7 @@ const { chromium } = require('playwright');
     await p.screenshot({ path: `${OUT}/f-${ci + 1}-${n}-${k}-t-0.05.png` });
     await p.keyboard.press(n === 2 ? 'Semicolon' : 'KeyL');
     const log = [];
-    for (let i = 0; i <= 12; i++) {
+    for (let i = 0; i <= NF; i++) {
       if (i) await p.evaluate(() => __step(3));
       await p.screenshot({ path: `${OUT}/f-${ci + 1}-${n}-${k}-t${(i * .05).toFixed(2)}.png` });
       log.push(await p.evaluate(() => { const h = G.hero; const dmg = G.aliens.reduce((s, a) => s + (9999 - a.hp), 0); return `${(h.cast ? h.cast.k + ':' + h.cast.t.toFixed(2) : '-')}|x${Math.round(h.x)}|피해${dmg.toFixed(0)}|흔들${(G.shake || 0).toFixed(1)}|멈춤${(G.hitstop || 0).toFixed(2)}`; }));
