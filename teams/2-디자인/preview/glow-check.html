@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스킬 빛번짐 비교</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 12px;max-width:940px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:10px}
+.c{background:var(--card);border-radius:10px;padding:8px}.c h2{font-size:14px;margin:0 0 4px}.c p{font-size:12.5px;margin:6px 0 0}
+canvas{width:100%;height:auto;display:block;border-radius:8px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}button{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}button[aria-pressed=true]{background:#4a5170}
+</style></head><body>
+<h1>스킬 빛번짐 ①②③④ — 하나씩 빼 보기</h1>
+<p>같은 장면(범위 스킬: 무기 끝에서 빛 덩이가 날아가 → 고른 자리에서 터지며 빛기둥·파편 → 스킬 그림 등장)을 빛번짐을 하나씩 뺀 모습으로 반복해요. 실제 크기 2배.</p>
+<div class="bar"><button id="art" aria-pressed="false">그림 바꾸기: 독일 1</button><button id="slow" aria-pressed="false">느리게 보기: 끔</button></div>
+<div class="g" id="g"></div>
+<script>
+const CARDS=[
+ ['지금 (①②③④ 모두 있음)',{b1:1,b2:1,b3:1,b4:1},'지금 게임과 같아요.'],
+ ['① 그림 뒤 번짐 빼기',{b1:0,b2:1,b3:1,b4:1},'그림 뒤에 1.3배로 깔리던 나라 색 둥근 빛이 없어져요. 바닥·외계인이 가장 많이 또렷해져요.'],
+ ['② 화면 번쩍 빼기',{b1:1,b2:0,b3:1,b4:1},'쓰는 순간 화면 전체가 하얗게 번쩍하던 0.06초가 없어져요.'],
+ ['③ 빛기둥·연결체 빛무리 빼기',{b1:1,b2:1,b3:0,b4:1},'날아가는 빛 덩이 둘레 빛무리와 터질 때 솟는 빛기둥이 없어져요(빛 덩이 심과 파편은 남음).'],
+ ['④ 그림 자체 빛 줄이기',{b1:1,b2:1,b3:1,b4:0},'GPT 그림의 옅은 바깥 빛을 보정으로 깎아요(진한 몸통만 남음). 그림 파일 60장 다시 저장.'],
+ ['①②③④ 모두 빼기',{b1:0,b2:0,b3:0,b4:0},'가장 또렷하지만 스킬이 가장 수수해 보여요.'],
+];
+let SPD=1,ART='g1';const W=400,H=230,S=2,LOOP=2.2,REL=.2,FLY=.32,HIT=REL+FLY;
+document.getElementById('slow').onclick=e=>{SPD=SPD===1?.25:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬 (¼배)');e.target.setAttribute('aria-pressed',SPD!==1)};
+document.getElementById('art').onclick=e=>{ART=ART==='g1'?'k2':'g1';e.target.textContent='그림 바꾸기: '+(ART==='g1'?'독일 1':'한국 2');e.target.setAttribute('aria-pressed',ART!=='g1')};
+const IM={};['g1','g1-crisp','k2','k2-crisp'].forEach(n=>{const i=new Image();i.src='glow/'+n+'.webp';IM[n]=i});
+const COL={g1:'255,170,60',k2:'255,140,60'};
+const ease=t=>t<0?0:t>1?1:1-(1-t)*(1-t);const lerp=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
+function floor(x){x.fillStyle='#2b2a33';x.fillRect(0,0,W,H);x.strokeStyle='rgba(255,255,255,.05)';for(let i=0;i<9;i++){x.beginPath();x.moveTo(0,30+i*26);x.lineTo(W,30+i*26);x.stroke()}for(let i=0;i<12;i++){x.beginPath();x.moveTo(i*36,0);x.lineTo(i*36,H);x.stroke()}}
+function hero(x,hx,hy){x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(hx,hy,9,3.5,0,0,7);x.fill();x.fillStyle='#7d5a44';x.fillRect(hx-6,hy-22,12,18);x.fillStyle='#d9b38c';x.beginPath();x.arc(hx,hy-27,5,0,7);x.fill()}
+function alien(x,ax,ay){x.fillStyle='rgba(0,0,0,.3)';x.beginPath();x.ellipse(ax,ay,7,2.5,0,0,7);x.fill();x.fillStyle='#A944C8';x.beginPath();x.ellipse(ax,ay-9,7,9,0,0,7);x.fill()}
+function draw(x,o,t){const C=COL[ART];const hx=60,hy=160,tx=270,ty=140;floor(x);
+ // ① 그림 뒤 번짐
+ const artOn=t>=HIT&&t<HIT+.9,fade=t>HIT+.7?1-(t-HIT-.7)/.2:1,pop=t<HIT+.08?.85+.15*(t-HIT)/.08:1;
+ if(artOn&&o.b1){const R=90;const g=x.createRadialGradient(tx,ty-20,0,tx,ty-20,R);g.addColorStop(0,`rgba(${C},${.35*fade})`);g.addColorStop(1,`rgba(${C},0)`);x.save();x.globalCompositeOperation='lighter';x.fillStyle=g;x.fillRect(tx-R,ty-20-R,2*R,2*R);x.restore()}
+ hero(x,hx,hy);alien(x,tx-14,ty-2);alien(x,tx+18,ty+8);
+ // 스킬 그림 (④)
+ if(artOn){const im=IM[o.b4?ART:ART+'-crisp'];const s=140*pop;x.save();x.globalAlpha=fade;x.globalCompositeOperation='lighter';x.drawImage(im,tx-s/2,ty-20-s/2,s,s);x.restore()}
+ // 연결체 (③ 빛무리)
+ if(t>=REL&&t<HIT){const p=(t-REL)/FLY,bx=lerp(hx+12,tx,p),gy=lerp(hy,ty,p),z=60*4*p*(1-p)+lerp(18,0,p),yy=gy-z;
+  x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(bx,gy,6,2.4,0,0,7);x.fill();
+  if(o.b3){const g=x.createRadialGradient(bx,yy,0,bx,yy,16);g.addColorStop(0,`rgba(${C},.7)`);g.addColorStop(1,`rgba(${C},0)`);x.fillStyle=g;x.beginPath();x.arc(bx,yy,16,0,7);x.fill()}
+  x.fillStyle='#fff';x.beginPath();x.arc(bx,yy,4,0,7);x.fill()}
+ // 빛기둥 (③)
+ if(o.b3&&t>=HIT&&t<HIT+.18){const q=(t-HIT)/.18,h=90*ease(q/.5),a=q<.5?1:1-(q-.5)/.5;const g=x.createLinearGradient(0,ty-h,0,ty);g.addColorStop(0,`rgba(${C},0)`);g.addColorStop(1,`rgba(255,240,220,${a})`);x.fillStyle=g;x.fillRect(tx-7,ty-h,14,h)}
+ // 파편(남음)
+ for(let i=0;i<8;i++){const age=t-HIT;if(age<0||age>.6)continue;const an=i/8*6.28+.3,sp=50;const dx=Math.cos(an)*sp*age,dy=Math.sin(an)*sp*.45*age,z=Math.max(0,100*age-260*age*age);const a=age>.45?1-(age-.45)/.15:1;x.fillStyle=`rgba(${i%2?'255,255,255':C},${a})`;x.fillRect(tx+dx-2,ty+dy-z-1,4,2.4)}
+ // 화면 번쩍 (②)
+ if(o.b2&&t>=REL&&t<REL+.06){x.fillStyle='rgba(255,255,255,.08)';x.fillRect(0,0,W,H)}
+ // 섬광은 남음
+ if(t>=HIT&&t<HIT+.08){const q=(t-HIT)/.08;x.fillStyle=`rgba(255,255,255,${1-q})`;x.beginPath();x.arc(tx,ty-6,10+8*q,0,7);x.fill()}
+}
+const g=document.getElementById('g');
+CARDS.forEach(([t,o,d])=>{const c=document.createElement('div');c.className='c';c.innerHTML=`<h2>${t}</h2><canvas width="${W*S}" height="${H*S}"></canvas><p>${d}</p>`;g.appendChild(c);
+ const x=c.querySelector('canvas').getContext('2d');let tl=0,last=0;
+ (function f(ts){const dt=Math.min(.05,(ts-(last||ts))/1000);last=ts;tl=(tl+dt*SPD)%LOOP;x.setTransform(S,0,0,S,0,0);draw(x,o,tl);requestAnimationFrame(f)})(0)});
+</script></body></html>
