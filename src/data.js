@@ -145,7 +145,7 @@
     finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 6 }],
     france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
     italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 5 }],
-    korea: [{ k: 'sky', div: 3 }, { k: 'spread3', div: 6 }],
+    korea: [{ k: 'hak', hit: .5, div: 3, life: 1.5 }, { k: 'spread3', div: 6 }],   // 1번 학익진 (사용자 2026-11-27 "가"): 날개 두 번 각 ×0.5 + 장판 1.5초 0.5초마다 ÷3 × 3번 (전: 화살비 sky)
     spain: [{ k: 'focus', first: 1.6, rest: .3 }, { k: 'spinMove', mul: .8 }],
     czechia: [{ k: 'half', div: 8 }, { k: 'widen', mul: .35 }],
     israel: [{ k: 'lob', div: 4 }, { k: 'returnDash', mul: .4 }],
