@@ -141,7 +141,7 @@
     australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 4 }],
     germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
     sweden: [{ k: 'clones', mul: .7 }, { k: 'ring6', mul: .3, max: 3 }],
-    canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'gather', mul: .9, life: 1.5 }],
+    canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'gather', mul: .9, life: 1 }],   // QA 고침 2026-11-27
     finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 6 }],
     france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
     italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 5 }],
