@@ -33,15 +33,15 @@
 | `round.clear.1` | 완벽해요! 세상은 정말 아름다워요! | Perfect! The world is truly beautiful! | 라운드 클리어 (무작위) | 확정 |
 | `round.clear.2` | 당신은 뭐든 할 수 있어요! | You can do anything! | 라운드 클리어 (무작위) | 확정 |
 | `end.unfair` | …하지만 인생은 불공평해요. | …But life isn't fair. | ~~6라운드 클리어 뒤, 장수가 쓰러지기 직전~~ → **안 써요** (2026-11-26 끝 화면 바뀜, GDD 0-4) | 안 씀 |
-| `how.1.title` | 강한 놈만 살아남는 세상 | A World Where Only the Strong Survive | 설명서 카드 1 제목 (GDD 0-22) | 확정 (2026-11-27) |
-| `how.1.a` | 지구에 외계인이 쳐들어왔어요. 나라를 하나 골라 장수로 싸워요. | Aliens have invaded Earth. Pick a country and fight as its general. | 설명서 카드 1 | 확정 (2026-11-27) |
-| `how.1.b` | 사방에서 몰려오는 외계인을 모두 물리치면 라운드 클리어! 6라운드까지 버텨 보세요. | Defeat every alien coming from all four sides to clear the round. Survive all 6 rounds. | 설명서 카드 1 | 확정 (2026-11-27) |
-| `how.2.title` | 돈이 곧 힘이에요. | Money is power. | 설명서 카드 2 제목 | 확정 (2026-11-27) |
-| `how.2.a` | 돈이 많은 나라일수록 장수가 세요. 라운드를 깰 때마다 돈이 줄어요. 돈이 0이 되면… 파산이에요. | Countries with more money field stronger generals. Every round you clear costs money. Hit zero and… you're bankrupt. | 설명서 카드 2 | 확정 (2026-11-27) |
+| `how.1.title` | 강한 놈만 살아남는 세상 | A World Where Only the Strong Survive | 설명서 카드 1 제목 (GDD 0-22) | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
+| `how.1.a` | 지구에 외계인이 쳐들어왔어요. 나라를 하나 골라 장수로 싸워요. | Aliens have invaded Earth. Pick a country and fight as its general. | 설명서 카드 1 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
+| `how.1.b` | 사방에서 몰려오는 외계인을 모두 물리치면 라운드 클리어! 6라운드까지 버텨 보세요. | Defeat every alien coming from all four sides to clear the round. Survive all 6 rounds. | 설명서 카드 1 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
+| `how.2.title` | 돈이 곧 힘이에요. | Money is power. | 설명서 카드 2 제목 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
+| `how.2.a` | 돈이 많은 나라일수록 장수가 세요. 라운드를 깰 때마다 돈이 줄어요. 돈이 0이 되면… 파산이에요. | Countries with more money field stronger generals. Every round you clear costs money. Hit zero and… you're bankrupt. | 설명서 카드 2 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `how.2.b` | 전장에 떨어지는 화폐를 주우면 잠깐 공격력이 올라요. 비싼 화폐일수록 더 세요. | Pick up currency on the field for a short attack boost. Stronger currencies hit harder. | 설명서 카드 2 · ⚠️ 아이템 고르기 기획(2026-11-27 사용자 제안)에 따라 바뀔 수 있어요 | 확정 (바뀔 수 있음) |
-| `how.3.title` | 조작 | Controls | 설명서 카드 3 제목 · 내용은 PC는 `x.keys`, 폰은 화살표 그림 | 확정 (2026-11-27) |
-| `how.next` | 다음 | Next | 설명서 넘기기 버튼 | 확정 (2026-11-27) |
-| `how.skip` | 건너뛰기 | Skip | 설명서 건너뛰기 버튼 | 확정 (2026-11-27) |
+| `how.3.title` | 조작 | Controls | 설명서 카드 3 제목 · 내용은 PC는 `x.keys`, 폰은 화살표 그림 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
+| `how.next` | 다음 | Next | 설명서 넘기기 버튼 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
+| `how.skip` | 건너뛰기 | Skip | 설명서 건너뛰기 버튼 | 확정 (2026-11-27) · 18개 언어 Gemini 번역 반영 (팀장 464a3e6, 원어민 확인 필요) |
 | `end.clear.title` | 클리어! | Clear! | 1위가 6라운드를 깼을 때 제목. 장수는 안 쓰러지고, 아래에 `end.after.*` 10개 중 하나 (GDD 0-4 "가") | 확정 (2026-11-26) |
 | `end.far.title` | 여기까지 | This Far | 2~15위가 6라운드를 깼을 때 제목 (클리어도 실패도 아님) | 확정 (2026-11-26) |
 | `end.far.01` | 당신은 뭐든 할 수 있어요! …이 나라로는 빼고요. 진짜 클리어는 다른 나라로 해 보세요. | You can do anything! …Except with this country. For a real clear, try another one. | 2~15위 6라운드 클리어 화면 문구. 장수는 서 있어요 (GDD 0-4 "2번") | 확정 (2026-11-26) · 18개 언어는 번역 단계 |
