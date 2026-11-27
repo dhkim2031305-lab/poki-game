@@ -21,7 +21,7 @@
 | 한국어 | English |
 |---|---|
 | **돈이 곧 힘이에요.** | **Money is power.** |
-| 부자 나라일수록 장수가 세요. 라운드를 깰 때마다 돈이 줄어요. 돈이 0이 되면… 파산이에요. | Richer countries have stronger generals. Every round you clear costs money. Hit zero and… you're bankrupt. |
+| 돈이 많은 나라일수록 장수가 세요. 라운드를 깰 때마다 돈이 줄어요. 돈이 0이 되면… 파산이에요. | Countries with more money field stronger generals. Every round you clear costs money. Hit zero and… you're bankrupt. |
 | 전장에 떨어지는 **화폐**를 주우면 잠깐 공격력이 올라요. 비싼 화폐일수록 더 세요. | Pick up **currency** on the field for a short attack boost. Stronger currencies hit harder. |
 
 ## 카드 3-PC — 조작 (PC)
