@@ -879,7 +879,8 @@
     const h = G.hero, f = FIELD.floor;
     for (const tm of G.timers) { tm.t -= dt; if (tm.t <= 0 && !tm.done) { tm.done = true; tm.fn(); } }
     G.timers = G.timers.filter(tm => !tm.done);
-    if (h.cast && (h.cast.t += dt) >= h.cast.dur) h.cast = null;   // 시전 몸동작
+    if (h.cast && (h.cast.t += dt) >= h.cast.dur) { if (h.cast.k === 'throw') h.wpop = .08; h.cast = null; }   // 시전 몸동작 · 던진 뒤 무기가 손에 '톡'
+    if (h.wpop > 0) h.wpop = Math.max(0, h.wpop - dt);
     if (h.dash && h.dash.wait > 0) { h.dash.wait -= dt; h.moving = false; }   // 웅크리는 동안은 제자리 (GDD 0-20)
     else if (h.dash) {   // 돌진: 0.35초에 260 · 길 위 외계인 1번씩
       const d = h.dash, m = d.mod;
@@ -1105,7 +1106,7 @@
       if (a.seal > 0) at(a.x, a.y, () => { ctx.save(); ctx.fillStyle = SKW; for (let i = 0; i < 5; i++) { ctx.globalAlpha = .8; ctx.fillRect(a.x - 10 + i * 5, a.y - top + Math.sin(G.t * 6 + i) * 3, 2.5, 2.5); } ctx.restore(); });
       if (a.freeze > 0) at(a.x, a.y, () => { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = SKG; ctx.beginPath(); for (let i = 0; i < 10; i++) { const q = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.5 : 7; ctx.lineTo(a.x + Math.cos(q + G.t * 3) * r, a.y - top + Math.sin(q + G.t * 3) * r); } ctx.fill(); ctx.restore(); });
     }
-    for (const z of G.zones) if (z.launch === 'sky' && z.t < 0) at(z.x0, z.y0, () => drawRise(z));   // 시전감: 활에서 솟는 빛줄기
+    for (const z of G.zones) if (z.launch === 'sky' && z.t < 0) at(z.x0, z.y0, () => { z.riseM = ctx.getTransform(); });   // 빛줄기 자리(그리기는 drawRiseTop)
     for (const z of G.zones) at(z.x, z.y, () => {
       const T = SKB.ZONE_TIME, al = z.t < .2 ? z.t / .2 : z.t > T - .3 ? (T - z.t) / .3 : 1, R = SKB.ZONE_D / 2;
       ctx.save();
@@ -1187,8 +1188,9 @@
           ctx.strokeStyle = SKG; ctx.lineWidth = 2.5; gEll(x1, y1, 40 + 30 * Math.min(1, d.t / d.dur)); ctx.stroke(); ctx.restore(); return;
         }
         const wide = d.k === 'seal' ? 16 : d.k === 'focus' ? 2 : d.k === 'zigzag' ? 5 : 7;   // 핀란드 1 눈가루 띠 · 스페인 1 아주 가는 선
-        ctx.globalAlpha = (d.k === 'seal' ? .3 : .55) * fade; ctx.strokeStyle = d.k === 'seal' ? SKW : SKS; ctx.lineWidth = wide; ctx.beginPath(); p.forEach(([x, y], i) => i ? ctx.lineTo(x, y - 24) : ctx.moveTo(x, y - 24)); ctx.stroke();
-        ctx.globalAlpha = .9 * fade; ctx.strokeStyle = SKW; ctx.lineWidth = d.k === 'focus' ? 1.2 : 2; ctx.stroke();
+        const lite = feelOn(), pp = lite ? p.slice(-9) : p;   // 시전감 잔상: 최근 0.15초(약 9프레임)만 · 알파 ≤0.20
+        ctx.globalAlpha = (lite ? AFTER.TRAIL_AL : d.k === 'seal' ? .3 : .55) * fade; ctx.strokeStyle = d.k === 'seal' ? SKW : SKS; ctx.lineWidth = wide; ctx.beginPath(); pp.forEach(([x, y], i) => i ? ctx.lineTo(x, y - 24) : ctx.moveTo(x, y - 24)); ctx.stroke();
+        ctx.globalAlpha = (lite ? AFTER.TRAIL_AL : .9) * fade; ctx.strokeStyle = SKW; ctx.lineWidth = d.k === 'focus' ? 1.2 : 2; ctx.stroke();
         if (d.k === 'seal') { ctx.fillStyle = SKW; for (let i = 0; i < p.length; i += 2) { const [x, y] = p[i]; ctx.globalAlpha = .7 * fade; ctx.fillRect(x + (hash(i) - .5) * 18, y - 24 + (hash(i + 9) - .5) * 14, 2, 2); } }
         if (d.k === 'long') { const [x, y] = p[p.length - 1], a2 = Math.atan2(d.dy, d.dx); ctx.globalAlpha = .9; ctx.strokeStyle = SKG; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 24); ctx.lineTo(x + Math.cos(a2) * 40, y - 24 + Math.sin(a2) * 32); ctx.stroke(); }   // 리투아니아 1: 아주 긴 창
         if (d.k === 'accel' || d.k === 'invHit') for (let i = 2; i < p.length; i += 3) {   // 폴란드 1: 양옆 깃털 선 (뒤로 갈수록 굵게)
@@ -1302,7 +1304,7 @@
       for (let rr = 0; rr < reps; rr++) {
         ctx.save();
         if (e.mode === 'burst') { const S = e.S * (reduceMotion ? 1 : .7 + .4 * Math.min(1, t / .25)); ctx.globalAlpha = .95 * fade; if (e.flat) { ctx.translate(e.x, e.y); ctx.drawImage(im, -S / 2, -S / 2 * GK(), S, S * GK()); } else { ctx.translate(e.x, e.y - 6); if (e.rot) ctx.rotate(e.ang); ctx.drawImage(im, -S / 2, -S / 2 * (e.rot ? .8 : 1), S, S * (e.rot ? .8 : 1)); } }
-        else if (e.mode === 'zone') { const z = e.z; if (z && z.t < 0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45, br = reduceMotion ? 1 : 1 + .04 * Math.sin(G.t * 3);
+        else if (e.mode === 'zone') { const z = e.z; if (z && z.t < 0) { ctx.restore(); continue; } const zx = z ? z.x : e.x, zy = z ? z.y : e.y, S = SKB.ZONE_D * 1.45 * (z && z.launch && z.t < .08 ? .85 + .15 * z.t / .08 : 1), br = reduceMotion ? 1 : 1 + .04 * Math.sin(G.t * 3);   // 시전감: 도착 순간 0.85→1배 0.08초
           ctx.globalAlpha = .9 * Math.min(1, t / .2) * fade * (reduceMotion ? 1 : .75 + .25 * Math.sin(G.t * Math.PI * 2)); ctx.translate(zx, zy); ctx.drawImage(im, -S * br / 2, -S * br / 2, S * br, S * br);   // 1초 주기로 숨쉬듯
           if (e.black) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .5 * fade; ctx.strokeStyle = '#8FA6C2'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(0, 0, S * .42, S * .42 * .6, 0, 0, Math.PI * 2); ctx.stroke(); } }   // 칠레 2: 회청 테두리 빛
         else if (e.mode === 'beam' || e.mode === 'trail') {
@@ -1420,6 +1422,9 @@
     ctx.globalAlpha = 1; FX.drawShot('polearm', x, y, Math.atan2(y - py, x - px || .001), 0, G.country.key);
   }
   // 한국 1: 놓는 순간 활에서 빛줄기 3개(±8°)가 0.10초 동안 60px 솟아 화면 위로 사라져요 — 흰 심 2px + 나라 색 꼬리 16px
+  function drawRiseTop() {   // 빛줄기는 외침 말풍선보다 위 층 (style-guide 보완) · 자리는 바닥 그릴 때 잡아 둔 변환 그대로
+    for (const z of G.zones) if (z.launch === 'sky' && z.t < 0 && z.rx != null && z.riseM) { ctx.save(); ctx.setTransform(z.riseM); drawRise(z); ctx.restore(); }
+  }
   function drawRise(z) {
     const e = z.t + z.pre - FEEL_T.BOW_REL; if (e < 0 || e > .1 || z.rx == null) return;
     const k = e / .1, col = (SKILL_COL.korea || [])[0] || ['#F2452E', '#3D74D9'];
@@ -1764,7 +1769,7 @@
       case 'loading': return drawLoading();
       case 'title': return drawTitle();
       case 'select': return drawSelect();
-      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); drawInvTimer(); if (G.paused && !G.hold) drawPause(); return;
+      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); drawRiseTop(); drawInvTimer(); if (G.paused && !G.hold) drawPause(); return;
       case 'roundPanel': drawField(); drawHUD(); drawRoundPanel(); return;
       case 'ending': drawField(); drawEnding(); return;
       case 'result': return drawResult();
@@ -2409,10 +2414,11 @@
     if (tp && !dead) throwTrail(h, c, hx, hy, w.a, tp, mo.alpha);   // 잔상 2개 + 휘두름 호
     const behind = hd[2];   // 오른쪽위·위를 볼 때는 몸 뒤에
     { const L = 60 * wLen(c) * .95; h.tip = { x: hx + Math.cos(w.a) * L, y: hy + Math.sin(w.a) * L }; }   // 무기 끝 (시전 섬광 자리)
-    if (!dead && behind && !(cp && cp.hide)) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
+    const dw = () => { const s2 = h.wpop > 0 ? 1 + .15 * h.wpop / .08 : 1; if (s2 === 1) return drawWeapon(h, c, hx, hy, w.a, mo.alpha); ctx.save(); ctx.translate(hx, hy); ctx.scale(s2, s2); ctx.translate(-hx, -hy); drawWeapon(h, c, hx, hy, w.a, mo.alpha); ctx.restore(); };   // 1.15→1배 0.08초
+    if (!dead && behind && !(cp && cp.hide)) dw();
     const bf = bodyFrame(h, cell);
     UI.dirBody(c.key, bf.cell, h.x, h.y, 60, bm, bf.folder);
-    if (!dead && !behind && !(cp && cp.hide)) drawWeapon(h, c, hx, hy, w.a, mo.alpha);
+    if (!dead && !behind && !(cp && cp.hide)) dw();
     return true;
   }
 
