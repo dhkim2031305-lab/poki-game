@@ -142,5 +142,6 @@
   "vault.hp": "Liv",
   "vault.move": "Løbehastighed",
   "vault.buy": "Opgradér ({sym}{c})",
-  "vault.max": "Maks"
+  "vault.max": "Maks",
+  "vault.satire": "Statskassen vokser. Det gør startlinjen ikke."
 }

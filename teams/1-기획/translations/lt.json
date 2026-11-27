@@ -142,5 +142,6 @@
   "vault.hp": "Gyvybė",
   "vault.move": "Judėjimo greitis",
   "vault.buy": "Pagerinti ({sym}{c})",
-  "vault.max": "Maks."
+  "vault.max": "Maks.",
+  "vault.satire": "Iždas auga. Starto linija – ne."
 }

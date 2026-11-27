@@ -142,5 +142,6 @@
   "vault.hp": "Vida",
   "vault.move": "Vel. Movimento",
   "vault.buy": "Melhorar ({sym}{c})",
-  "vault.max": "Máx"
+  "vault.max": "Máx",
+  "vault.satire": "O tesouro cresce. A linha de partida não."
 }

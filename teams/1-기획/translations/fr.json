@@ -142,5 +142,6 @@
   "vault.hp": "Santé",
   "vault.move": "Vitesse dépl.",
   "vault.buy": "Améliorer ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "Le trésor grandit. La ligne de départ ne bouge pas."
 }

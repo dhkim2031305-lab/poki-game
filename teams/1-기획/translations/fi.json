@@ -142,5 +142,6 @@
   "vault.hp": "Terveys",
   "vault.move": "Liikenopeus",
   "vault.buy": "Päivitä ({sym}{c})",
-  "vault.max": "Maks."
+  "vault.max": "Maks.",
+  "vault.satire": "Kassa kasvaa. Lähtöviiva ei."
 }

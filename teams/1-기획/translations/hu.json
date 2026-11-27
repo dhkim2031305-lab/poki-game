@@ -142,5 +142,6 @@
   "vault.hp": "Életerő",
   "vault.move": "Mozgási sebesség",
   "vault.buy": "Fejlesztés ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "A kincstár nő. A rajtvonal nem."
 }

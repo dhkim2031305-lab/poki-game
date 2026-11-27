@@ -142,5 +142,6 @@
   "vault.hp": "体力",
   "vault.move": "移動速度",
   "vault.buy": "強化 ({sym}{c})",
-  "vault.max": "最大"
+  "vault.max": "最大",
+  "vault.satire": "金庫は増えても、スタートラインはそのままです。"
 }

@@ -142,5 +142,6 @@
   "vault.hp": "Leben",
   "vault.move": "Lauftempo",
   "vault.buy": "Upgrade ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "Die Staatskasse wächst. Die Startlinie nicht."
 }

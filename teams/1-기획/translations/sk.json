@@ -142,5 +142,6 @@
   "vault.hp": "Zdravie",
   "vault.move": "Rýchlosť pohybu",
   "vault.buy": "Vylepšiť ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "Pokladnica rastie. Štartovacia čiara nie."
 }

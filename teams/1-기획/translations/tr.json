@@ -142,5 +142,6 @@
   "vault.hp": "Can",
   "vault.move": "Hareket Hızı",
   "vault.buy": "Yükselt ({sym}{c})",
-  "vault.max": "Maks"
+  "vault.max": "Maks",
+  "vault.satire": "Hazine büyüyor. Başlangıç çizgisi değişmiyor."
 }

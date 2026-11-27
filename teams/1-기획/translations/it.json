@@ -142,5 +142,6 @@
   "vault.hp": "Salute",
   "vault.move": "Velocità mov.",
   "vault.buy": "Potenzia ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "Il tesoro cresce. La linea di partenza no."
 }

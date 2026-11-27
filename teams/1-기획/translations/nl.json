@@ -142,5 +142,6 @@
   "vault.hp": "Gezondheid",
   "vault.move": "Loopsnelheid",
   "vault.buy": "Upgrade ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "De schatkist groeit. De startlijn niet."
 }

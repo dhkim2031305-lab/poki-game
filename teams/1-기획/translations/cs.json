@@ -142,5 +142,6 @@
   "vault.hp": "Zdraví",
   "vault.move": "Rychlost pohybu",
   "vault.buy": "Vylepšit ({sym}{c})",
-  "vault.max": "Max"
+  "vault.max": "Max",
+  "vault.satire": "Pokladna roste. Startovní čára ne."
 }

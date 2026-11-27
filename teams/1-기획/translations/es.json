@@ -142,5 +142,6 @@
   "vault.hp": "Salud",
   "vault.move": "Vel. movimiento",
   "vault.buy": "Mejorar ({sym}{c})",
-  "vault.max": "Máx"
+  "vault.max": "Máx",
+  "vault.satire": "Las arcas crecen. La línea de salida no."
 }

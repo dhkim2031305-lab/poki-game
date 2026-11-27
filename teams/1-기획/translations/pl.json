@@ -142,5 +142,6 @@
   "vault.hp": "Zdrowie",
   "vault.move": "Szybkość ruchu",
   "vault.buy": "Ulepsz ({sym}{c})",
-  "vault.max": "Maks"
+  "vault.max": "Maks",
+  "vault.satire": "Skarbiec rośnie. Linia startu nie."
 }
