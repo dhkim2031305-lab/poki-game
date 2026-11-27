@@ -1,0 +1,20 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>공통 연속 그림 5종</title><style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 12px;max-width:940px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:10px}
+.c{background:var(--card);border-radius:10px;padding:8px}.c h2{font-size:14px;margin:0 0 4px}.c p{font-size:12.5px;margin:6px 0 0}canvas{width:100%;height:auto;display:block;border-radius:6px}.n{color:#ffc46b}
+</style></head><body><h1>공통 연속 그림 5종 — 무채색 그림 + 나라 색 입히기</h1>
+<p>한 그림으로 30개국이 같이 써요. 왼쪽부터 원본(무채색) · 한국 빨강 · 스웨덴 파랑 · 멕시코 에메랄드를 입힌 모습, 게임 속도로 반복. 바닥색은 게임과 같은 #2b2a33.</p><div class="g" id="g"></div>
+<script>
+const K=[['slash','칼빛 (0.06초/칸)','헝가리1·멕시코2·체코2·독일1·스페인2·일본2·폴란드2',.06,true,'⚠️ 모양이 초승달에 가까워 튀르키예 1에는 쓰지 않고 베기 선을 써요(초승달 금지 규칙).'],
+['impact','착탄 (0.06초/칸)','한국2·네덜란드1·독일2·슬로바키아1·이스라엘1·리투아니아2',.06,true,''],
+['line','베기 선 (0.06초/칸)','일본1·네덜란드2·스페인1 (+튀르키예1)',.06,true,''],
+['smoke','여운 연기 1초 + 그을음 (0.17초/칸)','착탄·내려찍기·돌진 끝',.17,false,'연기·그을음은 색을 입히지 않아요(회색 그대로, 보통 합성).'],
+['ring','퍼지는 고리 (0.06초/칸)','미국2·덴마크2·오스트리아2·룩셈부르크2·콜롬비아1·핀란드2',.06,true,'']];
+const T=[null,[224,65,75],[58,108,220],[47,191,113]];const g=document.getElementById('g');
+K.forEach(([k,t,who,dt,tint,note])=>{const c=document.createElement('div');c.className='c';c.innerHTML=`<h2>${t}</h2><canvas width="1024" height="256"></canvas><p>쓰는 스킬: ${who}</p>${note?`<p class="n">${note}</p>`:''}`;g.appendChild(c);
+ const x=c.querySelector('canvas').getContext('2d');const im=new Image();im.src='r20/common-'+k+'.webp';const tmp=document.createElement('canvas');tmp.width=tmp.height=256;const tx=tmp.getContext('2d');
+ let f=0;setInterval(()=>{if(!im.complete)return;x.fillStyle='#2b2a33';x.fillRect(0,0,1024,256);const fr=f%9;f++;if(fr>=6)return;
+  T.forEach((col,i)=>{tx.globalCompositeOperation='source-over';tx.clearRect(0,0,256,256);tx.drawImage(im,fr*256,0,256,256,0,0,256,256);
+   if(col&&tint){tx.globalCompositeOperation='multiply';tx.fillStyle=`rgb(${col})`;tx.fillRect(0,0,256,256);tx.globalCompositeOperation='destination-in';tx.drawImage(im,fr*256,0,256,256,0,0,256,256);}
+   x.globalCompositeOperation=tint?'lighter':'source-over';x.drawImage(tmp,i*256,0);if(col&&tint){x.globalAlpha=.35;x.drawImage(im,fr*256,0,256,256,i*256,0,256,256);x.globalAlpha=1}x.globalCompositeOperation='source-over'})},dt*1000)});
+</script></body></html>
