@@ -117,5 +117,13 @@
   "x.keys": "WASD pohyb · Klik/J útok · Pravý klik/K útok na diaľku · Pravé ×2/L schopnosť 1 · Ľavé ×2/; schopnosť 2 · Obe/Medzerník nezraniteľnosť · ESC pauza",
   "x.loading": "Načítava sa…",
   "x.rotate": "",
-  "x.cancel": "Zrušiť"
+  "x.cancel": "Zrušiť",
+  "how.1.title": "Svet, v ktorom prežijú len silní",
+  "how.1.a": "Zem napadli votrelci. Vyber si krajinu a bojuj ako jej generál.",
+  "how.1.b": "Poraz všetkých votrelcov útočiacich zo všetkých strán a dokonči kolo! Pokús sa prežiť všetkých 6 kôl.",
+  "how.2.title": "Peniaze sú moc.",
+  "how.2.a": "Čím viac peňazí krajina má, tým silnejšieho má generála. Každé dokončené kolo stojí peniaze. Keď klesnú na 0… je to bankrot.",
+  "how.3.title": "Ovládanie",
+  "how.next": "Ďalej",
+  "how.skip": "Preskočiť"
 }

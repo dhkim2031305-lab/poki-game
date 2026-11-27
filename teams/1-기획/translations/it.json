@@ -117,5 +117,13 @@
   "x.keys": "WASD movimento · Clic/J attacco · Clic destro/K attacco a distanza · Destro ×2/L abilità 1 · Sinistro ×2/; abilità 2 · Entrambi/Spazio invincibilità · ESC pausa",
   "x.loading": "Caricamento…",
   "x.rotate": "",
-  "x.cancel": "Annulla"
+  "x.cancel": "Annulla",
+  "how.1.title": "Un mondo in cui sopravvivono solo i più forti",
+  "how.1.a": "Gli alieni hanno invaso la Terra. Scegli un paese e combatti nei panni del suo generale.",
+  "how.1.b": "Sconfiggi tutti gli alieni che arrivano da ogni direzione per completare il round! Prova a resistere per 6 round.",
+  "how.2.title": "Il denaro è potere.",
+  "how.2.a": "Più denaro ha un paese, più forte è il suo generale. Ogni round superato consuma denaro. Se arrivi a zero… è bancarotta.",
+  "how.3.title": "Comandi",
+  "how.next": "Avanti",
+  "how.skip": "Salta"
 }

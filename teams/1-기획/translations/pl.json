@@ -117,5 +117,13 @@
   "x.keys": "WASD ruch · Klik/J atak · Prawy klik/K atak dystansowy · Prawy ×2/L umiejętność 1 · Lewy ×2/; umiejętność 2 · Oba/Spacja nietykalność · ESC pauza",
   "x.loading": "Wczytywanie…",
   "x.rotate": "",
-  "x.cancel": "Anuluj"
+  "x.cancel": "Anuluj",
+  "how.1.title": "Świat, w którym przetrwają tylko najsilniejsi",
+  "how.1.a": "Kosmici zaatakowali Ziemię. Wybierz kraj i walcz jako jego generał.",
+  "how.1.b": "Pokonaj wszystkich kosmitów nadciągających ze wszystkich stron, aby ukończyć rundę! Przetrwaj wszystkie 6 rund.",
+  "how.2.title": "Pieniądze to siła.",
+  "how.2.a": "Im więcej pieniędzy ma kraj, tym silniejszy jest jego generał. Każda ukończona runda kosztuje pieniądze. Gdy spadną do 0… bankructwo.",
+  "how.3.title": "Sterowanie",
+  "how.next": "Dalej",
+  "how.skip": "Pomiń"
 }

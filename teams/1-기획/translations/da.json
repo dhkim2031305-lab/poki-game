@@ -117,5 +117,13 @@
   "x.keys": "WASD: bevægelse · Venstreklik/J: slag · Højreklik/K: afstandsangreb · Højreklik ×2/L: evne 1 · Venstreklik ×2/;: evne 2 · Begge museknapper/Mellemrum: usårlig · Esc: pause",
   "x.loading": "Indlæser…",
   "x.rotate": "",
-  "x.cancel": "Annuller"
+  "x.cancel": "Annuller",
+  "how.1.title": "En verden, hvor kun de stærke overlever",
+  "how.1.a": "Rumvæsner har invaderet Jorden. Vælg et land og kæmp som dets general.",
+  "how.1.b": "Besejr alle rumvæsner fra alle sider for at klare runden! Hold ud i alle 6 runder.",
+  "how.2.title": "Penge er magt.",
+  "how.2.a": "Jo flere penge et land har, desto stærkere er generalen. Hver klaret runde koster penge. Når du rammer 0… går du konkurs.",
+  "how.3.title": "Styring",
+  "how.next": "Næste",
+  "how.skip": "Spring over"
 }

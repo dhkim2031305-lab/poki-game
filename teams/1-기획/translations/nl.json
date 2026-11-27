@@ -117,5 +117,13 @@
   "x.keys": "WASD: bewegen · Linksklik/J: slaan · Rechtsklik/K: afstandsaanval · Rechtsklik ×2/L: vaardigheid 1 · Linksklik ×2/;: vaardigheid 2 · Beide muisknoppen/Spatie: onkwetsbaar · Esc: pauze",
   "x.loading": "Laden…",
   "x.rotate": "",
-  "x.cancel": "Annuleren"
+  "x.cancel": "Annuleren",
+  "how.1.title": "Een wereld waar alleen de sterken overleven",
+  "how.1.a": "Buitenaardse wezens vallen de aarde aan. Kies een land en vecht als generaal.",
+  "how.1.b": "Versla alle aliens die van alle kanten komen om de ronde te voltooien! Probeer 6 rondes te overleven.",
+  "how.2.title": "Geld is macht.",
+  "how.2.a": "Hoe meer geld een land heeft, hoe sterker de generaal. Elke voltooide ronde kost geld. Komt het op 0… dan ben je failliet.",
+  "how.3.title": "Besturing",
+  "how.next": "Volgende",
+  "how.skip": "Overslaan"
 }

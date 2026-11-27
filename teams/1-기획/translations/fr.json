@@ -117,5 +117,13 @@
   "x.keys": "WASD : déplacement · Clic gauche/J : attaque · Clic droit/K : attaque à distance · Clic droit ×2/L : compétence 1 · Clic gauche ×2/; : compétence 2 · Deux clics simultanés/Espace : invincibilité · Échap : pause",
   "x.loading": "Chargement…",
   "x.rotate": "",
-  "x.cancel": "Annuler"
+  "x.cancel": "Annuler",
+  "how.1.title": "Un monde où seuls les forts survivent",
+  "how.1.a": "Des extraterrestres ont envahi la Terre. Choisissez un pays et combattez en tant que général.",
+  "how.1.b": "Éliminez tous les extraterrestres arrivant de tous les côtés pour terminer la manche ! Tentez de survivre aux 6 manches.",
+  "how.2.title": "L'argent, c'est le pouvoir.",
+  "how.2.a": "Plus un pays a d'argent, plus son général est fort. Chaque manche réussie coûte de l'argent. À zéro… c'est la faillite.",
+  "how.3.title": "Commandes",
+  "how.next": "Suivant",
+  "how.skip": "Passer"
 }

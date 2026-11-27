@@ -117,5 +117,13 @@
   "x.keys": "WASD: Bewegen · Linksklick/J: Angriff · Rechtsklick/K: Fernangriff · Rechtsklick ×2/L: Fähigkeit 1 · Linksklick ×2/;: Fähigkeit 2 · Beide Maustasten/Leertaste: unverwundbar · Esc: Pause",
   "x.loading": "Lädt …",
   "x.rotate": "",
-  "x.cancel": "Abbrechen"
+  "x.cancel": "Abbrechen",
+  "how.1.title": "Eine Welt, in der nur die Starken überleben",
+  "how.1.a": "Aliens greifen die Erde an. Wähle ein Land und kämpfe als dessen General.",
+  "how.1.b": "Besiege alle Aliens, die von allen Seiten anstürmen, um die Runde zu schaffen! Halte alle 6 Runden durch.",
+  "how.2.title": "Geld ist Macht.",
+  "how.2.a": "Je mehr Geld ein Land hat, desto stärker ist sein General. Jede geschaffte Runde kostet Geld. Fällt es auf 0… bist du bankrott.",
+  "how.3.title": "Steuerung",
+  "how.next": "Weiter",
+  "how.skip": "Überspringen"
 }
