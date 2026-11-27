@@ -18,7 +18,7 @@ canvas{width:100%;height:auto;display:block;border-radius:8px}
 let SPD=1;document.getElementById('slow').onclick=e=>{SPD=SPD===1?.25:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬 (¼배)')};
 const CASES=[
  ['한국 1 화살비','kor','고친 안: 활을 하늘로 들고 0.10초 당김 → 0.15초에 놓기, 빛줄기 3개가 솟아요 → 놓은 뒤 0.25초 바닥 원, 0.30초 첫 낙하.'],
- ['한국 1 학익진 (새 안)','hak','위 줄: 지금 화살비 · 아래 줄: 학익진 — 활을 앞 위로 들고 0.15초에 10발을 한꺼번에 → 좌우 두 날개로 크게 벌어졌다 목표로 휘어 들어와 0.33~0.37초에 한꺼번에 꽂혀요. 꽂히는 순간 섬광 고리·불티·흔들림.'],
+ ['한국 1 학익진 (새 안)','hak','위 줄: 지금 화살비 · 아래 줄: 학익진 — 활을 앞 위로 들고 0.15초에 10발을 한꺼번에 → 좌우 두 날개로 크게 벌어졌다 목표로 휘어 들어와 왼 날개 0.33초 → 오른 날개 0.48초에 두 번 꽂히고, 꽂힌 화살이 1.5초 장판으로 남아요.'],
  ['스위스 1 미늘창 덫','swi','고친 안: 당겼다 던지기 → 미늘창이 포물선으로 날아가 목표에 꽂혀요 → 그때 마름모가 켜져요. 외계인이 밟으면 내리꽂힘과 함께 창·마름모가 0.15초에 사라져요.'],
  ['룩셈부르크 1 사자 문장 돌격','lux','고친 안: 0.06초 몸 낮춤 → 검끝 섬광, 방패 반원은 검끝 앞 → 분신 최대 2개·짧게, 길 복제 1겹, 끝난 뒤 0.15초에 사라짐.'],
 ];
@@ -111,7 +111,7 @@ function bez(a,b,c,d,t){const u=1-t;return[u*u*u*a[0]+3*u*u*t*b[0]+3*u*t*t*c[0]+
 function hak(t,fix,y0){if(!fix)return kor(t,false,y0);
  const hx=40,hy=y0+80,T=[190,y0+78];alien(T[0]+10,T[1]+4);alien(T[0]-12,T[1]-2);
  const prep=.10,rel=.15,up=-0.44;const pull=t<prep?ease(t/prep):t<rel?1:0;
- let shake=0;if(t>rel+.33&&t<rel+.41)shake=(Math.random()-.5)*4;ctx.save();ctx.translate(shake,0);
+ let shake=0;if(t>rel+.33&&t<rel+.39)shake=(Math.random()-.5)*3;if(t>rel+.48&&t<rel+.56)shake=(Math.random()-.5)*4;ctx.save();ctx.translate(shake,0);
  hero(hx,hy,{lean:t<rel?-2*pull:0});
  const ang=t<rel+.10?up:lerp(up,-1.57,(t-rel-.10)/.10);
  const bx=hx+14,by=hy-18;ctx.save();ctx.translate(bx,by);ctx.rotate(ang+Math.PI/2);const sc=t>rel&&t<rel+.08?1.08-(t-rel)/.08*.08:1;ctx.scale(sc*(1-.1*pull),sc);
@@ -122,7 +122,7 @@ function hak(t,fix,y0){if(!fix)return kor(t,false,y0);
  if(t>=rel&&t<rel+.05)star(P0[0],P0[1],'#E0414B',7,1-(t-rel)/.05);
  const D=Math.hypot(T[0]-P0[0],T[1]-P0[1]),d=[(T[0]-P0[0])/D,(T[1]-P0[1])/D],n=[-d[1],d[0]];
  if(t<rel+.33){ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(T[0],T[1],30,13,0,0,7);ctx.stroke()}
- for(const s of[-1,1])for(let k=1;k<=5;k++){const W=Math.max(40,Math.min(140,D*(.18+.12*k)))*.75;const dur=.32+k*.01;const lt=(t-rel)/dur;
+ for(const s of[-1,1])for(let k=1;k<=5;k++){const W=Math.max(40,Math.min(140,D*(.18+.12*k)))*.75;const dur=.32+k*.01+(s>0?.15:0);const lt=(t-rel)/dur;
   const P1=[P0[0]+d[0]*D*.15+n[0]*s*W*1.2,P0[1]+d[1]*D*.15+n[1]*s*W*1.2],P2=[T[0]-d[0]*D*.25+n[0]*s*W*.6,T[1]-d[1]*D*.25+n[1]*s*W*.6];
   const r=6+4*k,ea=Math.atan2(n[1]*s,n[0]*s)+(k-3)*.35;const E=[T[0]+Math.cos(ea)*r,T[1]+Math.sin(ea)*r*.45];
   const col=s<0?'224,65,75':'58,108,220';
@@ -131,9 +131,10 @@ function hak(t,fix,y0){if(!fix)return kor(t,false,y0);
    const tl=[p[0]-Math.cos(a)*16,p[1]-Math.sin(a)*16];const gr=ctx.createLinearGradient(tl[0],tl[1],p[0],p[1]);gr.addColorStop(0,`rgba(${col},0)`);gr.addColorStop(1,`rgba(${col},.95)`);
    ctx.strokeStyle=gr;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(...tl);ctx.lineTo(...p);ctx.stroke();
    ctx.strokeStyle='#fff';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(p[0]-Math.cos(a)*7,p[1]-Math.sin(a)*7);ctx.lineTo(p[0]+Math.cos(a)*2,p[1]+Math.sin(a)*2);ctx.stroke()}
-  else if(lt>=1){const age=t-rel-dur;const a=age<.25?1:1-(age-.25)/.15;if(a>0){ctx.globalAlpha=a;ctx.strokeStyle='#fff';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(E[0]-s*3,E[1]-6);ctx.lineTo(E[0],E[1]);ctx.stroke();ctx.globalAlpha=1}}}
- const hit=rel+.33;if(t>=hit&&t<hit+.10){const k=(t-hit)/.10;ctx.strokeStyle=`rgba(255,255,255,${1-k})`;ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(T[0],T[1],8+28*k,(8+28*k)*.5,0,0,7);ctx.stroke()}
- if(t>=hit&&t<hit+.15){const k=(t-hit)/.15;for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.fillStyle=i%2?`rgba(58,108,220,${1-k})`:`rgba(224,65,75,${1-k})`;ctx.fillRect(T[0]+Math.cos(a)*k*26,T[1]+Math.sin(a)*k*13,2.5,2.5)}}
+  else if(lt>=1){const age=t-(rel+.48);const a=age<1.35?1:1-(age-1.35)/.15;if(a>0){ctx.globalAlpha=a;ctx.strokeStyle='#fff';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(E[0]-s*3,E[1]-6);ctx.lineTo(E[0],E[1]);ctx.stroke();ctx.globalAlpha=1}}}
+ const f0=rel+.48;if(t>=f0&&t<f0+1.5){const a=t>f0+1.35?1-(t-f0-1.35)/.15:1;ctx.save();ctx.globalAlpha=a;ctx.fillStyle='rgba(200,210,240,.15)';ctx.beginPath();ctx.ellipse(T[0],T[1],32,14,0,0,7);ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#E0414B';ctx.beginPath();ctx.ellipse(T[0],T[1],32,14,0,Math.PI/2,Math.PI*1.5);ctx.stroke();ctx.strokeStyle='#3A6CDC';ctx.beginPath();ctx.ellipse(T[0],T[1],32,14,0,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.restore()}
+ for(const [hit,col,R] of [[rel+.33,'224,65,75',22],[rel+.48,'58,108,220',28]]){if(t>=hit&&t<hit+.10){const k=(t-hit)/.10;ctx.strokeStyle=`rgba(255,255,255,${1-k})`;ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(T[0],T[1],8+R*k,(8+R*k)*.5,0,0,7);ctx.stroke()}
+  if(t>=hit&&t<hit+.15){const k=(t-hit)/.15;for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.fillStyle=`rgba(${col},${1-k})`;ctx.fillRect(T[0]+Math.cos(a)*k*26,T[1]+Math.sin(a)*k*13,2.5,2.5)}}}
  ctx.restore()}
 const FN={kor,hak,swi,lux};
 CASES.forEach(([t,k,d])=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<h2>${t}</h2><canvas width="${W*S}" height="${H*S}"></canvas><p>${d}</p>`;g.appendChild(c);
