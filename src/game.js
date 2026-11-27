@@ -1287,17 +1287,17 @@
         const a = b.ang + (b.N > 1 ? ((b.n % 3) - 1) * .06 : 0), dx = Math.cos(a), dy = Math.sin(a);
         if (m.k === 'arcs8') {   // 헝가리 1: 둘레 사방으로 빠르게 여덟 번 베기
           const q = b.ang + b.n * Math.PI / 4;
-          hitCircle(h.x, h.y, 78, b.dmg, { test: (al, ex, ey) => { const u = Math.atan2(ey, ex) - q; return Math.abs(Math.atan2(Math.sin(u), Math.cos(u))) < Math.PI / 6; } });
+          hitCircle(h.x, h.y, 78, b.base * m.mul, { test: (al, ex, ey) => { const u = Math.atan2(ey, ex) - q; return Math.abs(Math.atan2(Math.sin(u), Math.cos(u))) < Math.PI / 6; } });
           sfx('arc8', h.x, h.y, .25, { a: q }); h.atkT = .1; if (feelOn()) followPose(q, .1, 1); b.n++; AUDIO.play('swing'); continue;
         }
         let kind = BARRAGE_SHOT[G.country.ranged] || 'streak', dmg = b.dmg, sp = TEMP.SHOT_SPEED * 1.25;
         const extra = {};
         if (m.k === 'pierce') { kind = 'lance'; extra.hits = new Set(); }                                      // 스위스 2: 꿰뚫기
         else if (m.k === 'bounce') { kind = 'beam'; extra.bounce = 1; }                                        // 미국 1: 벽에 한 번 튕김
-        else if (m.k === 'lastHit') { const last = b.n === b.N - 1; kind = last ? 'star' : 'streak'; dmg = last ? b.base * m.last : b.base / m.div; }   // 네덜란드 1: 마지막 3배
+        else if (m.k === 'lastHit') { const last = b.n === b.N - 1; kind = last ? 'star' : 'streak'; dmg = b.base * (last ? m.last : m.mul); }   // 네덜란드 1: 마지막 3배
         else if (m.k === 'boomer') { kind = 'boomerang'; extra.hits = new Set(); extra.big = 1.1; dmg = b.base * m.out; extra.dmgBack = b.base * m.back; sp = TEMP.SHOT_SPEED; }   // 호주 1: 부메랑 5개 부채꼴 (기획 2026-11-25), 하나당 가고 오며
         else if (m.k === 'stick') { kind = 'axe'; dmg = b.base * m.mul; extra.stick = b.base / m.div; extra.life = .45; sp = TEMP.SHOT_SPEED * .9; }   // 캐나다 1: 바닥에 박혀 2초
-        else if (m.k === 'lob') { kind = 'sling'; extra.lob = dmg; dmg = 0; sp = 300; extra.life = clamp(Math.hypot(b.tx - h.x, b.ty - h.y) / sp, .12, 2.5); extra.noHit = true; }   // 이스라엘 1: 포물선으로 떨어진 자리
+        else if (m.k === 'lob') { kind = 'sling'; extra.lob = b.base * m.mul; dmg = 0; sp = 300; extra.life = clamp(Math.hypot(b.tx - h.x, b.ty - h.y) / sp, .12, 2.5); extra.noHit = true; }   // 이스라엘 1: 포물선으로 떨어진 자리
         else if (m.k === 'splash') { kind = 'streak'; extra.onHit = a2 => { hitCircle(a2.x, a2.y, 46, b.base / m.sdiv, { skip: new Set([a2]), heavy: false, main: false }); sfx('drops', a2.x, a2.y, .35, { a }); }; }   // 포르투갈 2: 옆으로 튀는 물방울
         else if (m.k === 'ricochet') { kind = 'axe'; dmg = b.base * m.mul; extra.bounces = m.n; extra.chain = new Set(); extra.onHit = ricochet; sp = TEMP.SHOT_SPEED; }   // 슬로바키아 2
         else if (kind === 'boomerang') extra.hits = new Set();
@@ -1317,6 +1317,7 @@
         for (const q of angs) {
           const sh = fromTip(Object.assign({ volley, kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true }, extra, m.k === 'boomer' ? { hits: new Set() } : null), weaponTip(q));
           if (sh.lob != null) {
+            sh.lobR = m.r;
             sh.skillN = h.barrageN;
             sh.landX = clamp(sh.x + sh.vx * sh.life, f.x0, f.x1);
             sh.landY = clamp(sh.y + sh.vy * sh.life, f.y0, f.y1);
@@ -1471,7 +1472,7 @@
     if (sk.type === 'zone') return k === 'corners' ? SKB.ZONE_D / 2 * 1.1 : SKB.ZONE_D / 2;
     if (sk.type === 'area') return k === 'cone' ? SKB.AREA_R * 2 : k === 'wings' ? SKB.AREA_R * 1.1 : k === 'roar' ? SKB.AREA_R * 1.1 : k === 'widen' ? 140 : k === 'chain3' ? 30 : SKB.AREA_R;
     if (k === 'javelin3') return 26;
-    if (k === 'lob') return 30;
+    if (k === 'lob') return sk.mod.r;
     return 20;
   }
   // 폰 끌기 조준 표시 (바닥 층, 캐릭터 아래)
@@ -1514,7 +1515,7 @@
         ring(tx, ty, 20, true, 0);
       }
       else if (k === 'javelin3') { link(); [1 / 3, 2 / 3, 1].forEach((q, i) => { const on = Math.floor(G.t * 3) % 3 === i; ctx.globalAlpha = (aim.cancel ? .35 : 1) * (on || i === 2 ? 1 : .5); ring(h.x + (tx - h.x) * q, h.y + (ty - h.y) * q, 26, i === 2, on ? .12 : .04); }); }
-      else if (k === 'lob') { link(); ring(tx, ty, 30, true, .06); }
+      else if (k === 'lob') { link(); ring(tx, ty, R, true, .06); }
       else {   // 연사(쏘기): ±12° 부채꼴 + 목표 십자 원
         const L = Math.hypot(tx - h.x, ty - h.y) + 30, sp = 12 * Math.PI / 180; ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40);
         ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(ang - sp) * L, h.y + Math.sin(ang - sp) * L); ctx.lineTo(h.x + Math.cos(ang + sp) * L, h.y + Math.sin(ang + sp) * L); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
@@ -2901,8 +2902,8 @@
       s.x += s.vx * step; s.y += s.vy * step; s.life -= dt; s.age += step;
       if (s.lob != null && s.life <= 0) {
         s.x = s.landX; s.y = s.landY;
-        hitCircle(s.landX, s.landY, 30, s.lob, { heavy: false });
-        sfx('ringOut', s.landX, s.landY, .3, { r: 30 });
+        hitCircle(s.landX, s.landY, s.lobR, s.lob, { heavy: false });
+        sfx('ringOut', s.landX, s.landY, .3, { r: s.lobR });
         const n = s.skillN, col = (SKILL_COL[G.country.key] || [])[n - 1] || [SKW, SKG];
         skillImpact(s.landX, s.landY, col);
         sfx('art', s.landX, s.landY, 1.6, { img: 'skill/u/' + G.country.key + '-' + n, mode: 'drop', S: 150, hold: 1.2, col });

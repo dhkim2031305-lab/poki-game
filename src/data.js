@@ -134,32 +134,33 @@
     luxembourg: [{ k: 'dashInv', mul: .9, inv: 1 }, { k: 'fear', mul: .5, t: 1 }],
     ireland: [{ k: 'pull', mul: .8 }, { k: 'zigzag', mul: .9 }],
     switzerland: [{ k: 'trap', mul: 1.2, life: 6 }, { k: 'pierce', div: 5 }],
-    usa: [{ k: 'bounce', div: 4 }, { k: 'rings', div: 3 }],
-    netherlands: [{ k: 'lastHit', div: 8, last: .4, n: 5 }, { k: 'blink', mul: .9 }],
-    denmark: [{ k: 'mark', mul: .6, t: 2, x: 2 }, { k: 'grow', mul1: .6, mul2: .4 }],
+    usa: [{ k: 'bounce', div: 4 }, { k: 'rings', div: 4 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 3 → 4
+    netherlands: [{ k: 'lastHit', mul: .2, last: .6, n: 5 }, { k: 'blink', mul: .9 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 8 → mul 0.2, last 0.4 → 0.6
+    denmark: [{ k: 'mark', mul: .8, t: 2, x: 2 }, { k: 'grow', mul1: .6, mul2: .4 }],   // 수치 조정 2026-11-27 (41ee110): 1번 mul 0.6 → 0.8
     austria: [{ k: 'prints', mul: .7, div: 8 }, { k: 'twoRings', mul: .5 }],
-    australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 4 }],
+    australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 5 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 4 → 5
     germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
     sweden: [{ k: 'clones', mul: .7 }, { k: 'ring6', mul: .3, max: 3 }],
-    canada: [{ k: 'stick', mul: .5, div: 8 }, { k: 'gather', mul: .9, life: 1 }],   // QA 고침 2026-11-27
-    finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 6 }],
+    canada: [{ k: 'stick', mul: .5, div: 5 }, { k: 'gather', mul: .75, life: 1 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 8 → 5, 2번 mul 0.9 → 0.75 · QA 고침 2026-11-27
+    finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 8 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 6 → 8
     france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
     italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 5 }],
     korea: [{ k: 'turtle', mul: .6, smoke: .4, r: 110 }, { k: 'cannon', side: .25, mid: .5 }],   // 사용자 "추천대로" 2026-11-27 · [제안 수치] · 연기 부채꼴 반지름 110은 개발 제안
     spain: [{ k: 'focus', first: 1.6, rest: .3 }, { k: 'spinMove', mul: .8 }],
     czechia: [{ k: 'half', div: 8 }, { k: 'widen', mul: .35 }],
-    israel: [{ k: 'lob', div: 4 }, { k: 'returnDash', mul: .4 }],
+    // 수치 조정 2026-11-27 (41ee110): 착탄 원 30 → 45
+    israel: [{ k: 'lob', mul: .3, r: 45 }, { k: 'returnDash', mul: .4 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 4 → mul 0.3
     lithuania: [{ k: 'long', mul: .7 }, { k: 'javelin3', mul: .35 }],
     newzealand: [{ k: 'speedZone', div: 8 }, { k: 'seeds', mul: .4, seed: .2 }],
-    japan: [{ k: 'iai', mul: .5, cut: .5 }, { k: 'chain3', mul: .4 }],
+    japan: [{ k: 'iai', mul: .5, cut: .5 }, { k: 'chain3', mul: .7 }],   // 수치 조정 2026-11-27 (41ee110): 2번 mul 0.4 → 0.7
     portugal: [{ k: 'gust', mul: .6 }, { k: 'splash', div: 6, sdiv: 12 }],
     poland: [{ k: 'accel', from: .5, to: 1 }, { k: 'pole', mul: .8 }],
-    hungary: [{ k: 'arcs8', div: 8, n: 8, time: .8 }, { k: 'invHit', mul: .8, per: .2, max: 1 }],
-    slovakia: [{ k: 'crack', mul: .9 }, { k: 'ricochet', mul: .3, n: 3 }],
-    greece: [{ k: 'phalanx', mul: .7, weak: .3, t: 3 }, { k: 'spearEnd', mul: .6, spear: .4 }],
-    turkiye: [{ k: 'orbit', div: 5 }, { k: 'curve', mul: .9 }],
-    chile: [{ k: 'lift', mul: .5 }, { k: 'vortex', div: 4 }],
-    mexico: [{ k: 'leap', mul: 1 }, { k: 'wings', mul: .45 }],
+    hungary: [{ k: 'arcs8', mul: .3, n: 8, time: .8 }, { k: 'invHit', mul: .8, per: .2, max: 1 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 8 → mul 0.3
+    slovakia: [{ k: 'crack', mul: .9 }, { k: 'ricochet', mul: .5, n: 3 }],   // 수치 조정 2026-11-27 (41ee110): 2번 mul 0.3 → 0.5
+    greece: [{ k: 'phalanx', mul: .9, weak: .3, t: 3 }, { k: 'spearEnd', mul: .6, spear: .4 }],   // 수치 조정 2026-11-27 (41ee110): 1번 mul 0.7 → 0.9
+    turkiye: [{ k: 'orbit', div: 3 }, { k: 'curve', mul: .9 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 5 → 3
+    chile: [{ k: 'lift', mul: .5 }, { k: 'vortex', div: 5 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 4 → 5
+    mexico: [{ k: 'leap', mul: 1 }, { k: 'wings', mul: .6 }],   // 수치 조정 2026-11-27 (41ee110): 2번 mul 0.45 → 0.6
     colombia: [{ k: 'roar', mul: .3 }, { k: 'echo', mul: .5, clone: .4 }],
   };
   // 스킬 이펙트 나라 색 [1번, 2번] = [몸 색, 바깥 빛 색] (디자인 gpt-art/round14/지시서.md · 칠레 2는 회청 테두리)
