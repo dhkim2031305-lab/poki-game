@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>국가 금고 시안</title>
+<style>
+:root{--bg:#16171f;--fg:#eef0f6;--sub:#9aa0b4;--gold:#FFD166;--gold2:#D9AE4F;--parch:#F2E3C6;--panel:#1E1C1F;--line:#8C6B32;--empty:#24365A}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:900px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}button.t{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}button.t[aria-pressed=true]{background:#4a5170}
+.wrap{max-width:844px;aspect-ratio:844/390;position:relative;border-radius:12px;overflow:hidden;container-type:inline-size;background:#0F1116}
+.scr{position:absolute;inset:0;display:none}.scr.on{display:block}
+.abs{position:absolute;transform:translate(-50%,-50%)}
+.hero{position:absolute;left:15%;bottom:0;height:49cqw;transform:translateX(-50%)}
+.ttl{font-weight:800;font-size:3.3cqw;color:var(--parch)}.sub{color:var(--sub);font-size:1.7cqw}
+.btn{display:grid;place-items:center;border-radius:50%;width:8.5cqw;height:8.5cqw;background:#2a2620;border:.3cqw solid var(--gold2);color:var(--gold);font-size:3.4cqw;cursor:pointer}
+.vrow{display:flex;align-items:center;gap:1cqw;background:rgba(30,28,31,.9);border:.2cqw solid var(--line);border-radius:5cqw;padding:.6cqw 1.4cqw .6cqw .8cqw;font-size:1.75cqw;color:var(--parch);white-space:nowrap}
+.vrow b{color:var(--gold)}.vault-ic{width:3.6cqw;height:3.6cqw}
+.chip{margin-left:.6cqw;background:#2a2620;border:.2cqw solid var(--gold2);color:var(--gold);border-radius:3cqw;padding:.3cqw 1.2cqw;font-weight:700;cursor:pointer;font-size:1.6cqw}
+.coin{position:absolute;width:3cqw;height:3cqw;pointer-events:none}
+/* 강화 화면 */
+.dim{position:absolute;inset:0;background:rgba(6,5,10,.72)}
+.panel{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:66%;height:84%;background:var(--panel);border:.25cqw solid var(--line);border-radius:1.6cqw;box-sizing:border-box;padding:2cqw 2.4cqw}
+.ph{display:flex;align-items:center;gap:1.2cqw}.ph img.f{width:4.3cqw;border-radius:.3cqw}.ph .nm{font-weight:800;font-size:2.4cqw;color:var(--parch)}
+.bal{margin-left:auto;display:flex;align-items:center;gap:.8cqw;font-weight:800;font-size:3cqw;color:var(--gold)}
+.close{position:absolute;right:-1.2cqw;top:-1.2cqw;width:5.2cqw;height:5.2cqw;border-radius:50%;background:#2a2620;border:.25cqw solid var(--gold2);color:var(--gold);font-size:2.4cqw;cursor:pointer}
+.up{display:grid;grid-template-columns:5cqw 1fr auto auto;align-items:center;gap:1.4cqw;margin-top:1.7cqw;background:#141218;border-radius:1cqw;padding:1.1cqw 1.4cqw}
+.up .ic{width:5cqw;height:5cqw;border-radius:50%;background:#24222a;display:grid;place-items:center;font-size:2.8cqw}
+.up .lb{font-weight:700;font-size:2cqw;color:var(--parch)}.up .pips{display:flex;gap:.6cqw;margin-top:.4cqw}.up .pips i{width:2.2cqw;height:1.1cqw;border-radius:.3cqw;background:var(--empty);transition:background .15s,transform .15s}.up .pips i.f{background:var(--gold)}.up .pips i.pop{transform:scale(1.4)}
+.up .val{font-weight:800;font-size:2.4cqw;color:var(--gold);min-width:7cqw;text-align:right}
+.buy{min-width:14cqw;height:5.6cqw;border-radius:1cqw;border:.25cqw solid var(--gold2);background:linear-gradient(#3a3020,#2a2418);color:var(--gold);font-weight:800;font-size:1.9cqw;cursor:pointer}
+.buy:disabled{border-color:#4a4a55;background:#25252c;color:#6c6f80;cursor:default}
+.note{font-size:1.5cqw;color:var(--sub);margin-top:1.2cqw}
+@media (prefers-reduced-motion:reduce){.coin{display:none}}
+</style></head><body>
+<h1>국가 금고 — 화면 시안 (폰 가로 844×390, 예: 한국)</h1>
+<p>① 결과 화면: 판이 끝나면 처치·라운드에서 동전이 금고로 날아가 "금고에 ₩3 쌓였어요(모두 ₩27)"가 올라가요. ② 강화 화면: 공격력·체력·이동 속도만, 결말은 그대로. 눌러서 직접 강화해 보세요.</p>
+<div class="bar"><button class="t" id="t1" aria-pressed="true">① 결과 화면 금고 적립</button><button class="t" id="t2" aria-pressed="false">② 금고 강화 화면</button><button class="t" id="replay">다시 보기</button></div>
+<div class="wrap" id="w">
+ <div class="scr on" id="s1">
+  <img class="hero" src="vault/korea.webp" alt="">
+  <div class="abs" style="left:50%;top:17%;font-size:5.5cqw">🏳️</div>
+  <div class="abs ttl" style="left:50%;top:32%">작전 종료</div>
+  <div class="abs" style="left:50%;top:43%;display:flex;gap:1cqw;align-items:center"><img src="vault/kr.svg" style="width:4.3cqw" alt=""><span class="sub" style="color:var(--parch);font-size:1.9cqw">대한민국</span></div>
+  <div class="abs" id="score" style="left:50%;top:54%;display:flex;gap:.8cqw;align-items:center;font-size:1.8cqw"><span>●●●○○○</span><span style="color:var(--sub)">👾 25</span></div>
+  <div class="abs vrow" id="vrow" style="left:50%;top:67%"><img class="vault-ic" src="vault/KRW.webp" alt=""><span>금고에 <b id="gain">₩0</b> 쌓였어요 <span style="color:var(--sub)">(모두 <b id="tot">₩24</b>)</span></span><span class="chip" id="go">강화 ▶</span></div>
+  <div class="abs btn" style="left:34%;top:84%;width:6.6cqw;height:6.6cqw;font-size:2.4cqw">⚑⚑</div>
+  <div class="abs btn" style="left:50%;top:84%">↻</div>
+ </div>
+ <div class="scr" id="s2">
+  <img class="hero" src="vault/korea.webp" alt="" style="opacity:.35">
+  <div class="dim"></div>
+  <div class="panel">
+   <button class="close" id="x" aria-label="닫기">✕</button>
+   <div class="ph"><img class="f" src="vault/kr.svg" alt=""><span class="nm">국가 금고 · 대한민국</span><span class="bal"><img src="vault/KRW.webp" style="width:4cqw" alt=""><span id="bal">₩27</span></span></div>
+   <div id="ups"></div>
+   <div class="note">강화는 싸움만 도와요. 돈 규칙과 결말은 그대로예요. (1위 룩셈부르크는 효과 절반)</div>
+  </div>
+ </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);let bal=27,tot=24;
+const U=[['⚔','공격력',4,5,[6,8,10,12,14],1],['♥','체력',4,5,[6,8,10,12,14],0],['👢','이동 속도',3,3,[5,7,9],0]];
+function render(){const box=$('ups');box.innerHTML='';$('bal').textContent='₩'+bal;
+ U.forEach((u,i)=>{const [ic,nm,per,max,cost,lv]=u;const d=document.createElement('div');d.className='up';const next=lv<max?cost[lv]:null;
+  d.innerHTML=`<div class="ic">${ic}</div><div><div class="lb">${nm}</div><div class="pips">${Array.from({length:max},(_,j)=>`<i class="${j<lv?'f':''}"></i>`).join('')}</div></div><div class="val">+${lv*per}%</div><button class="buy" ${next===null||bal<next?'disabled':''}>${next===null?'최대':'강화 ₩'+next}</button>`;
+  d.querySelector('.buy').onclick=()=>{if(next===null||bal<next)return;bal-=next;u[5]++;render();const p=box.children[i].querySelectorAll('.pips i')[u[5]-1];p.classList.add('pop');setTimeout(()=>p.classList.remove('pop'),150)};box.appendChild(d)})}
+function play(){$('gain').textContent='₩0';$('tot').textContent='₩'+tot;const w=$('w'),r=w.getBoundingClientRect(),s=$('score').getBoundingClientRect(),v=$('vrow').querySelector('img').getBoundingClientRect();
+ for(let i=0;i<6;i++){const c=document.createElement('img');c.src='vault/KRW.webp';c.className='coin';w.appendChild(c);const x0=s.left-r.left+s.width*(.2+i*.12),y0=s.top-r.top,x1=v.left-r.left,y1=v.top-r.top;
+  c.style.left=x0+'px';c.style.top=y0+'px';c.animate([{left:x0+'px',top:y0+'px',opacity:0},{opacity:1,offset:.15},{left:(x0+x1)/2+'px',top:Math.min(y0,y1)-r.height*.08+'px',offset:.5},{left:x1+'px',top:y1+'px',opacity:.2}],{duration:520,delay:400+i*70,easing:'ease-in',fill:'forwards'}).onfinish=()=>c.remove()}
+ let n=0;const t0=performance.now()+600;(function f(t){const k=Math.max(0,Math.min(1,(t-t0)/600));$('gain').textContent='₩'+Math.round(3*k);$('tot').textContent='₩'+Math.round(tot+3*k);if(k<1)requestAnimationFrame(f)})(performance.now())}
+function show(n){$('s1').classList.toggle('on',n===1);$('s2').classList.toggle('on',n===2);$('t1').setAttribute('aria-pressed',n===1);$('t2').setAttribute('aria-pressed',n===2);if(n===1)play();else render()}
+$('t1').onclick=()=>show(1);$('t2').onclick=()=>show(2);$('go').onclick=()=>show(2);$('x').onclick=()=>show(1);$('replay').onclick=()=>{bal=27;U[0][5]=1;U[1][5]=0;U[2][5]=0;show($('s1').classList.contains('on')?1:2)};
+window.addEventListener('load',()=>show(1));
+</script></body></html>
