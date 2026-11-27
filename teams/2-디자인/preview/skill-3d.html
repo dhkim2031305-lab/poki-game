@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스킬 입체감 시안</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;padding:16px}
+h1{font-size:18px;margin:0 0 4px}p{color:var(--sub);margin:0 0 12px;max-width:920px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:12px}
+.card{background:var(--card);border-radius:12px;padding:10px}.card h2{font-size:14px;margin:0 0 6px}.card p{margin:6px 0 0;font-size:13px}
+.meta{font-size:12px;color:#c8cde0;margin-top:6px}
+canvas{width:100%;height:auto;display:block;border-radius:8px}
+button{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer;margin-bottom:12px}
+</style></head><body>
+<h1>스킬이 "너무 2D" — 입체적으로 보이게 하는 안 3개</h1>
+<p>같은 스킬(무기 끝에서 빛 덩이를 던져 목표에서 터지는 범위기)을 네 가지로 그려요. 2.2초마다 반복, 실제 크기 2배 확대. 세 안 모두 새 그림 없이 코드만이고, 함께 쓸 수도 있어요.</p>
+<button id="slow">느리게 보기: 끔</button>
+<div class="grid" id="g"></div>
+<script>
+let SPD=1;document.getElementById('slow').onclick=e=>{SPD=SPD===1?.25:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬 (¼배)')};
+const W=440,H=220,S=2,LOOP=2.2,REL=.15,FLY=.35,HIT=REL+FLY;
+const CARDS=[
+ ['지금 (2D)','now','빛 덩이가 바닥과 같은 높이로 곧게 날아가고, 터질 때 납작한 원만 커져요. 위아래 높이감이 없어서 "바닥에 그린 그림"처럼 보여요.',''],
+ ['A. 높이 + 바닥 그림자 (추천 1순위)','A','연결체가 높이(z) 값을 가지고 포물선으로 솟았다 떨어져요. 바닥엔 그림자가 따라가며 높을수록 작고 옅어요. 터지는 고리·장판은 바닥 원근에 맞춰 세로 0.45배로 납작하게, 가까운(아래) 쪽 테두리를 더 굵고 밝게.','작업량 작음(공통 함수 하나: z·그림자·타원 비율) · 용량 0 · 폰 부담 거의 없음'],
+ ['B. 세로로 솟는 요소 (A와 함께 추천)','B','터지는 순간 위로 솟는 빛기둥(0.18초)과, 위로 튀었다 바닥에 떨어져 한 번 튕기는 파편 8개(각자 그림자). 화면 아래쪽(카메라 쪽) 파편은 조금 더 크게. 외계인도 맞으면 4px 떠올랐다 떨어져요.','작업량 중간(파편 물리 z·튕김, 빛기둥 그리기) · 용량 0 · 파편 수 제한(동시 40개)'],
+ ['C. 3D 바닥·벽에 빛 비추기','C','2.5D(Three.js) 바닥과 벽에 스킬 색 점광원을 0.3초 켜요. 바닥에 빛 웅덩이가 생기고 가까운 벽이 물들어, 효과가 공간 안에 있는 것처럼 보여요. 날아가는 빛 덩이도 바닥을 비추며 지나가요.','작업량 중간(3D 장면에 빛 2~3개 재사용) · 용량 0 · 폰에서 빛 개수 많으면 느려짐 → 동시 3개 제한, 2D 모드에선 꺼짐'],
+];
+const g=document.getElementById('g');
+const ease=t=>t<0?0:t>1?1:1-(1-t)*(1-t);const lerp=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
+function floor(x,lit){ // 원근 바닥 + 벽
+ x.fillStyle='#2b2a33';x.fillRect(0,0,W,H);
+ x.fillStyle='#24232c';x.fillRect(0,0,W,40);x.fillStyle='#3a3844';x.fillRect(0,36,W,4);
+ x.strokeStyle='rgba(255,255,255,.05)';x.lineWidth=1;
+ for(let i=0;i<8;i++){const y=40+Math.pow(i/7,1.4)*180;x.beginPath();x.moveTo(0,y);x.lineTo(W,y);x.stroke()}
+ for(let i=-6;i<=6;i++){x.beginPath();x.moveTo(W/2+i*30,40);x.lineTo(W/2+i*60,H);x.stroke()}
+ if(lit)lit();
+}
+function hero(x,hx,hy){x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(hx,hy,9,3.5,0,0,7);x.fill();x.fillStyle='#7d5a44';x.fillRect(hx-6,hy-22,12,18);x.fillStyle='#d9b38c';x.beginPath();x.arc(hx,hy-27,5,0,7);x.fill()}
+function alien(x,ax,ay,lift=0){x.fillStyle=`rgba(0,0,0,${.3-lift*.02})`;x.beginPath();x.ellipse(ax,ay,7-lift*.3,2.5,0,0,7);x.fill();x.fillStyle='#A944C8';x.beginPath();x.ellipse(ax,ay-9-lift,7,9,0,0,7);x.fill()}
+const COL='95,180,238';
+function draw(x,k,t,seed){
+ const hx=60,hy=150,tx=300,ty=135,R=46;
+ // 장면 + C 조명
+ let lights=[];
+ if(k==='C'){if(t>=REL&&t<HIT){const p=(t-REL)/FLY;lights.push([lerp(hx+10,tx,p),lerp(hy-18,ty,p),55,.35])}
+  if(t>=HIT&&t<HIT+.45){const q=(t-HIT)/.45;lights.push([tx,ty,150,.75*(1-q)])}}
+ floor(x,()=>{for(const [lx,ly,r,a] of lights){const gr=x.createRadialGradient(lx,ly+4,0,lx,ly+4,r);gr.addColorStop(0,`rgba(${COL},${a})`);gr.addColorStop(1,`rgba(${COL},0)`);x.save();x.translate(0,0);x.fillStyle=gr;x.save();x.translate(lx,ly+4);x.scale(1,.55);x.translate(-lx,-ly-4);x.fillRect(0,0,W,H*2);x.restore();
+   // 벽 물듦
+   const wa=a*Math.max(0,1-(ly-40)/180)*1.4;const wg=x.createRadialGradient(lx,38,0,lx,38,r*1.3);wg.addColorStop(0,`rgba(${COL},${wa})`);wg.addColorStop(1,`rgba(${COL},0)`);x.fillStyle=wg;x.fillRect(0,0,W,40);x.restore()}});
+ // 외계인 띄움(B)
+ let lift=0;if(k==='B'&&t>=HIT&&t<HIT+.25){const q=(t-HIT)/.25;lift=4*Math.sin(q*Math.PI)}
+ // 바닥 효과 (고리)
+ if(t>=HIT&&t<HIT+.35){const q=(t-HIT)/.35,r=10+R*ease(q),a=1-q;
+  if(k==='now'){x.strokeStyle=`rgba(${COL},${a})`;x.lineWidth=3;x.beginPath();x.ellipse(tx,ty,r,r*.8,0,0,7);x.stroke()}
+  else{x.fillStyle=`rgba(${COL},${a*.18})`;x.beginPath();x.ellipse(tx,ty,r,r*.45,0,0,7);x.fill();
+   x.lineWidth=2;x.strokeStyle=`rgba(${COL},${a*.55})`;x.beginPath();x.ellipse(tx,ty,r,r*.45,0,Math.PI,2*Math.PI);x.stroke(); // 먼 쪽 얇게
+   x.lineWidth=3.5;x.strokeStyle=`rgba(220,240,255,${a})`;x.beginPath();x.ellipse(tx,ty,r,r*.45,0,0,Math.PI);x.stroke()}} // 가까운 쪽 굵게
+ hero(x,hx,hy);alien(x,tx-14,ty-4,lift);alien(x,tx+16,ty+6,lift);
+ // 연결체
+ if(t>=REL&&t<HIT){const p=(t-REL)/FLY,bx=lerp(hx+10,tx,p),by=lerp(hy-18,ty,p);
+  if(k==='now'){x.fillStyle=`rgba(${COL},.45)`;x.beginPath();x.arc(bx,by,8,0,7);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(bx,by,4,0,7);x.fill()}
+  else{const gy=lerp(hy,ty,p),z=k==='A'||k==='B'||k==='C'?70*4*p*(1-p)+lerp(18,0,p):0;const sc=1+z/140;
+   x.fillStyle=`rgba(0,0,0,${.4-z/300})`;x.beginPath();x.ellipse(bx,gy,7/sc+2,(7/sc+2)*.4,0,0,7);x.fill();
+   const yy=gy-z;x.fillStyle=`rgba(${COL},.45)`;x.beginPath();x.arc(bx,yy,8*sc,0,7);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(bx,yy,4*sc,0,7);x.fill();
+   if(k!=='C'){x.strokeStyle=`rgba(${COL},.25)`;x.setLineDash([2,4]);x.beginPath();x.moveTo(bx,yy+8);x.lineTo(bx,gy);x.stroke();x.setLineDash([])}}}
+ // 터짐 섬광
+ if(t>=HIT&&t<HIT+.08){const q=(t-HIT)/.08;x.fillStyle=`rgba(255,255,255,${1-q})`;x.beginPath();x.arc(tx,ty-(k==='now'?0:6),12+10*q,0,7);x.fill()}
+ // B: 빛기둥 + 파편
+ if(k==='B'){
+  if(t>=HIT&&t<HIT+.18){const q=(t-HIT)/.18,h=90*ease(q/.5),a=q<.5?1:1-(q-.5)/.5;const gr=x.createLinearGradient(0,ty-h,0,ty);gr.addColorStop(0,`rgba(${COL},0)`);gr.addColorStop(1,`rgba(220,240,255,${a})`);x.fillStyle=gr;x.fillRect(tx-7,ty-h,14,h);x.fillStyle=`rgba(255,255,255,${a})`;x.fillRect(tx-2,ty-h*.9,4,h*.9)}
+  for(let i=0;i<8;i++){const ang=i/8*Math.PI*2+.3,sp=40+((i*37)%25);const age=t-HIT;if(age<0||age>.7)continue;
+   const dx=Math.cos(ang)*sp*Math.min(age,.55),dy=Math.sin(ang)*sp*.45*Math.min(age,.55);
+   const v0=95+(i%3)*20,gz=v0*age-260*age*age;let z=gz;if(z<0){const t2=age-v0/260*2*0+0;z=Math.max(0,Math.abs(Math.sin(age*14))*6*(1-age/.7))}
+   const gx=tx+dx,gy2=ty+dy,near=1+Math.max(0,dy)/40;const a=age>.55?1-(age-.55)/.15:1;
+   x.fillStyle=`rgba(0,0,0,${.3*a})`;x.beginPath();x.ellipse(gx,gy2,2.5*near,1,0,0,7);x.fill();
+   x.save();x.translate(gx,gy2-z);x.rotate(age*12+i);x.fillStyle=i%2?`rgba(220,240,255,${a})`:`rgba(${COL},${a})`;x.fillRect(-2*near,-1.2*near,4*near,2.4*near);x.restore()}}
+}
+CARDS.forEach(([t,k,d,m])=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<h2>${t}</h2><canvas width="${W*S}" height="${H*S}"></canvas><p>${d}</p>${m?`<div class="meta">${m}</div>`:''}`;g.appendChild(c);
+ const x=c.querySelector('canvas').getContext('2d');let tl=0,last=0;
+ (function f(ts){const dt=Math.min(.05,(ts-(last||ts))/1000);last=ts;tl=(tl+dt*SPD)%LOOP;x.setTransform(S,0,0,S,0,0);draw(x,k,tl);x.fillStyle='#9aa0b4';x.font='9px system-ui';x.fillText(tl.toFixed(2)+'초',W-40,12);requestAnimationFrame(f)})(0)});
+</script></body></html>
