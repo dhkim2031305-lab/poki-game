@@ -18,7 +18,7 @@ h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:90
 .card:hover,.card:focus-visible{transform:translate(-50%,-50%) scale(1.03);border-color:var(--gold);outline:none}
 .card.pick{transform:translate(-50%,-50%) scale(1.06);border-color:var(--gold)}.card.gone{opacity:0}
 .ic{width:12.3cqw;height:12.3cqw;border-radius:50%;background:#141218;display:grid;place-items:center}
-.ic canvas{width:11.4cqw;height:11.4cqw}
+.ic canvas{width:10.6cqw;height:10.6cqw}
 .nm{font-weight:800;font-size:1.9cqw;margin-top:.9cqw;text-align:center;line-height:1.15;max-width:17cqw}
 .val{font-weight:800;font-size:2.8cqw;color:var(--gold);margin-top:.3cqw}
 .bad{font-size:1.5cqw;color:#FF8A80;min-height:2cqw}
@@ -27,13 +27,16 @@ h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:90
 .hud{position:absolute;left:6%;top:24%;display:flex;gap:.8cqw}.hud img,.hud canvas{width:3.3cqw;height:3.3cqw}
 </style></head><body>
 <h1>아이템 카드 3장 고르기 — 화면 시안 (폰 가로 844×390)</h1>
-<p>카드를 눌러 골라 보세요(PC는 1·2·3 키). 아이콘은 자리 확인용 임시 그림이고, 실제 아이콘 8종은 GPT로 그려 바꿔요. 숫자는 화폐 배율에 따라 달라져요(item-choice.md 수치).</p>
+<p>카드를 눌러 골라 보세요(PC는 1·2·3 키). 아이콘 8종은 GPT로 그린 실제 그림이에요(18차). 숫자는 화폐 배율에 따라 달라져요(item-choice.md 수치).</p>
 <div class="bar"><button class="b" id="again">다시 (다른 화폐)</button></div>
 <div class="wrap" id="w"><div class="dim"></div><div class="cur" id="cur"></div><div class="title">하나를 골라요</div><div class="cards" id="cards"></div><div class="hud" id="hud"></div></div>
+<h2 style="font-size:15px;margin:16px 0 6px">카드 아이콘 8종 (게임 카드 크기)</h2>
+<div style="display:flex;flex-wrap:wrap;gap:10px"><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-atk.webp" width="96" height="96" alt="공격력" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">공격력</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-aspd.webp" width="96" height="96" alt="공격 속도" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">공격 속도</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-small.webp" width="96" height="96" alt="작아지기" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">작아지기</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-big.webp" width="96" height="96" alt="커지기" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">커지기</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-move.webp" width="96" height="96" alt="이동 속도" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">이동 속도</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-pierce.webp" width="96" height="96" alt="관통 쏘기" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">관통 쏘기</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-split.webp" width="96" height="96" alt="세 갈래 쏘기" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">세 갈래 쏘기</figcaption></figure><figure style="margin:0;background:#1E1C1F;border:2px solid #8C6B32;border-radius:10px;padding:8px;text-align:center;width:112px"><img src="cards/card-skill.webp" width="96" height="96" alt="스킬 +1" style="background:#141218;border-radius:50%"><figcaption style="font-size:12px;color:#F2E3C6">스킬 +1</figcaption></figure></div>
 <script>
 const CUR=[['£',5.0],['$',2.9],['₩',1.6],['€',3.4],['¥',2.2]];
 const K={atk:['공격력',m=>'+'+Math.round(8*m)+'%',''],aspd:['공격 속도',m=>'−'+Math.round(6*m)+'%',''],small:['작아지기',m=>'×0.7','⚔ −15%'],big:['커지기',m=>'×1.4','♥ ↓'],move:['이동 속도',m=>'+'+Math.round(5*m)+'%',''],pierce:['관통 쏘기',m=>m>=3?'2':'1',''],split:['세 갈래 쏘기',m=>'3',' ×0.5'],skill:['스킬 +1',m=>'+1','']};
-function icon(cv,k){const x=cv.getContext('2d');x.scale(cv.width/100,cv.height/100);x.lineCap='round';x.lineJoin='round';
+const IMG={};['atk','aspd','small','big','move','pierce','split','skill'].forEach(k=>{const i=new Image();i.src='cards/card-'+k+'.webp';IMG[k]=i});
+function icon(cv,k){const go=()=>{const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);x.drawImage(IMG[k],0,0,cv.width,cv.height)};if(IMG[k].complete&&IMG[k].naturalWidth){go();return}IMG[k].onload=go;IMG[k].addEventListener('load',go);return;const x=cv.getContext('2d');x.scale(cv.width/100,cv.height/100);x.lineCap='round';x.lineJoin='round';
  const G='#FFD166',S='#C9CED6',B='#5FB4EE',R='#F2452E';x.lineWidth=7;
  const sword=(a,col)=>{x.save();x.translate(50,52);x.rotate(a);x.strokeStyle=col;x.beginPath();x.moveTo(0,28);x.lineTo(0,-30);x.stroke();x.strokeStyle=G;x.beginPath();x.moveTo(-12,18);x.lineTo(12,18);x.stroke();x.restore()};
  const arrow=(x1,y1,x2,y2,c)=>{x.strokeStyle=c;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();const a=Math.atan2(y2-y1,x2-x1);x.beginPath();x.moveTo(x2,y2);x.lineTo(x2-12*Math.cos(a-.5),y2-12*Math.sin(a-.5));x.moveTo(x2,y2);x.lineTo(x2-12*Math.cos(a+.5),y2-12*Math.sin(a+.5));x.stroke()};
@@ -50,7 +53,7 @@ let run=0,held={};
 function deal(){run++;const [sym,m]=CUR[run%CUR.length];const w=document.getElementById('w');w.classList.remove('on');
  document.getElementById('cur').innerHTML=`<span class="coin">${sym}</span>${sym} ×${m.toFixed(1)}${m>=3?' ✦':''}`;
  const pool=Object.keys(K).filter(k=>!(k==='skill'&&m<3)&&(held[k]||0)<2&&!(k==='small'&&held.big)&&!(k==='big'&&held.small));
- const pick=[];while(pick.length<3){const k=pool[(run*7+pick.length*3+pick.length*pick.length)%pool.length];if(!pick.includes(k))pick.push(k);else pool.push(pool.shift())}
+ const pick=[];while(pick.length<3){const k=pool[(run*5+pick.length*3+1)%pool.length];if(!pick.includes(k))pick.push(k);else pool.push(pool.shift())}
  const C=document.getElementById('cards');C.innerHTML='';let ready=false;setTimeout(()=>ready=true,300);
  pick.forEach((k,i)=>{const [nm,vf,bad]=K[k];const b=document.createElement('button');b.className='card'+(m>=3?' rich':'');b.style.left=(28+i*22)+'%';b.style.transitionDelay=(i*.06)+'s';
   b.innerHTML=`<div class="pips">${[0,1].map(j=>`<i class="${j<(held[k]||0)?'f':''}"></i>`).join('')}</div><div class="ic"><canvas width="200" height="200"></canvas></div><div class="nm">${nm}</div><div class="val">${vf(m)}</div><div class="bad">${bad}</div><span class="key">${i+1}</span>`;
