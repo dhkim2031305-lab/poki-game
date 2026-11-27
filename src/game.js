@@ -1500,6 +1500,7 @@
     } else {   // 빛 덩이 (orb·snow·seed): 지름 10(눈 8·씨앗 6) + 흰 심 + 꼬리 16px
       const d = style === 'snow' ? 8 : style === 'seed' ? 6 : 10, c0 = style === 'snow' ? '#FFFFFF' : style === 'seed' ? '#DDE6F2' : col[0];
       ctx.globalAlpha = .6; ctx.strokeStyle = c0; ctx.lineWidth = d * .6; ctx.beginPath(); ctx.moveTo(x - Math.cos(a) * 16, y - Math.sin(a) * 16); ctx.lineTo(x, y); ctx.stroke();
+      { const g = ctx.createRadialGradient(x, y, 0, x, y, d * 1.8); g.addColorStop(0, c0); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = .7; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, d * 1.8, 0, 7); ctx.fill(); }   // 빛무리 (작은 화면에서도 보이게)
       ctx.globalAlpha = 1; ctx.fillStyle = c0; ctx.beginPath(); ctx.arc(x, y, d / 2, 0, 7); ctx.fill(); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(x, y, d / 4, 0, 7); ctx.fill();
     }
     ctx.restore();
