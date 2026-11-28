@@ -88,6 +88,14 @@
   // 판 그림 변형: lit(림 라이트) · white(맞음 번쩍) · 색(몸 색 외곽선) — filter 없는 iOS에서도 같은 모양 (UI.blit)
   function paintVariant(x, im, w, h, variant, k) {
     if (variant === 'lit') return litPaint(x, im, w, h);
+    if (variant === 'gray') {
+      x.drawImage(im, 0, 0, w, h);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = '#272727';
+      x.fillRect(0, 0, w, h);
+      x.globalCompositeOperation = 'source-over';
+      return;
+    }
     const W0 = im.naturalWidth || im.width, H0 = im.naturalHeight || im.height;
     if (variant === 'white') return UI.blit(x, im, 0, 0, W0, H0, 0, 0, w, h, { white: true });
     if (UI.FILTER_OK) { x.filter = `drop-shadow(0 0 ${1.5 * k}px ${variant}) drop-shadow(0 0 ${0.5 * k}px ${variant})`; x.drawImage(im, 0, 0, w, h); x.filter = 'none'; return; }

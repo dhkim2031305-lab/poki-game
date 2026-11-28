@@ -27,10 +27,22 @@ const PLATFORMS = {
   },
 };
 
+// 개발 서버와 두 빌드에서 현재 배포할 그림 목록을 같은 방식으로 만들어요.
+function imagePaths(dir, prefix = '') {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    if (entry.name.startsWith('.')) return [];
+    const name = prefix + entry.name;
+    if (entry.isDirectory()) return imagePaths(path.join(dir, entry.name), name + '/');
+    return entry.isFile() && /\.(webp|svg)$/.test(name) ? [name] : [];
+  });
+}
+
 // index.html에 해당 플랫폼 SDK 끼워 넣기
 function renderIndex(id) {
   const html = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
-  return html.replace('<!-- PLATFORM_SDK -->', PLATFORMS[id].sdk());
+  const images = JSON.stringify(imagePaths(path.join(ROOT, 'src', 'assets')).sort()).replace(/</g, '\\u003c');
+  return html.replace('<!-- PLATFORM_SDK -->', () => PLATFORMS[id].sdk())
+    .replace('<!-- ASSET_PATHS -->', () => `<script>window.ASSET_PATHS = new Set(${images});</script>`);
 }
 const adapterPath = id => path.join(ROOT, 'platforms', `${id}.js`);
 
