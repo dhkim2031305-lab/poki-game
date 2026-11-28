@@ -1,19 +1,20 @@
 // QA: 똑똑한 자동 봇 — 거리 유지(카이팅)·원거리 계속 쏘기·가까우면 치기·점프/사격 탄 피하기·위험할 때 무적·스킬은 몰린 자리·아이템 먹기
 // 실제 입력(키보드 WASD/J/K/L/;/Space + 마우스 커서)만 써요. 게임 시간은 1/60초씩 그대로, 프레임을 직접 넘겨 빨리 돌려요(판정 수치 안 바뀜).
 // node smartbot.js OUT [port] [나라번호들 0~29] [판수] [smart|mid|dumb]
+// 환경 변수: GOD=1 이면 체력이 60% 아래로 내려갈 때 다시 채우고, 20초 동안 처치가 없으면 장수를 남은 외계인 옆으로 옮겨요(봇이 가장자리 사격 외계인을 못 잡는 경우)(끝까지 가 보기 — 멈춤·오류·프레임 시간 확인용, 채운 횟수 기록) · RENDER=3d 면 3D로 · 프레임마다 update+draw 실제 시간(ms)을 재요
 // mid = 보통 사람 흉내: 판단 0.2초마다, 탄은 0.35초 안에 온 것만 60% 확률로 봄, 점프는 웅크림 절반 지나서야 봄, 무적은 체력 35% 아래에서만, 조준 ±12° 흔들림
 const { chromium } = require('playwright');
 (async () => {
   const [OUT, port = 8080, list = '0', runs = '5', mode = 'smart'] = process.argv.slice(2);
   const b = await chromium.launch(); const fs = require('fs'); const all = [];
   for (const ci of list.split(',').map(Number)) for (let run = 0; run < +runs; run++) {
-    const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
+    const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
     await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
-    await p.goto(`http://localhost:${port}/web/?render=2d`); await p.waitForFunction(() => window.G && G.scene === 'title');
+    await p.goto(`http://localhost:${port}/web/?render=${process.env.RENDER || '2d'}`); await p.waitForFunction(() => window.G && G.scene === 'title', null, { timeout: 60000 });
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(200);
     await p.mouse.move(400, 200); await p.mouse.move(420, 210);   // 마우스 켜기 (PC 조준)
     await p.evaluate(() => { window.__manual = true; }); await p.waitForTimeout(120);
-    const res = await p.evaluate(async ({ mode, seed }) => {
+    const res = await p.evaluate(async ({ mode, seed, GOD }) => {
       // 재현 가능한 난수 (봇 망설임용) — 게임 난수는 건드리지 않아요
       let s = seed * 9301 + 49297; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
       const c = document.querySelector('canvas'), FX = (844 - 1280 * 390 / 720) / 2, F = DATA.FIELD.floor;
@@ -24,7 +25,9 @@ const { chromium } = require('playwright');
       const log = { rounds: [], cause: null, maxRound: 1, clear: false, kills: 0, t: 0, skills: [0, 0], inv: 0 };
       let t = performance.now(), lastHp = G.hero.hp, lastRound = 1, lastCause = null, frames = 0;
       const used = {}; let skillGap = 0;
-      const step = () => { t += 1000 / 60; window.__cb(t); frames++; };
+      const ft = []; let refills = 0; const step = () => { t += 1000 / 60; const a = performance.now(); window.__cb(t); ft.push(performance.now() - a); frames++; if (GOD && G.scene === 'play' && !G.hero.dead && G.hero.hp < G.hero.maxHp * .6) { G.hero.hp = G.hero.maxHp; refills++; }
+        if (GOD && G.scene === 'play') { if (G.run.kills !== lastKills) { lastKills = G.run.kills; stallF = 0; } else if (++stallF > 60 * 20) { const a = G.aliens.find(x => !x.dead && !x.entering); if (a) { G.hero.x = a.x - 40; G.hero.y = Math.min(Math.max(a.y, DATA.FIELD.floor.y0 + 22), DATA.FIELD.floor.y1); assists++; } stallF = 0; } } };
+      let lastKills = -1, stallF = 0, assists = 0;
       let decT = 0, mv = [0, 0], aimErr = 0, aimT = 0;
       function bot() {
         const h = G.hero, r = G.run; if (G.scene !== 'play' || h.dead) { ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyK', 'KeyJ'].forEach(k => hold(k, false)); return; }
@@ -71,7 +74,7 @@ const { chromium } = require('playwright');
         return best ? (best.type === 'boss' ? '보스 몸' : best.type === 'shooter' ? '사격 외계인 몸' : '근접 외계인 몸') : '?';
       }
       const hits = {}; let roundHits = {};
-      while (frames < 60 * 60 * 8) {   // 게임 시간 최대 8분
+      while (frames < 60 * 60 * (GOD ? 15 : 8)) {   // 게임 시간 최대 8분 (GOD는 15분)
         for (let i = 0; i < 4; i++) {
           if (G.scene === 'play') bot();
           const hp0 = G.hero.hp; step();
@@ -85,12 +88,13 @@ const { chromium } = require('playwright');
         await new Promise(r => setTimeout(r, 0));
       }
       log.maxRound = G.run.round; log.clear = G.scene === 'ending' || (G.result && G.result.kind === 'clear'); log.cause = log.clear ? null : lastCause; log.kills = G.run.kills; log.t = +(frames / 60).toFixed(0); log.hits = hits;
+      { const q = ft.slice().sort((x, y) => x - y), pc = k => +q[Math.min(q.length - 1, Math.floor(q.length * k))].toFixed(1); log.frame = { n: q.length, p50: pc(.5), p95: pc(.95), p99: pc(.99), max: +q[q.length - 1].toFixed(1), over17: ft.filter(x => x > 16.7).length, over33: ft.filter(x => x > 33.3).length }; log.refills = refills; log.assists = assists; }
       log.endHp = +(G.hero.hp / G.hero.maxHp * 100).toFixed(0); log.result = G.result && G.result.kind || G.scene;
       return log;
-    }, { mode, seed: ci * 10 + run + 1 });
+    }, { mode, seed: ci * 10 + run + 1, GOD: process.env.GOD === '1' });
     const name = await p.evaluate(() => G.country.ko);
     res.ci = ci; res.name = name; res.run = run; res.mode = mode; res.errs = errs;
-    console.log(`${ci + 1} ${name} #${run + 1} [${mode}] → ${res.clear ? '클리어' : res.maxRound + '라운드 쓰러짐(' + res.cause + ')'} · 라운드 끝 체력 ${res.rounds.map(x => x.hp + '%').join(' ')} · 게임 ${res.t}초 · 처치 ${res.kills} · 스킬 ${res.skills} · 무적 ${res.inv}${errs.length ? ' ERR ' + errs[0] : ''}`);
+    console.log(`${ci + 1} ${name} #${run + 1} [${mode}] → ${res.clear ? '클리어' : res.maxRound + '라운드 쓰러짐(' + res.cause + ')'} · 라운드 끝 체력 ${res.rounds.map(x => x.hp + '%').join(' ')} · 게임 ${res.t}초 · 처치 ${res.kills} · 스킬 ${res.skills} · 무적 ${res.inv}${errs.length ? ' ERR ' + errs[0] : ''}` + (res.frame ? ` · 프레임 ms p50 ${res.frame.p50} p95 ${res.frame.p95} 최대 ${res.frame.max} (16.7 넘음 ${res.frame.over17}, 33 넘음 ${res.frame.over33})` : '') + (res.refills ? ` · 체력 채움 ${res.refills}` : '') + (res.assists ? ` · 20초 막힘 도움 ${res.assists}` : '') + (errs.length ? ` · 에러 ${errs.length}: ${errs.slice(0, 3).join(' | ')}` : ' · 에러 0'));
     all.push(res); await p.close();
   }
   fs.writeFileSync(`${OUT}/bot-${mode}-${list.replace(/,/g, '_')}.json`, JSON.stringify(all, null, 1));
