@@ -1,3 +1,1 @@
-화살의 몸통은 제자리에 두고 붉은 깃과 빛 꼬리가 떨리는 6프레임을 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/switzerland-2-body/sheet.png)에 저장했습니다. 시트는 1536×1024, 3×2 배열이며, 배경을 `#00FF00`으로 통일하고 각 칸 가장자리에 24px 여백을 확보했습니다.
-
-수평 화살의 비율을 유지해 스프라이트는 칸 높이의 약 22%를 차지합니다. 재생 속도는 게임에서 프레임당 0.08초로 설정하면 됩니다.
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/switzerland-2-body/sheet.png)를 저장했습니다. 1536×1024 이미지에 512×512 프레임 6개를 배치했습니다. 발 위치를 칸 아래 중앙에 맞추고, 순수 초록(`#00FF00`) 배경과 각 칸의 최소 24px 여백을 확인했습니다.
