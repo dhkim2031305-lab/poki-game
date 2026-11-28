@@ -685,13 +685,10 @@
     G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
     if (settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('revive');
-    const { rank, key, lang } = G.country;
+    const { rank, key, lang, invShout } = G.country;
     AUDIO.voice(`assets/sound/shout/${String(rank).padStart(2, '0')}-${key}-inv.mp3`);
-    const shout = I18N.t('invuln.shout', { 나라: G.country.native }, lang);
-    if (shout !== 'invuln.shout') {
-      G.msgs = G.msgs.filter(m => !m.shout);
-      G.msgs.push({ text: shout, t: 1.2, life0: 1.2, shout: true, rtl: lang === 'he' });
-    }
+    G.msgs = G.msgs.filter(m => !m.shout);
+    G.msgs.push({ text: invShout, t: 1.2, life0: 1.2, shout: true, rtl: lang === 'he' });
   }
   // n = 1: 나라별 고유 스킬 (우클릭 2번 / L / 스킬 버튼) · n = 2: 두 번째 스킬 (좌클릭 2번 / ; ) — 기획팀 설계 중이라 자리만
   // 횟수: 1번·2번 합쳐 한 판에 5번 (라운드마다 안 채워져요)

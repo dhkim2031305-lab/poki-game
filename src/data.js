@@ -6,39 +6,39 @@
   // melee = 치기 효과, ranged = 쏘기 (style-guide.md "나라별 치기·쏘기")
   //   탄: arrow(활)·beam(미국 에너지 소총)·bullet(핀란드 소총)·sling(투석기) — 물총은 사용자가 취소 / 던지기: axe·mace(회전), polearm(곧게), boomerang(돌아옴)
   //   wave = 검 나라: 칼은 손에 둔 채 휘둘러 초승달 은빛 검기를 날려요 (사용자 확정 2026-11-25, 팀장 전달 — 예전엔 칼을 던졌어요 'blade')
-  const C = (key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged) =>
-    ({ key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged });
+  const C = (key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged, invShout) =>
+    ({ key, iso, gdp, money, lang, cur, sym, native, en, ko, melee, ranged, invShout });
   const COUNTRIES = [
-    C('luxembourg', 'lu', 157809, 100.0, 'fr', 'EUR', '€', 'Luxembourg', 'Luxembourg', '룩셈부르크', 'slash', 'wave'),
-    C('ireland', 'ie', 140848, 89.3, 'en', 'EUR', '€', 'Ireland', 'Ireland', '아일랜드', 'smash', 'axe'),
-    C('switzerland', 'ch', 97357, 61.7, 'de', 'CHF', 'CHF', 'Schweiz', 'Switzerland', '스위스', 'thrust', 'polearm'),
-    C('usa', 'us', 86147, 54.6, 'en', 'USD', '$', 'United States', 'United States', '미국', 'thrust', 'beam'),
-    C('netherlands', 'nl', 84738, 53.7, 'nl', 'EUR', '€', 'Nederland', 'Netherlands', '네덜란드', 'rapid', 'wave'),
-    C('denmark', 'dk', 82563, 52.3, 'da', 'DKK', 'kr', 'Danmark', 'Denmark', '덴마크', 'smash', 'axe'),
-    C('austria', 'at', 76674, 48.6, 'de', 'EUR', '€', 'Österreich', 'Austria', '오스트리아', 'slash', 'wave'),
-    C('australia', 'au', 75044, 47.6, 'en', 'AUD', '$', 'Australia', 'Australia', '호주', 'spin', 'boomerang'),
-    C('germany', 'de', 74947, 47.5, 'de', 'EUR', '€', 'Deutschland', 'Germany', '독일', 'bigslash', 'wave'),
-    C('sweden', 'se', 71381, 45.2, 'sv', 'SEK', 'kr', 'Sverige', 'Sweden', '스웨덴', 'slash', 'wave'),
-    C('canada', 'ca', 65483, 41.5, 'en', 'CAD', '$', 'Canada', 'Canada', '캐나다', 'smash', 'axe'),
-    C('finland', 'fi', 65163, 41.3, 'fi', 'EUR', '€', 'Suomi', 'Finland', '핀란드', 'thrust', 'bullet'),
-    C('france', 'fr', 62648, 39.7, 'fr', 'EUR', '€', 'France', 'France', '프랑스', 'slash', 'wave'),
-    C('italy', 'it', 62530, 39.6, 'it', 'EUR', '€', 'Italia', 'Italy', '이탈리아', 'thrust', 'wave'),
-    C('korea', 'kr', 61227, 38.8, 'ko', 'KRW', '₩', '한국', 'Korea', '한국', 'slash', 'arrow'),
-    C('spain', 'es', 58189, 36.9, 'es', 'EUR', '€', 'España', 'Spain', '스페인', 'slash', 'wave'),
-    C('czechia', 'cz', 57723, 36.6, 'cs', 'CZK', 'Kč', 'Česko', 'Czechia', '체코', 'smash', 'quake'),   // 체코: 도리깨 내려찍기 충격파 (사용자 확정 GDD 0-12)
-    C('israel', 'il', 57357, 36.3, 'he', 'ILS', '₪', 'ישראל', 'Israel', '이스라엘', 'slash', 'sling'),
-    C('lithuania', 'lt', 56261, 35.7, 'lt', 'EUR', '€', 'Lietuva', 'Lithuania', '리투아니아', 'thrust', 'polearm'),
-    C('newzealand', 'nz', 55692, 35.3, 'en', 'NZD', '$', 'New Zealand', 'New Zealand', '뉴질랜드', 'thrust', 'polearm'),
-    C('japan', 'jp', 54232, 34.4, 'ja', 'JPY', '¥', '日本', 'Japan', '일본', 'slash', 'wave'),
-    C('portugal', 'pt', 52761, 33.4, 'pt', 'EUR', '€', 'Portugal', 'Portugal', '포르투갈', 'rapid', 'wave'),
-    C('poland', 'pl', 50162, 31.8, 'pl', 'PLN', 'zł', 'Polska', 'Poland', '폴란드', 'thrust', 'polearm'),
-    C('hungary', 'hu', 48548, 30.8, 'hu', 'HUF', 'Ft', 'Magyarország', 'Hungary', '헝가리', 'slash', 'wave'),
-    C('slovakia', 'sk', 48190, 30.5, 'sk', 'EUR', '€', 'Slovensko', 'Slovakia', '슬로바키아', 'smash', 'axe'),
-    C('greece', 'gr', 44497, 28.2, 'el', 'EUR', '€', 'Ελλάδα', 'Greece', '그리스', 'thrust', 'polearm'),
-    C('turkiye', 'tr', 43626, 27.6, 'tr', 'TRY', '₺', 'Türkiye', 'Türkiye', '튀르키예', 'slash', 'wave'),
-    C('chile', 'cl', 35493, 22.5, 'es', 'CLP', '$', 'Chile', 'Chile', '칠레', 'slash', 'wave'),
-    C('mexico', 'mx', 26110, 16.5, 'es', 'MXN', '$', 'México', 'Mexico', '멕시코', 'slash', 'wave'),
-    C('colombia', 'co', 23021, 14.6, 'es', 'COP', '$', 'Colombia', 'Colombia', '콜롬비아', 'slash', 'wave'),
+    C('luxembourg', 'lu', 157809, 100.0, 'fr', 'EUR', '€', 'Luxembourg', 'Luxembourg', '룩셈부르크', 'slash', 'wave', 'Luxembourg ! Tiens bon !'),
+    C('ireland', 'ie', 140848, 89.3, 'en', 'EUR', '€', 'Ireland', 'Ireland', '아일랜드', 'smash', 'axe', 'Ireland! Hold on!'),
+    C('switzerland', 'ch', 97357, 61.7, 'de', 'CHF', 'CHF', 'Schweiz', 'Switzerland', '스위스', 'thrust', 'polearm', 'Schweiz! Halt durch!'),
+    C('usa', 'us', 86147, 54.6, 'en', 'USD', '$', 'United States', 'United States', '미국', 'thrust', 'beam', 'America! Hold on!'),
+    C('netherlands', 'nl', 84738, 53.7, 'nl', 'EUR', '€', 'Nederland', 'Netherlands', '네덜란드', 'rapid', 'wave', 'Nederland! Hou vol!'),
+    C('denmark', 'dk', 82563, 52.3, 'da', 'DKK', 'kr', 'Danmark', 'Denmark', '덴마크', 'smash', 'axe', 'Danmark! Hold ud!'),
+    C('austria', 'at', 76674, 48.6, 'de', 'EUR', '€', 'Österreich', 'Austria', '오스트리아', 'slash', 'wave', 'Österreich! Halt durch!'),
+    C('australia', 'au', 75044, 47.6, 'en', 'AUD', '$', 'Australia', 'Australia', '호주', 'spin', 'boomerang', 'Australia! Hold on!'),
+    C('germany', 'de', 74947, 47.5, 'de', 'EUR', '€', 'Deutschland', 'Germany', '독일', 'bigslash', 'wave', 'Deutschland! Halt durch!'),
+    C('sweden', 'se', 71381, 45.2, 'sv', 'SEK', 'kr', 'Sverige', 'Sweden', '스웨덴', 'slash', 'wave', 'Sverige! Håll ut!'),
+    C('canada', 'ca', 65483, 41.5, 'en', 'CAD', '$', 'Canada', 'Canada', '캐나다', 'smash', 'axe', 'Canada! Hold on!'),
+    C('finland', 'fi', 65163, 41.3, 'fi', 'EUR', '€', 'Suomi', 'Finland', '핀란드', 'thrust', 'bullet', 'Suomi! Kestä!'),
+    C('france', 'fr', 62648, 39.7, 'fr', 'EUR', '€', 'France', 'France', '프랑스', 'slash', 'wave', 'France ! Tiens bon !'),
+    C('italy', 'it', 62530, 39.6, 'it', 'EUR', '€', 'Italia', 'Italy', '이탈리아', 'thrust', 'wave', 'Italia! Resisti!'),
+    C('korea', 'kr', 61227, 38.8, 'ko', 'KRW', '₩', '한국', 'Korea', '한국', 'slash', 'arrow', '한국! 버텨!'),
+    C('spain', 'es', 58189, 36.9, 'es', 'EUR', '€', 'España', 'Spain', '스페인', 'slash', 'wave', '¡España! ¡Aguanta!'),
+    C('czechia', 'cz', 57723, 36.6, 'cs', 'CZK', 'Kč', 'Česko', 'Czechia', '체코', 'smash', 'quake', 'Česko! Vydrž!'),   // 체코: 도리깨 내려찍기 충격파 (사용자 확정 GDD 0-12)
+    C('israel', 'il', 57357, 36.3, 'he', 'ILS', '₪', 'ישראל', 'Israel', '이스라엘', 'slash', 'sling', 'ישראל! תחזיק מעמד!'),
+    C('lithuania', 'lt', 56261, 35.7, 'lt', 'EUR', '€', 'Lietuva', 'Lithuania', '리투아니아', 'thrust', 'polearm', 'Lietuva! Laikykis!'),
+    C('newzealand', 'nz', 55692, 35.3, 'en', 'NZD', '$', 'New Zealand', 'New Zealand', '뉴질랜드', 'thrust', 'polearm', 'New Zealand! Hold on!'),
+    C('japan', 'jp', 54232, 34.4, 'ja', 'JPY', '¥', '日本', 'Japan', '일본', 'slash', 'wave', '日本！踏ん張れ！'),
+    C('portugal', 'pt', 52761, 33.4, 'pt', 'EUR', '€', 'Portugal', 'Portugal', '포르투갈', 'rapid', 'wave', 'Portugal! Aguenta!'),
+    C('poland', 'pl', 50162, 31.8, 'pl', 'PLN', 'zł', 'Polska', 'Poland', '폴란드', 'thrust', 'polearm', 'Polska! Wytrzymaj!'),
+    C('hungary', 'hu', 48548, 30.8, 'hu', 'HUF', 'Ft', 'Magyarország', 'Hungary', '헝가리', 'slash', 'wave', 'Magyarország! Tarts ki!'),
+    C('slovakia', 'sk', 48190, 30.5, 'sk', 'EUR', '€', 'Slovensko', 'Slovakia', '슬로바키아', 'smash', 'axe', 'Slovensko! Vydrž!'),
+    C('greece', 'gr', 44497, 28.2, 'el', 'EUR', '€', 'Ελλάδα', 'Greece', '그리스', 'thrust', 'polearm', 'Ελλάδα! Κράτα γερά!'),
+    C('turkiye', 'tr', 43626, 27.6, 'tr', 'TRY', '₺', 'Türkiye', 'Türkiye', '튀르키예', 'slash', 'wave', 'Türkiye! Dayan!'),
+    C('chile', 'cl', 35493, 22.5, 'es', 'CLP', '$', 'Chile', 'Chile', '칠레', 'slash', 'wave', '¡Chile! ¡Aguanta!'),
+    C('mexico', 'mx', 26110, 16.5, 'es', 'MXN', '$', 'México', 'Mexico', '멕시코', 'slash', 'wave', '¡México! ¡Aguanta!'),
+    C('colombia', 'co', 23021, 14.6, 'es', 'COP', '$', 'Colombia', 'Colombia', '콜롬비아', 'slash', 'wave', '¡Colombia! ¡Aguanta!'),
   ];
   COUNTRIES.forEach((c, i) => { c.rank = i + 1; });
 
