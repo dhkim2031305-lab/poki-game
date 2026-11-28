@@ -107,7 +107,7 @@
 | `skill.name.16` | 티소나 일섬 | Tizona Flash | 스페인 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 일섬 / Single Flash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.17` | 전차 요새 | Wagon Fort | 체코 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 방패 진지 / Shield Fort) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.18` | 투석 연사 | Sling Volley | 이스라엘 스킬 이름 (연사) | 확정 |
-| `skill.name.19` | 게디미나스 기둥 창돌격 | Columns Lance Charge | 리투아니아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기마 창돌격 / Mounted Lance Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill.name.19` | 기둥 문장 창돌격 | Pillar Crest Lance Charge | 리투아니아 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 기마 창돌격 / Mounted Lance Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.20` | 은빛 고사리 결계 | Silver Fern Ward | 뉴질랜드 스킬 이름 (설치) | 확정 |
 | `skill.name.21` | 노 목검 일격 | Oar Sword Strike | 일본 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 발도술 돌진 / Quickdraw Dash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.22` | 항해의 바람 | Sailing Wind | 포르투갈 스킬 이름 (범위) | 확정 |
@@ -135,7 +135,7 @@
 | `skill2.name.14` | 자마 군단 전진 찌르기 | Zama Legion Advance | 이탈리아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 글라디우스 연속 찌르기 / Gladius Flurry) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.15` | 천자총통 포격 | Cheonja Cannon Barrage | 한국 2번 스킬 이름 (범위) · 2026-11-27 바꿈(전: 연발 화살 / Rapid Arrows). 화포 이름이에요 | 확정 · 18개 언어는 기획팀 번역, **원어민 확인 필요** |
 | `skill2.name.16` | 콜라다 회전베기 | Colada Whirl | 스페인 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 톨레도 회전베기 / Toledo Spin Slash) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
-| `skill2.name.17` | 후스 도리깨 | Hussite Flail | 체코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도리깨 휘두르기 / Flail Swing) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
+| `skill2.name.17` | 보헤미아 도리깨 | Bohemian Flail | 체코 2번 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 도리깨 휘두르기 / Flail Swing) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.18` | 검 돌격 | Sword Rush | 이스라엘 2번 스킬 이름 (돌진) | 확정 |
 | `skill2.name.19` | 기마 투창 3연 | Mounted Javelin Trio | 리투아니아 2번 스킬 이름 (연사) · 2026-11-27 장수 개편(전: 투창 3연 / Triple Javelin) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill2.name.20` | 고사리 씨앗 질주 | Fern Seed Dash | 뉴질랜드 2번 스킬 이름 (돌진) | 확정 (2026-11-25 이름 바꿈) |
