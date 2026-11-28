@@ -74,7 +74,7 @@ const { chromium } = require('playwright');
         return best ? (best.type === 'boss' ? '보스 몸' : best.type === 'shooter' ? '사격 외계인 몸' : '근접 외계인 몸') : '?';
       }
       const hits = {}; let roundHits = {};
-      while (frames < 60 * 60 * (GOD ? 15 : 8)) {   // 게임 시간 최대 8분 (GOD는 15분)
+      while (frames < 60 * 60 * (GOD ? 25 : 8)) {   // 게임 시간 최대 8분 (GOD는 25분)
         for (let i = 0; i < 4; i++) {
           if (G.scene === 'play') bot();
           const hp0 = G.hero.hp; step();
