@@ -44,3 +44,5 @@
 | `all60-3d.js` | 3D에서 30개국 × 스킬 1·2: 에러·console.error·404 0, 피해 배수, 첫 피해, 2번 컷인 길이 | `node all60-3d.js OUT 8080 [ci,…]` (빌드 ZIP은 풀어서 다른 포트로) |
 | `hitrange.js` | 판정 거리: 목표에서 20px 간격 외계인 줄(오른쪽·아래·위), 4초 동안 맞은 가장 먼 거리 | `node hitrange.js OUT 8080 [ci:n,…]` |
 | `pack60.js` | 고정 무리 처치 수: 30개국 × 스킬 1·2를 졸개 12 + 보스 1 무리에 한 번 쓰고 5초(체력 30·50). 소환·난수 없어 전후 비교용 | `node pack60.js OUT 8080` (전 코드는 git worktree + PORT=8081) |
+| `edgefx.js` | 장수를 위쪽 벽 앞에 두고 위로 스킬 → 효과가 경기장 밖으로 넘치는지 캡처(전후 포트 비교) | `node edgefx.js OUT 8080 [ci:n,…]` |
+| `fpscmp.js` | 실제 rAF 프레임 간격: 같은 장면(외계인 8 + 스킬 1·2) 12초, CPU 1·4배 느리게 | `RATES=1,4 node fpscmp.js 8080 [ci,…]` |
