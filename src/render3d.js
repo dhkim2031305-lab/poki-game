@@ -252,7 +252,14 @@
     m.scale.set(hgt * asp * (mo.sx || 1) * (mo.flip ? -1 : 1), hgt * (mo.sy || 1), 1);
     if (m.material.map !== tex) { m.material.map = tex; m.material.needsUpdate = true; }
     m.material.opacity = mo.alpha != null ? mo.alpha : 1;
-    m.material.color.setScalar(mo.tint != null ? mo.tint : 1);   // 등을 보이면 조금 어둡게
+    if (mo.color != null) m.material.color.set(mo.color);
+    else m.material.color.setScalar(mo.tint != null ? mo.tint : 1);
+    m.material.blending = o.add ? T.AdditiveBlending : T.NormalBlending;
+    const alphaTest = o.effect ? 0 : .12;
+    if (m.material.alphaTest !== alphaTest) {
+      m.material.alphaTest = alphaTest;
+      m.material.needsUpdate = true;
+    }
     // 벽 앞(방 안)에 있으면 화면 순서대로 칠하고, 위쪽 벽 너머(들어오는 중)면 벽에 가려져요
     m.material.depthTest = y < WALL.top + 4;
     m.renderOrder = 100 + y;
@@ -267,6 +274,7 @@
     if (s.material.map !== tex) { s.material.map = tex; s.material.needsUpdate = true; }
     s.material.blending = o.add ? T.AdditiveBlending : T.NormalBlending;
     s.material.opacity = o.alpha != null ? o.alpha : 1;
+    s.rotation.y = -(o.angle || 0);
     s.position.set(x, .6 + (o.lift || 0), y); s.scale.set(w, 1, d); s.renderOrder = o.order != null ? o.order : 50;
   };
   // 발밑 접촉 그림자 (해 그림자와 별개로 발이 바닥에 붙어 보이게)

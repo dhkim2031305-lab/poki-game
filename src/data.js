@@ -134,17 +134,17 @@
     luxembourg: [{ k: 'dashInv', mul: .9, inv: 1 }, { k: 'fear', mul: .5, t: 1 }],
     ireland: [{ k: 'pull', mul: .8 }, { k: 'zigzag', mul: .9 }],
     switzerland: [{ k: 'trap', mul: 1.2, life: 6 }, { k: 'pierce', div: 5 }],
-    usa: [{ k: 'bounce', div: 4 }, { k: 'rings', div: 4 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 3 → 4
+    usa: [{ k: 'bounce', div: 4 }, { k: 'rings', div: 5 }],   // 수치 조정 2026-11-27 3차: 2번 div 4 → 5
     netherlands: [{ k: 'lastHit', mul: .2, last: .6, n: 5 }, { k: 'blink', mul: .9 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 8 → mul 0.2, last 0.4 → 0.6
     denmark: [{ k: 'mark', mul: .8, t: 2, x: 2 }, { k: 'grow', mul1: .6, mul2: .4 }],   // 수치 조정 2026-11-27 (41ee110): 1번 mul 0.6 → 0.8
     austria: [{ k: 'prints', mul: .7, div: 8 }, { k: 'twoRings', mul: .5 }],
-    australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 5 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 4 → 5
+    australia: [{ k: 'boomer', out: .2, back: .2, fan: .22 }, { k: 'cross', div: 6 }],   // 수치 조정 2026-11-27 3차: 2번 div 5 → 6
     germany: [{ k: 'blast', mul: .9 }, { k: 'endSmash', mul: .5, smash: .5 }],
-    sweden: [{ k: 'clones', mul: .7 }, { k: 'ring6', mul: .3, max: 3 }],
+    sweden: [{ k: 'clones', mul: .7 }, { k: 'ring6', mul: .3, inner: .6, max: 3 }],   // 수치 조정 2026-11-27 2차: 안쪽 피해 ×0.6
     canada: [{ k: 'stick', mul: .5, div: 5 }, { k: 'gather', mul: .75, life: 1 }],   // 수치 조정 2026-11-27 (41ee110): 1번 div 8 → 5, 2번 mul 0.9 → 0.75 · QA 고침 2026-11-27
     finland: [{ k: 'seal', mul: .5 }, { k: 'slow', div: 8 }],   // 수치 조정 2026-11-27 (41ee110): 2번 div 6 → 8
-    france: [{ k: 'cone', mul: 1 }, { k: 'wallSlam', mul: .6, slam: .4 }],
-    italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 5 }],
+    france: [{ k: 'cone', mul: 1, back: 82 }, { k: 'wallSlam', mul: .6, slam: .4 }],   // 수치 조정 2026-11-27 2차: 꼭짓점 32 → 82px
+    italy: [{ k: 'corners', mul: 1, edge: .5, life: .7 }, { k: 'stepThrust', div: 3 }],   // 수치 조정 2026-11-27 2차: 발당 div 5 → 3
     korea: [{ k: 'turtle', mul: .6, smoke: .4, r: 110 }, { k: 'cannon', side: .25, mid: .5 }],   // 사용자 "추천대로" 2026-11-27 · [제안 수치] · 연기 부채꼴 반지름 110은 개발 제안
     spain: [{ k: 'focus', first: 1.6, rest: .3 }, { k: 'spinMove', mul: .8 }],
     czechia: [{ k: 'half', div: 8 }, { k: 'widen', mul: .35 }],
