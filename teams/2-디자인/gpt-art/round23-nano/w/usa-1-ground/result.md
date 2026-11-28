@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/usa-1-ground/sheet.png)에 저장했습니다. 이미지 생성 도구에 정수리 시점의 원형 충격파 4단계와 잔불 2단계를 요청한 뒤, 배경을 순수 초록 `#00FF00`으로 정리했습니다. 1536×1024 크기와 각 512×512 칸의 24px 여백을 확인했습니다.

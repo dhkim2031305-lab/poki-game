@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/switzerland-2-ground/sheet.png)를 저장했습니다. 1536×1024 크기의 3×2 시트에 충격 고리 4단계와 사과 조각이 남는 자국 2단계를 요청한 순서로 배치했습니다. 각 그림을 칸 중앙에 맞추고, 가장자리 24px가 순수 초록(`#00FF00`)으로 비어 있는지 확인했습니다.

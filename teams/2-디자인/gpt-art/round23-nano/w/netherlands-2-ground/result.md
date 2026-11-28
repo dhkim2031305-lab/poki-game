@@ -1,0 +1,1 @@
+「바닷바람 순간 돌파」의 바닥 효과를 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/netherlands-2-ground/sheet.png)로 저장했습니다. 1536×1024 이미지에 퍼지는 고리 4단계와 물웅덩이 2단계를 배치했습니다. 배경을 순수 초록 `#00FF00`으로 통일했고, 각 칸의 효과를 중앙에 맞춰 가장자리 여백이 최소 24px인지 확인했습니다.

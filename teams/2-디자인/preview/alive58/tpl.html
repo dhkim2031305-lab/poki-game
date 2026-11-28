@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>29개 나라 스킬 시안</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4;--acc:#ffd166;--line:#3a3d52}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 10px;max-width:980px}
+.bar{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+button{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+button[aria-pressed=true]{background:#5a6290;border-color:#8a93c8}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px}
+.c{background:var(--card);border-radius:10px;padding:10px}.c h2{font-size:15px;margin:0 0 2px}.c h2 b{color:var(--acc)}
+.c .m{font-size:12.5px;color:var(--sub);margin:4px 0 6px}
+canvas.v{width:100%;height:auto;display:block;border-radius:8px;background:#2b2a33}
+.strip{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px;align-items:center}.strip span{font-size:11px;color:var(--sub);width:42px}
+.strip canvas{width:46px;height:46px;background:#111;border-radius:4px}
+</style></head><body>
+<h1>살아 움직이는 스킬 — 나머지 29개 나라 58개 (한국 방식)</h1>
+<p>장수가 원소 기운에 휩싸여 → 스킬의 <b>주인공</b>이 움직이고(탈 수 있으면 장수가 탐) → 맞는 자리에 <b>충돌</b> → 맞은 적에 <b>여운</b>이 남아요. 실제 게임 바닥 위, 게임 크기 2배. 아래 줄은 그림 낱칸(주인공·충돌·여운·바닥). 바닥·파편 그림은 아직 그리는 중인 나라가 있어요.</p>
+<div class="bar"><button id="slow" aria-pressed="false">느리게 보기: 끔</button></div>
+<div class="bar" id="nav"></div>
+<div class="g" id="g"></div>
+<script>
+const DATA=/*DATA*/,EL=/*EL*/;
+const W=440,H=230,S=2;let SPD=1;
+document.getElementById('slow').onclick=e=>{SPD=SPD===1?.25:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬 (¼배)');e.target.setAttribute('aria-pressed',SPD!==1)};
+const IM={};function img(n){if(!IM[n]){const i=new Image();i.src='a/'+n+'.webp';IM[n]=i}return IM[n]}
+const ok=n=>{const i=img(n);return i.complete&&i.naturalWidth>0};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*clamp(t,0,1),ease=t=>1-(1-clamp(t,0,1))**2;
+function cell(x,n,i,cx,cy,size,o={}){if(!ok(n))return false;const im=IM[n],ch=im.naturalHeight,cnt=Math.round(im.naturalWidth/ch);i=((Math.floor(i)%cnt)+cnt)%cnt;if(o.clampEnd)i=Math.min(cnt-1,Math.floor(o.clampEnd));
+ x.save();x.globalAlpha=o.a??1;if(o.add)x.globalCompositeOperation='lighter';x.translate(cx,cy);if(o.rot)x.rotate(o.rot);if(o.flip)x.scale(-1,1);const sh=size*(o.sy||1);x.drawImage(im,i*ch,0,ch,ch,-size/2,o.bottom?-sh:-sh/2,size,sh);x.restore();return true}
+function floor(x){if(ok('room')){const im=IM.room;x.drawImage(im,im.naturalWidth*.2,im.naturalHeight*.4,W*1.5,H*1.5,0,0,W,H)}else{x.fillStyle='#2b2a33';x.fillRect(0,0,W,H)}}
+function shadow(x,cx,cy,r,a=.32){x.fillStyle=`rgba(0,0,0,${a})`;x.beginPath();x.ellipse(cx,cy,r,r*.38,0,0,7);x.fill()}
+function scene(d){const k=d.k,key=k+'-'+d.n,energy=!d.ride&&/바람|회오리|칼빛|칼날|빛|폭풍|오로라|불|번개|음파|정령|물살|물결|신호탄|룬/.test(d.sub);
+ const st={as:[],t0:0};function init(){st.as=[[300,128],[335,156],[355,118]].map(([x,y])=>({x,y,hit:0,vx:0,z:0,vz:0,af:-9}))}init();
+ const dash=d.type==='돌진',L=3.2;
+ return {L,init,draw(x,t,dt){floor(x);const as=st.as;as.forEach(a=>{a.hit=Math.max(0,a.hit-dt);a.x+=a.vx*dt;a.vx*=Math.pow(.02,dt);a.z=Math.max(0,a.z+a.vz*dt);a.vz-=900*dt;if(a.z===0)a.vz=0});
+  const T0=.3,T1=dash?.9:.75,tx=320,ty=140,aa=t<T0?t/T0:t>2.4?clamp(1-(t-2.4)/.3,0,1):1;
+  let hx=70,hy=150,sx,sy;const p=ease((t-T0)/(T1-T0));
+  if(dash){hx=lerp(70,270,p);sx=hx+12;sy=hy}else{sx=lerp(hx+40,tx,p);sy=lerp(hy,ty,p)}
+  const hitT=T1;if(t>=hitT&&!st.k){st.k=1;as.forEach(a=>{const dd=Math.hypot(a.x-tx,(a.y-ty)*1.6);if(dash||dd<70){a.hit=.12;a.vx=(dash?1:Math.sign(a.x-tx)||1)*180;a.vz=140;a.af=t}})}
+  // 바닥
+  const gq=t-hitT;if(gq>=0&&ok(key+'-ground')){if(gq<.32)cell(x,key+'-ground',gq/.08,tx-(dash?20:0),ty+6,120,{sy:.5});else if(gq<2.2)cell(x,key+'-ground',4,tx-(dash?20:0),ty+6,90,{sy:.5,a:gq>1.8?1-(gq-1.8)/.4:1})}
+  // 적 + 여운
+  as.forEach(a=>{shadow(x,a.x,a.y,10);const y=a.y-24-a.z;cell(x,'grunt-dir',4,a.x,y,54,{flip:true});if(a.hit>0)cell(x,'grunt-dir',4,a.x,y,54,{flip:true,add:1,a:a.hit/.12*.6});
+   const q=t-a.af;if(q>=0&&q<1.8){const fa=q>1.5?1-(q-1.5)/.3:clamp(q/.1,0,1);cell(x,key+'-after',t/.08,a.x,a.y-a.z+2,60,{bottom:1,a:fa})}});
+  // 장수 + 기운
+  const onP=t>T0-.08&&t<T1+.2,fa=t>T1?clamp(1-(t-T1)/.2,0,1):1,ride=d.ride&&dash&&onP;
+  const HX=ride?sx-6:(dash?hx:70),HY=ride?sy-26:hy;
+  if(onP&&dash){shadow(x,sx,sy+2,40*fa,.35)}
+  if(!ride)shadow(x,HX,HY,12);
+  cell(x,'aura-'+d.aura,t/.08,HX,HY+4,100,{add:1,bottom:1,a:aa});
+  if(ride&&onP)cell(x,key+'-act',t/.08,sx,sy-30,120,{a:fa,add:energy});
+  cell(x,'dir-'+k,2,HX,HY-34,72);
+  cell(x,'aura-'+d.aura,t/.08+2,HX,HY+4,92,{add:1,bottom:1,a:aa*.55});
+  if(onP&&!ride){if(dash)cell(x,key+'-act',t/.08,sx+30,sy-30,110,{a:fa,add:energy});else if(t<T1)cell(x,key+'-act',t/.08,sx,sy-34-60*4*p*(1-p),86,{add:energy})}
+  // 충돌
+  const hq=t-hitT;if(hq>=0&&hq<.36)cell(x,key+'-hit',hq/.06,tx-(dash?10:0),ty+4,120,{add:1,bottom:1,clampEnd:hq/.06})}}}
+const nav=document.getElementById('nav'),g=document.getElementById('g');const ks=[...new Set(DATA.map(d=>d.k))];let cur=ks[0],loops=[];
+function show(k){cur=k;[...nav.children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));loops.forEach(l=>l.stop=1);loops=[];g.innerHTML='';
+ DATA.filter(d=>d.k===k).forEach(d=>{const key=d.k+'-'+d.n,c=document.createElement('div');c.className='c';
+  c.innerHTML=`<h2>${d.ko} ${d.n} 「${d.name}」 <b>${d.type}</b></h2><div class="m">주인공: ${d.sub} · 장수: ${d.hero} · 기운: ${EL[d.aura]}<br>맞은 뒤: ${d.after}</div><canvas class="v" width="${W*S}" height="${H*S}"></canvas><div class="strip"></div>`;g.appendChild(c);
+  const x=c.querySelector('canvas').getContext('2d'),sc=scene(d),lp={};loops.push(lp);let tl=0,last=0;
+  (function f(ts){if(lp.stop)return;const dt=Math.min(.05,(ts-(last||ts))/1000)*SPD;last=ts;tl+=dt;if(tl>sc.L){tl=0;sc.init();}x.setTransform(S,0,0,S,0,0);sc.draw(x,tl,dt);requestAnimationFrame(f)})(0);
+  const strips=c.querySelector('.strip');strips.style.display='block';[['act','주인공'],['hit','충돌'],['after','여운'],['ground','바닥']].forEach(([s,lb])=>{const strip=document.createElement('div');strip.className='strip';strips.appendChild(strip);const sp=document.createElement('span');sp.textContent=lb;strip.appendChild(sp);const n=key+'-'+s,im=img(n);
+   const go=()=>{if(!im.complete)return setTimeout(go,150);if(!im.naturalWidth){const e=document.createElement('span');e.textContent='그리는 중';e.style.width='auto';strip.appendChild(e);return}const h=im.naturalHeight,cnt=Math.round(im.naturalWidth/h);for(let i=0;i<cnt;i++){const cv=document.createElement('canvas');cv.width=92;cv.height=92;strip.appendChild(cv);cv.getContext('2d').drawImage(im,i*h,0,h,h,0,0,92,92)}};go();
+  })})}
+ks.forEach(k=>{const b=document.createElement('button');b.dataset.k=k;b.textContent=DATA.find(d=>d.k===k).ko;b.onclick=()=>show(k);nav.appendChild(b)});
+img('room');img('grunt-dir');show(cur);
+</script></body></html>

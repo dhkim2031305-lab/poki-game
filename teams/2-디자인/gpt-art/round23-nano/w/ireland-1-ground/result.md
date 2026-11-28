@@ -1,0 +1,1 @@
+[광전사 회오리 sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/ireland-1-ground/sheet.png)를 저장했습니다. 1536×1024 이미지에 확산 고리 4단계와 잔류 긁힌 자국 2단계를 3×2로 배치했습니다. 각 효과를 칸 중앙에 맞추고, 사방 24px 여백이 순수 초록(`#00FF00`)인지 확인했습니다.

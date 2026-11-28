@@ -1,0 +1,1 @@
+[ sheet.png ](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/ireland-2-ground/sheet.png)를 저장했습니다. 1536×1024 시트에 충격 고리 4단계와 물웅덩이 2단계를 요청하신 순서로 배치했습니다. 생성 후 배경을 `#00FF00`으로 통일하고, 각 효과의 중심과 원형 비율을 보정했습니다. 모든 칸에 24px 이상의 여백을 확인했습니다.

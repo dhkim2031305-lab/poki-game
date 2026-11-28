@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/netherlands-1-ground/sheet.png)를 저장했습니다. 1536×1024 이미지에 위에서 내려다본 원형 충격파 4단계와 물 튐·연기 잔흔 2단계를 요청한 순서로 배치했습니다. 각 그림을 칸 중앙에 맞췄으며, 순수 초록(`#00FF00`) 배경과 각 칸의 최소 24px 여백을 확인했습니다.
