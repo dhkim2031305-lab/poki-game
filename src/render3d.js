@@ -1,7 +1,6 @@
 // 2.5D 렌더러 (B안 · 사용자 결정 "b안" 2026-11-25) — Three.js r149 (src/vendor/three.min.js, MIT)
 // 바닥·벽·문 = 진짜 3D (살짝 기운 원근 카메라, 조명, 그림자)
 // 장수·외계인·화폐 = 카메라를 보는 2D 판(빌보드) · 공격 효과·HUD = 2D 캔버스를 위에 겹쳐요 (R3D.proj로 자리·크기를 맞춰요)
-// 되돌리기: 주소 ?render=2d (또는 저장된 설정 render: '2d') → 예전 2D 렌더러
 (() => {
   const T = window.THREE, FIELD = window.DATA.FIELD, UI = window.UI;
   const R = { ok: false, built: false };
@@ -11,7 +10,7 @@
   // 벽: room 그림의 벽 띠와 같은 자리 (위 46 · 옆 42 · 아래 38), 앞 벽은 낮게 잘라 안이 보이게
   const WALL = { h: 30, top: 46, side: 42, bottom: 352, low: 9, door: 34 };
   const PITCH = 56;                 // 카메라가 내려다보는 각도(도) — 90이면 위에서 똑바로
-  let renderer, scene, camera, gl, sun;
+  let renderer, scene, camera, gl, sun, impactLight;
   const camUp = new T.Vector3(), v1 = new T.Vector3(), v2 = new T.Vector3();
   let pixelCap = 2, view = { x: 0, y: 0, w: 1, h: 1, cw: 1, ch: 1 };
 
@@ -19,11 +18,11 @@
     try {
       gl = document.createElement('canvas'); gl.id = 'game3d';
       renderer = new T.WebGLRenderer({ canvas: gl, antialias: false, alpha: false, powerPreference: 'high-performance' });
-    } catch (e) { console.warn('[3D] WebGL 안 됨 → 2D로', e); return false; }
+    } catch (e) { console.warn('[3D] WebGL 초기화 실패', e); return false; }
     gameCanvas.parentNode.insertBefore(gl, gameCanvas);
     gl.style.display = 'none';
-    // 컨텍스트를 잃으면(메모리 부족 등) 2D로 바꿔요 — game.js가 R3D.lost를 봐요
-    gl.addEventListener('webglcontextlost', e => { e.preventDefault(); R.lost = true; gl.style.display = 'none'; console.warn('[3D] WebGL 컨텍스트 잃음 → 2D로'); });
+    // 컨텍스트를 잃으면 game.js가 안내 화면을 표시해요.
+    gl.addEventListener('webglcontextlost', () => { R.lost = true; gl.style.display = 'none'; console.warn('[3D] WebGL 컨텍스트 잃음'); });
     renderer.setClearColor(0x0A0B0F, 1);
     renderer.autoClear = false;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
@@ -202,7 +201,7 @@
     sun = new T.DirectionalLight(0xFFE6C4, .62);
     sun.position.set(W * .5 - 260, 520, H * .5 + 180); sun.target.position.set(W / 2, 0, H / 2);
     scene.add(sun); scene.add(sun.target);
-    sun.castShadow = true;
+    sun.castShadow = !R.low;
     const sc = sun.shadow.camera; sc.left = -470; sc.right = 470; sc.top = 380; sc.bottom = -380; sc.near = 100; sc.far = 1400;
     sun.shadow.mapSize.set(pixelCap < 2 ? 1024 : 2048, pixelCap < 2 ? 1024 : 2048); sun.shadow.bias = -0.0015; sun.shadow.normalBias = .6;
     fitCamera();
@@ -244,12 +243,17 @@
   R.sprite = (tex, x, y, hgt, mo = {}, o = {}) => {
     if (!tex || !R.built) return;
     const s = getSprite(), m = s.m, img = tex.image, asp = o.aspect || tex.userData.aspect || img.width / img.height;
-    s.g.position.set(x, 0, y);
+    s.g.position.set(x, o.lift || 0, y);
     if (o.upright != null) s.g.rotation.set(-o.upright * Math.PI / 180, 0, 0);   // 카메라보다 덜 눕혀 세워요 (원근이 판에 걸려 입체감)
     else s.g.quaternion.copy(camera.quaternion);
     m.position.set(mo.ox || 0, -(mo.oy || 0) - (o.below || 0), 0);
     m.rotation.set(0, 0, -(mo.rot || 0));
     m.scale.set(hgt * asp * (mo.sx || 1) * (mo.flip ? -1 : 1), hgt * (mo.sy || 1), 1);
+    if (o.center) {
+      const half = m.scale.y / 2;
+      m.position.x += Math.sin(m.rotation.z) * half;
+      m.position.y -= Math.cos(m.rotation.z) * half;
+    }
     if (m.material.map !== tex) { m.material.map = tex; m.material.needsUpdate = true; }
     m.material.opacity = mo.alpha != null ? mo.alpha : 1;
     if (mo.color != null) m.material.color.set(mo.color);
@@ -260,9 +264,9 @@
       m.material.alphaTest = alphaTest;
       m.material.needsUpdate = true;
     }
-    // 벽 앞(방 안)에 있으면 화면 순서대로 칠하고, 위쪽 벽 너머(들어오는 중)면 벽에 가려져요
-    m.material.depthTest = y < WALL.top + 4;
-    m.renderOrder = 100 + y;
+    // 효과와 벽 뒤 캐릭터는 깊이를 검사하고, 캐릭터와 효과는 발 위치 순서로 겹쳐요.
+    m.material.depthTest = !!o.effect || y < WALL.top + 4;
+    m.renderOrder = o.renderOrder ?? (100 + y + (o.orderOffset || 0));
     m.castShadow = o.shadow !== false;
   };
   // 바닥 무늬 (발밑 빛·화폐 시간 고리) — 캔버스를 바닥에 깔아요. d = 깊이 (게임 단위)
@@ -280,9 +284,18 @@
   // 발밑 접촉 그림자 (해 그림자와 별개로 발이 바닥에 붙어 보이게)
   let blobTex = null;
   R.blob = (x, y, r, a) => {
-    if (!R.built) return;
+    if (!R.built || R.low) return;
     if (!blobTex) blobTex = gradTex([[0, 'rgba(0,0,0,1)'], [.55, 'rgba(0,0,0,.5)'], [1, 'rgba(0,0,0,0)']]);
     R.decal(blobTex, x, y, r * 2, r * 1.2, { alpha: a, order: 40 });
+  };
+  R.impactLight = (x, y, intensity) => {
+    if (!impactLight) {
+      impactLight = new T.PointLight(0xff9b4a, 0, 140, 2);
+      scene.add(impactLight);
+    }
+    if (intensity <= impactLight.intensity) return;
+    impactLight.position.set(x, 20, y);
+    impactLight.intensity = intensity;
   };
   R.canvasTex = canvasTex;
 
@@ -296,6 +309,7 @@
   // 한 프레임 시작: 지난 프레임 판을 모두 숨겨요
   R.begin = () => {
     if (!R.built && !build()) return false;
+    if (impactLight) impactLight.intensity = 0;
     for (const k in pool) { for (let i = 0; i < used[k]; i++) (k === 's' ? pool[k][i].g : pool[k][i]).visible = false; used[k] = 0; }
     return true;
   };
@@ -336,13 +350,14 @@
     const o = ray.ray.origin, d = ray.ray.direction; if (Math.abs(d.y) < 1e-4) return null;
     const k = (hgt - o.y) / d.y; return { x: o.x + d.x * k, y: o.z + d.z * k };
   };
-  // 느린 기기: 3초 넘게 40fps 아래면 해 그림자를 끄고 픽셀 배율을 1로 (발밑 그림자는 남아요)
+  // 저사양 대응은 세션 안에서만 적용해요. 화면 크기가 바뀌어도 배율을 유지해요.
   R.low = false;
-  R.lowQuality = () => {
-    if (R.low || !renderer) return; R.low = true; pixelCap = 1;
-    if (sun) sun.castShadow = false; renderer.shadowMap.enabled = false;
-    renderer.setPixelRatio(1); renderer.setSize(view.cw, view.ch, false);
-    console.info('[3D] 느린 기기 → 그림자 끄고 픽셀 배율 1');
+  R.lowQuality = ratio => {
+    R.low = true;
+    pixelCap = ratio;
+    if (sun) sun.castShadow = false;
+    renderer.shadowMap.enabled = false;
+    R.resize(view.cw, view.ch, window.devicePixelRatio || 1);
   };
   R.info = () => ({ maxTex: renderer.capabilities.maxTextureSize, low: R.low, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, tex: renderer.info.memory.textures, pitch: PITCH });
 })();

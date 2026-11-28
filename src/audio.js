@@ -103,14 +103,18 @@
   }
   A.load = load;
   let voiceSrc = null;
+  const voicePlayedAt = new Map();
   A.voice = (path, vol = 1) => {   // 외침 목소리: 한 번에 하나 (새 외침이 오면 앞 것을 끊어요)
     if (!A.enabled || A.adMute) return Promise.resolve(false);
     const a = ctx(); if (!a) return Promise.resolve(false);
     const t0 = performance.now();
+    if (t0 - (voicePlayedAt.get(path) ?? -Infinity) < 800) return Promise.resolve(false);
     return load(path).then(b => {
-      if (!b || !A.enabled || A.adMute || a.state !== 'running' || performance.now() - t0 > 400) return false;   // 늦게 받아졌으면 안 틀어요 (외침 글자와 어긋나지 않게)
+      const now = performance.now();
+      if (!b || !A.enabled || A.adMute || a.state !== 'running' || now - t0 > 400 || now - (voicePlayedAt.get(path) ?? -Infinity) < 800) return false;   // 늦게 받아졌으면 안 틀어요 (외침 글자와 어긋나지 않게)
       try { if (voiceSrc) voiceSrc.stop(); } catch {}
       const s = a.createBufferSource(), g = a.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(master); s.start();
+      voicePlayedAt.set(path, now);
       voiceSrc = s; s.onended = () => { if (voiceSrc === s) voiceSrc = null; }; A.duck(); return true;
     }).catch(() => false);
   };

@@ -19,8 +19,66 @@
   const reduceMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
   const settings = Object.assign({ sound: true, shake: !reduceMotion, flash: !reduceMotion }, store.get('settings', {}));
   const saveSettings = () => store.set('settings', settings);
-  // 렌더러: 2.5D(Three.js, B안)가 기본 · 되돌리기 = 주소 ?render=2d 또는 설정 render: '2d' (WebGL이 없어도 2D)
-  let use3d = (() => { try { if (new URLSearchParams(location.search).get('render') === '2d') return false; } catch {} return settings.render !== '2d' && !!window.R3D && window.R3D.init(cv); })();
+  function showWebGLNotice() {
+    UI.hits = [];
+    I18N.set(store.get('langPick', null) || I18N.deviceLang());
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.lang = I18N.lang;
+    retry.textContent = t_('ui.nowebgl.retry');
+    retry.style.cssText = 'position:fixed;z-index:2;left:50%;transform:translateX(-50%);min-height:44px;padding:0 20px;border:1px solid #D9AE4F;border-radius:8px;background:#252018;color:#F2E3C6;font:700 16px system-ui;cursor:pointer';
+    retry.addEventListener('click', () => window.location.reload());
+    document.body.appendChild(retry);
+    const drawNotice = () => {
+      const w = window.innerWidth, h = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.direction = I18N.lang === 'he' ? 'rtl' : 'ltr';
+      ctx.fillStyle = '#0F1116'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#F2E3C6'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      const maxWidth = Math.min(580, w - 32), lines = [];
+      for (const key of ['title', 'why', 'fix1', 'fix2']) {
+        const size = key === 'title' ? 23 : 16;
+        const font = `${key === 'title' ? 800 : 500} ${size}px system-ui, sans-serif`;
+        ctx.font = font;
+        let line = '';
+        const addLine = value => lines.push({ value, font, height: size + 5 });
+        for (const word of t_('ui.nowebgl.' + key).split(/\s+/)) {
+          const next = line ? line + ' ' + word : word;
+          if (line && ctx.measureText(next).width > maxWidth) { addLine(line); line = ''; }
+          if (line) line = next;
+          else for (const char of word) {
+            if (line && ctx.measureText(line + char).width > maxWidth) { addLine(line); line = ''; }
+            line += char;
+          }
+        }
+        addLine(line);
+        lines[lines.length - 1].height += 8;
+      }
+      const height = lines.reduce((sum, line) => sum + line.height, 0);
+      const scale = Math.min(1, Math.max(1, h - 60) / height);
+      const y = Math.max(4, (h - height * scale - 52) / 2);
+      ctx.translate(w / 2, y); ctx.scale(scale, scale);
+      let offset = 0;
+      for (const line of lines) {
+        ctx.font = line.font; ctx.fillText(line.value, 0, offset); offset += line.height;
+      }
+      retry.style.top = (y + height * scale + 8) + 'px';
+    };
+    window.addEventListener('resize', drawNotice);
+    drawNotice();
+  }
+
+  function initWebGL() {
+    try { return window.R3D?.init?.(cv); }
+    catch (err) { console.warn('[3D] WebGL 초기화 실패', err); return false; }
+  }
+
+  if (!initWebGL()) {
+    showWebGLNotice();
+    return;
+  }
   AUDIO.enabled = settings.sound;
   const best = store.get('best', {});     // 나라 key → { rounds, kills }
   let lastCountry = store.get('lastCountry', null);
@@ -48,7 +106,7 @@
     U = Math.min(W / 844, H / 390); VW = W / U; VH = H / U; UI.VW = VW; UI.VH = VH;
     fieldBox.s = Math.min(VW / FIELD.W, VH / FIELD.H);
     fieldBox.x = (VW - FIELD.W * fieldBox.s) / 2; fieldBox.y = (VH - FIELD.H * fieldBox.s) / 2;
-    if (use3d) R3D.resize(W, H, DPR);
+    R3D.resize(W, H, DPR);
   }
   window.addEventListener('resize', resize); resize();
   const coarse = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } })();
@@ -101,8 +159,8 @@
     l.push('skill/prop/' + c.key + '-1', 'skill/prop/' + c.key + '-2');   // 소품: 고른 나라 것만 (돌진 붙임·던지는 무기·포대·분신이 씀)
     l.push(...COMMON_SKILL_ART.map(name => 'skill/seq/common-' + name));
     l.push('skill/seq/' + c.key + '-1', 'skill/seq/' + c.key + '-2');
-    if (c.key === 'korea') l.push('skill/prop/korea-2-fire');
-    if (c.key === 'korea' || c.key === 'netherlands') l.push(CANNONBALL_ART);
+    if (c.key === 'korea') l.push('skill/prop/korea-2-fire', 'hero/korea-cutin', ...Object.keys(KOREA_ART).map(k => 'skill/seq/' + k));
+    if (FLY_WEAPON_PROPS && (c.key === 'korea' || c.key === 'netherlands')) l.push(CANNONBALL_ART);
     l.push('alien/grunt-jump', 'alien/boss-jump', 'alien/fx-land');   // 점프 그림 (12차) — 점프하는 졸개·보스만
     return l;
   }
@@ -129,6 +187,7 @@
   function startRound(first) {
     clearInput();
     G.combatT = 0;
+    G.cutin = null; G.koreaSlow = 0;
     const r = G.run, c = G.country, wave = BAL.WAVES[r.round - 1], st = stats(r.money, c);
     r.wave = wave; r.st = st; r.roundT = 0; r.spawned = 0; r.grunts = 0; r.jumpers = 0; r.spawnT = 0.8; r.killsRound = 0; r.bossSpawned = false;
     r.itemIdx = 0; r.invuln = BAL.INVULN_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
@@ -227,20 +286,19 @@
 
   function toGround(p) {
     const fb = fieldBox; let x = (p.x - fb.x) / fb.s, y = (p.y - fb.y) / fb.s;
-    if (use3d) { const q = R3D.unproj(x, y); if (q) { x = q.x; y = q.y; } }
-    return { x, y };
+    return R3D.unproj(x, y) ?? { x, y };
   }
   // 테스트용: 바닥 점 → 화면(가상) 좌표 · 마우스 상태
   // 스킬 조준 (사용자 "스킬은 버튼 꾹 누르면 원하는 방향으로"): 장수 화면 자리 + 손가락이 움직인 만큼 × 3 → 바닥 점. 엄지를 조금만 움직여도 전장 대부분에 닿아요 [제안 3배]
   const AIM_GAIN = 3, AIM_HOLD = .2;
   const aimPoint = a => { const h = G.hero, hs = G.dbgField(h.x, h.y); return toGround({ x: hs.x + a.dp.x * AIM_GAIN, y: hs.y + a.dp.y * AIM_GAIN }); };
-  G.dbgField = (x, y) => { const fb = fieldBox; if (use3d && R3D.built) { const q = R3D.proj(x, y); return { x: fb.x + q.x * fb.s, y: fb.y + q.y * fb.s }; } return { x: fb.x + x * fb.s, y: fb.y + y * fb.s }; };
+  G.dbgField = (x, y) => { const fb = fieldBox; if (R3D.built) { const q = R3D.proj(x, y); return { x: fb.x + q.x * fb.s, y: fb.y + q.y * fb.s }; } return { x: fb.x + x * fb.s, y: fb.y + y * fb.s }; };
   G.dbgMouse = () => mouse; G.dbgAim = () => aim; G.dbgMoveTo = () => moveTo;
   cv.addEventListener('pointerdown', e => {
     e.preventDefault(); AUDIO.unlock();
     if (e.pointerType !== 'mouse') { G.touchUI = true; mouse.on = false; }
     const p = toV(e);
-    if (G.scene === 'ad' || portrait()) return;
+    if (R3D.lost || G.scene === 'ad' || portrait()) return;
     try { cv.setPointerCapture(e.pointerId); } catch {}
     let id = UI.hitAt(p.x, p.y);
     if (id === 'pause' && e.pointerType === 'mouse') id = null;   // 마우스 클릭은 언제나 공격 (GDD 0-14) — 터치 겸용 PC에서도
@@ -311,7 +369,8 @@
     const p = toV(e), fb = fieldBox;
     mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
     mouse.gx = mouse.x; mouse.gy = mouse.y;
-    if (use3d) { const q = R3D.unproj(mouse.x, mouse.y); if (q) { mouse.x = q.x; mouse.y = q.y - 24; mouse.gx = q.x; mouse.gy = q.y; } }   // 3D: 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
+    const q = R3D.unproj(mouse.x, mouse.y);
+    if (q) { mouse.x = q.x; mouse.y = q.y - 24; mouse.gx = q.x; mouse.gy = q.y; }   // 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
   }
   cv.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') mouseButtons(e);
@@ -373,7 +432,7 @@
   const GAME_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Escape', 'Enter'];
   window.addEventListener('keydown', e => {
     if (GAME_KEYS.includes(e.code)) e.preventDefault();   // 페이지 스크롤 막기
-    if (G.scene === 'ad' || portrait()) return;
+    if (R3D.lost || G.scene === 'ad' || portrait()) return;
     AUDIO.unlock();
     if ((e.code === 'KeyJ' || e.code === 'KeyK') && (e.repeat || normalAttackLocked())) return;
     keys.add(e.code);
@@ -626,6 +685,13 @@
     G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
     if (settings.shake) G.shake = Math.max(G.shake, 2);
     AUDIO.play('revive');
+    const { rank, key, lang } = G.country;
+    AUDIO.voice(`assets/sound/shout/${String(rank).padStart(2, '0')}-${key}-inv.mp3`);
+    const shout = I18N.t('invuln.shout', { 나라: G.country.native }, lang);
+    if (shout !== 'invuln.shout') {
+      G.msgs = G.msgs.filter(m => !m.shout);
+      G.msgs.push({ text: shout, t: 1.2, life0: 1.2, shout: true, rtl: lang === 'he' });
+    }
   }
   // n = 1: 나라별 고유 스킬 (우클릭 2번 / L / 스킬 버튼) · n = 2: 두 번째 스킬 (좌클릭 2번 / ; ) — 기획팀 설계 중이라 자리만
   // 횟수: 1번·2번 합쳐 한 판에 5번 (라운드마다 안 채워져요)
@@ -639,16 +705,16 @@
       const ex = a.x - x, ey = a.y - y, d = Math.hypot(ex, ey) || 1;
       if (d < r + a.r * .5 && (!o.test || o.test(a, ex, ey, d))) {
         n++; if (o.skip) o.skip.add(a);
-        if (dmg > 0) damage(a, dmg, o.dx != null ? o.dx : ex / d, o.dy != null ? o.dy : ey / d, o.heavy !== false, { finisher: true, main: o.main, skill: true });
+        if (dmg > 0) damage(a, dmg, o.dx != null ? o.dx : ex / d, o.dy != null ? o.dy : ey / d, o.heavy !== false, { finisher: true, main: o.main, skill: true, turtle: o.turtle });
         if (o.each) o.each(a, ex / d, ey / d, d);
       }
     }
     return n;
   }
   const distSeg = (px, py, x0, y0, x1, y1) => { const vx = x1 - x0, vy = y1 - y0, L = vx * vx + vy * vy || 1, q = clamp(((px - x0) * vx + (py - y0) * vy) / L, 0, 1); return Math.hypot(px - x0 - vx * q, py - y0 - vy * q); };
-  function hitSeg(x0, y0, x1, y1, w, dmg, skip, link = false) {
+  function hitSeg(x0, y0, x1, y1, w, dmg, skip) {
     let n = 0; const L = Math.hypot(x1 - x0, y1 - y0) || 1;
-    for (const a of G.aliens) { if (a.dead || a.entering || (skip && skip.has(a))) continue; if (distSeg(a.x, a.y, x0, y0, x1, y1) < w + a.r * .5) { n++; if (skip) skip.add(a); damage(a, dmg, (x1 - x0) / L, (y1 - y0) / L, !link, { finisher: !link, link, skill: true }); } }
+    for (const a of G.aliens) { if (a.dead || a.entering || (skip && skip.has(a))) continue; if (distSeg(a.x, a.y, x0, y0, x1, y1) < w + a.r * .5) { n++; if (skip) skip.add(a); damage(a, dmg, (x1 - x0) / L, (y1 - y0) / L, true, { finisher: true, skill: true }); } }
     return n;
   }
   const after = (t, fn, owner) => G.timers.push({ t, fn, owner });
@@ -666,8 +732,9 @@
   const heroDmgMul = () => { const h = G.hero; for (const z of G.zones) if (z.t >= 0 && z.k === 'half' && Math.abs(h.x - z.x) < SKB.ZONE_D / 2 && Math.abs(h.y - z.y) < SKB.ZONE_D / 2 * .7) return .5; return 1; };   // 체코 1   // 게임 시간 기준 예약 (일시정지·히트스톱에 맞춰요)
   const basicFx = (type, x, y, life, extra) => G.fx.push({ kind: 'basic', type, x, y, t: 0, life, ...extra });
   const sfx = (type, x, y, life, extra) => {
-    if (type === 'art' && skillSequence(extra.img) && (!extra.playback || extra.playback === 'area')) {
-      life = (extra.seqDelay ?? extra.delay ?? 0) + 6 * SKILL_FRAME + SKILL_FADE;
+    if (type === 'art' && (!extra.playback || extra.playback === 'area')) {
+      const seq = skillSequence(extra.img);
+      if (seq) life = (extra.seqDelay ?? extra.delay ?? 0) + seq[1] * SKILL_FRAME;
     }
     const effect = { kind: 'skill', type, x, y, t: 0, life, ...extra };
     G.fx.push(effect);
@@ -675,18 +742,37 @@
   };
   const SKILL_HIT_LIFT_TIME = .25, SKILL_HIT_LIFT_HEIGHT = 4;
 
-  // 박힌 도끼 (캐나다 1): 2초 동안 닿는 외계인 0.5초마다
-  function axeEnt(x, y, dmg) { let t = 0, tick = .5; ent({ x, y, update(dt) { t += dt; this.t = t; if ((tick -= dt) <= 0) { tick += .5; hitCircle(x, y, 20, dmg, { heavy: false, main: false }); } return t < 2; }, t: 0,
-    draw(at) { at(x, y, () => drawProp('canada-1', x, y, 0, .5, clamp((2 - this.t) / .3, 0, 1))); } }); }
+  // 박힌 도끼 (캐나다 1): 첫 틱만 착지로 옮기고 나머지는 1·1.5·2초에 적용해요.
+  function axeEnt(x, y, dmg, directHit) {
+    const pulse = each => hitCircle(x, y, 20, dmg, { heavy: false, main: false, each });
+    const directKb = directHit?.kb;
+    pulse(a => {
+      // 직격과 첫 틱이 같은 프레임에 들어가도 두 번의 넉백을 보존해요.
+      if (a === directHit) { a.kb.x += directKb.x; a.kb.y += directKb.y; }
+    });
+    let nextTick = 1;
+    ent({
+      x, y, t: 0,
+      update(dt) {
+        this.t += dt;
+        if (nextTick <= 2 && this.t + 1e-9 >= nextTick) {
+          nextTick += .5;
+          pulse();
+        }
+        return this.t + 1e-9 < 2;
+      },
+      draw(at) { at(x, y, () => drawProp('canada-1', x, y, 0, .5, clamp((2 - this.t) / .3, 0, 1))); },
+    });
+  }
   // 씨앗 (뉴질랜드 2): 1초 뒤 작게 터져요
   function seedEnt(x, y, dmg) { let t = 0, done = false; ent({ x, y, t: 0, update(dt) { t += dt; this.t = t; if (t >= 1 && !done) { done = true; hitCircle(x, y, 40, dmg); AUDIO.play('hit'); } return t < 1.05; },
     draw(at) { at(x, y, () => drawProp('newzealand-2', x, y, 0, 0, clamp((1.05 - this.t) / .3, 0, 1))); } }); }
   // 은빛 분신 (콜롬비아 2): 1초 뒤 같은 길을 다시 달려요
   function echoEnt(path, look, dmg) { const sk = new Set(), N = path.length; let t = 0, gT = 0;
     ent({ x: path[0][0], y: path[0][1], update(dt) { t += dt; const [x, y] = path[Math.min(N - 1, Math.floor(t / SKB.DASH_TIME * (N - 1)))]; this.x = x; this.y = y;
-      hitCircle(x, y, 32, dmg, { skip: sk }); if ((gT -= dt) <= 0) { gT = NO_AFTER ? .03 : .045; if (!NO_AFTER || AFTER_EXC.clones) G.fx.push({ kind: 'ghost', x, y, cell: look.cell, flip: look.flip, folder: look.folder, t: 0, life: NO_AFTER ? .035 : .45, clone: true, echo: NO_AFTER ? this : null }); }
+      hitCircle(x, y, 32, dmg, { skip: sk }); if ((gT -= dt) <= 0) { gT = NO_AFTER ? .03 : .045; if (!NO_AFTER || AFTER_EXC.clones) G.fx.push({ kind: 'ghost', x, y, cell: look.cell, flip: look.flip, folder: look.folder, t: 0, life: NO_AFTER ? .035 : .15, clone: true, echo: this }); }
       if (t < SKB.DASH_TIME) return true;
-      if (NO_AFTER) G.fx = G.fx.filter(e => e.echo !== this);
+      G.fx = G.fx.filter(e => e.echo !== this);
       return false; }, draw() {} }); }
   // 튕기는 도끼 (슬로바키아 2): 맞으면 가까운 다음 외계인으로 (최대 3번)
   function ricochet(a, s) {
@@ -694,7 +780,7 @@
     const nx = G.aliens.filter(b => !b.dead && !b.entering && !s.chain.has(b) && Math.hypot(b.x - a.x, b.y - a.y) < 240).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))[0];
     if (!nx) return;
     const ex = nx.x - a.x, ey = nx.y - a.y, d = Math.hypot(ex, ey) || 1, sp = TEMP.SHOT_SPEED;
-    G.shots.push(Object.assign({}, s, { x: a.x, y: a.y, vx: ex / d * sp, vy: ey / d * sp, life: .9, age: 0, bounces: s.bounces - 1, ox: 0, oy: 0, y0: a.y, gy: a.y, ty: a.y - 22, artHit: false }));
+    G.shots.push(Object.assign({}, s, { x: a.x, y: a.y, vx: ex / d * sp, vy: ey / d * sp, life: .9, age: 0, bounces: s.bounces - 1, ox: 0, oy: 0, y0: a.y, gy: a.y, ty: a.y - 22, artHit: false, launched: false }));
   }
   // ---- 스킬 시전감 (GDD 0-20, 사용자 "전부 추천대로" 2026-11-27) ----
   // 시험 3개 먼저(한국 1·스위스 1·룩셈부르크 1). 사용자 확인 뒤 나라를 늘려요
@@ -792,20 +878,123 @@
   const TURTLE = { PREP: .08, RISE: .14, START: .28, SMOKE: .12, END: .30, BACK: .12 };
   const CANNON = { PREP: .10, INTERVAL: .30, COUNT: 6, FLY: .30, FADE: .30 };
 
+  const IMPACT_LIGHT = false;
+  const KOREA_ART = {
+    'aura-water': 4, 'korea-1-act': 4, 'korea-1-hit': 6, 'korea-dust': 6,
+    'korea-2-act': 4, 'korea-2-blast': 6, 'korea-burn': 4,
+    'korea-fire-ground': 4, 'korea-ground': 6, 'korea-debris': 6,
+  };
+
+  function koreaCell(key, frame, x, y, size, alpha = 1, options = {}) {
+    const name = 'skill/seq/' + key, count = KOREA_ART[key] || 5;
+    if (alpha > 0 && UI.img[name]?.naturalWidth) {
+      drawSkillCell(name, count, frame, x, y, options.angle || 0, size, alpha, options);
+    }
+  }
+
+  function koreaDebris(x, y, count, frames, angle) {
+    const active = G.fx.filter(e => e.type === 'koreaDebris').length;
+    for (let i = 0; i < Math.min(count, reduceMotion ? 4 : 8, 8 - active); i++) {
+      const seed = x + y * 17 + G.combatT * 103 + i * 13;
+      const spread = angle == null ? hash(seed) * Math.PI * 2 : angle + (hash(seed) - .5) * 1.2;
+      const speed = 60 + hash(seed + 1) * 60, vz = 150 + hash(seed + 2) * 90;
+      const bounce = vz / 500, settle = bounce * 1.28;
+      sfx('koreaDebris', x, y, settle + .30, {
+        vx: Math.cos(spread) * speed, vy: Math.sin(spread) * 30,
+        vz, bounce, settle, frame: frames[i % frames.length], spin: (hash(seed + 3) - .5) * 14,
+      });
+    }
+  }
+
+  function koreaBlast(x, y, big) {
+    sfx('koreaBlast', x, y, 2.1, { big });
+    for (let i = 0; i < (big ? 3 : 2); i++) {
+      const seed = x + y * 17 + G.combatT * 103 + i * 13;
+      sfx('koreaFire', x + (hash(seed) - .5) * (big ? 75 : 50),
+        y + (hash(seed + 1) - .5) * 18 + 2, 1.8, { frame: i });
+    }
+    koreaDebris(x, y, big ? 6 : 4, [0, 1, 4, 5]);
+  }
+
+  function drawKoreaFloor(e) {
+    if (e.type !== 'koreaBlast' || e.t < 0) return;
+    const scale = e.big ? 1.5 : 1;
+    if (e.t < .32) koreaCell('korea-ground', Math.floor(e.t / .08), e.x, e.y, 110 * scale, 1, { flat: true, add: false });
+    if (e.t > .15) koreaCell('korea-ground', e.t < 1.8 ? 4 : 5, e.x, e.y, 70 * scale,
+      .9 * clamp((2.1 - e.t) / .3, 0, 1), { flat: true, add: false });
+  }
+
+  function drawKoreaEffect(e) {
+    const { x, y, t } = e;
+    if (e.type === 'koreaHit') {
+      koreaCell('korea-1-hit', Math.floor(t / .04), x, y - e.height, 96, 1, { ground: y, angle: e.angle });
+    } else if (e.type === 'koreaDust') {
+      koreaCell('korea-dust', Math.min(5, Math.floor(t / .12)), x, y, 72,
+        .5 * clamp((e.life - t) / (e.life - .25), 0, 1), { base: true, add: false, renderOrder: 99 });
+    } else if (e.type === 'koreaBlast') {
+      if (t < .36) koreaCell('korea-2-blast', Math.floor(t / .06), x, y, e.big ? 150 : 100, 1, { base: true });
+      if (IMPACT_LIGHT && t < .12) R3D.impactLight(x, y, (1 - t / .12) * (e.big ? 2 : 1));
+    } else if (e.type === 'koreaFire') {
+      koreaCell('korea-fire-ground', (Math.floor(t / .08) + e.frame) % 4, x, y, 40,
+        clamp(Math.min(t / .15, (1.8 - t) / .4), 0, 1), { base: true });
+    } else if (e.type === 'koreaDebris') {
+      const q = t - e.bounce;
+      const z = Math.max(0, t < e.bounce ? e.vz * t - 500 * t * t : e.vz * .28 * q - 500 * q * q);
+      const px = x + e.vx * t, py = y + e.vy * t;
+      const alpha = clamp((e.life - t) / .30, 0, 1);
+      koreaShadow(px, py, z, 4, .25 * alpha);
+      koreaCell('korea-debris', e.frame, px, py, 22, alpha,
+        { ground: py, lift: z, angle: reduceMotion ? 0 : t * e.spin, add: false });
+    }
+  }
+
+  function koreaShadow(x, y, z, radius, alpha) {
+    const scale = 1 / (1 + z / 100);
+    R3D.blob(x, y, radius * scale, alpha * scale);
+  }
+
+  function drawKoreaBurn(a, lift) {
+    const age = G.combatT - a.koreaBurn;
+    if (!(age >= 0 && age < 1.6)) return;
+    const y = a.y + 2;
+    const alpha = clamp(Math.min(age / .1, (1.6 - age) / .3), 0, 1);
+    koreaCell('korea-burn', Math.floor(age / .08) % 4, a.x, y - lift, a.type === 'boss' ? 95 : 54,
+      alpha, { base: true, ground: y, orderOffset: .02 });
+  }
+
+  function koreaContact(a, x, y, fallbackX, fallbackY) {
+    const dx = a.x - x, dy = a.y - y, len = Math.hypot(dx, dy);
+    const nx = len ? dx / len : fallbackX, ny = len ? dy / len : fallbackY;
+    const cx = a.x - nx * a.r, gy = a.y - ny * a.r;
+    const angle = Math.atan2(fallbackY, fallbackX);
+    sfx('koreaHit', cx, gy, .24, { height: a.type === 'boss' ? 50 : 22, angle });
+    koreaDebris(cx, gy, 3, [2, 3, 0], angle);
+    return { x: cx, y: gy };
+  }
+
+  function koreaImpactBeat(x, y, amount, stop, slow) {
+    if (layerFx()) sfx('skillShake', x, y, .08, { amount });
+    if (reduceMotion) return;
+    G.hitstop = Math.max(G.hitstop || 0, stop);
+    if (slow) G.koreaSlow = .15;
+  }
+
   function endTurtle(h, d) {
     const cast = h.cast, x = h.x, y = h.y, dx = Math.cos(cast.ang), dy = Math.sin(cast.ang);
     const elapsed = d.t - d.dur;
     cast.end = { t: cast.t - elapsed, x, y };
+    sfx('koreaDust', x + dx * 20, y + dy * 20 + 6, 1.4);
     after(TURTLE.SMOKE - elapsed, () => {
-      const hits = hitCircle(x, y, d.mod.r, d.base * d.mod.smoke, {
-        dx, dy, test: (a, ex, ey) => d.hit.has(a) || ex * dx + ey * dy >= Math.hypot(ex, ey) * Math.SQRT1_2,
+      hitCircle(x, y, d.mod.r, d.base * d.mod.smoke, {
+        dx, dy, turtle: true, test: (a, ex, ey) => d.hit.has(a) || ex * dx + ey * dy >= Math.hypot(ex, ey) * Math.SQRT1_2,
+        each(a) {
+          const contact = koreaContact(a, x, y, dx, dy);
+          if (!cast.smokeHit) {
+            cast.smokeHit = true;
+            koreaImpactBeat(contact.x, contact.y, 2, .03, false);
+          }
+        },
       });
-      commonSkillFx('impact', x, y, d.mod.r * 2, cast.ang, 1);
-      commonSkillFx('smoke', x, y, SKILL_PROP['korea-1'][0] * 2, cast.ang);
-      if (layerFx()) {
-        sfx('skillShake', x, y, .08, { amount: 2 });
-        if (hits) G.hitstop = Math.max(G.hitstop || 0, .03);
-      }
       AUDIO.play('impact');
     }, cast);
   }
@@ -814,15 +1003,52 @@
     const h = G.hero, floor = FIELD.floor, R = SKB.AREA_R;
     const x = clamp(h.x - o.dx * 24 - o.dy * 18, floor.x0 + 12, floor.x1 - 12);
     const y = clamp(h.y - o.dy * 24 + o.dx * 18, floor.y0 + 22, floor.y1);
-    const origin = skillTip(h), shots = [];
+    const origin = skillTip(h), shots = [], offsetX = x - h.x, offsetY = y - h.y;
     castStart('cannon', CANNON.PREP, o.ang, { pending: true });
     const cast = h.cast;
-    const volley = CANNON.INTERVAL * CANNON.COUNT;
-    ent({
-      owner: cast, x, y, t: 0,
+    const lastFire = CANNON.INTERVAL * CANNON.COUNT;
+    const battery = {
+      owner: cast, x, y, angle: o.ang, t: 0, mounted: true, roll: 0,
+      pose() {
+        const age = this.t - CANNON.PREP;
+        const q = clamp(this.t / CANNON.PREP, 0, 1);
+        const side = Math.cos(this.angle) < 0 ? -1 : 1;
+        const rot = Math.atan2(side * Math.sin(this.angle), side * Math.cos(this.angle));
+        const fire = shots[shots.length - 1], fireAge = fire ? age - fire.when : -1;
+        const frame = fireAge >= 0 && fireAge < .30 ? Math.min(5, Math.floor(fireAge / .06 + 1e-9)) : 0;
+        const recoil = !reduceMotion && fireAge >= 0 ? 4 * clamp(1 - fireAge / .10, 0, 1) : 0;
+        return {
+          x: origin.x + (this.x - origin.x) * q - side * recoil,
+          y: o.y0 + (this.y - o.y0) * q,
+          angle: this.angle, side, rot, frame, roll: this.roll,
+          alpha: clamp(1 - (age - lastFire) / CANNON.FADE, 0, 1),
+        };
+      },
+      mount() {
+        if (!this.mounted || this.t < CANNON.PREP || this.t >= CANNON.PREP + lastFire + CANNON.FADE) return null;
+        const p = this.pose();
+        return { ...p, riderX: p.x - p.side * (18 + (!reduceMotion && (p.frame === 2 || p.frame === 3) ? 3 : 0)), riderY: p.y - 30 + p.roll };
+      },
+      drawCannon(p) {
+        const name = 'skill/prop/korea-2-fire';
+        if (p.alpha > 0 && UI.img[name]?.naturalWidth === 6 * 192 && UI.img[name].naturalHeight === 192) {
+          koreaShadow(p.x, p.y, 0, 34, .35 * p.alpha);
+          drawSkillCell(name, 6, p.frame, p.x, p.y - 30 + p.roll, p.angle, 90, p.alpha,
+            { ground: p.y, add: false, facing: true, rot: p.rot });
+        }
+      },
       update(dt) {
-        if (h.dead) return false;
+        if (h.dead) { this.mounted = false; return false; }
         const before = this.t - CANNON.PREP, age = (this.t += dt) - CANNON.PREP;
+        if (this.mounted) {
+          const nextX = h.x + offsetX, nextY = h.y + offsetY;
+          const moving = Math.hypot(nextX - this.x, nextY - this.y) > 1e-6;
+          this.x = nextX;
+          this.y = nextY;
+          this.roll = moving && !reduceMotion ? 2 * Math.sin(h.walkT * 36) : 0;
+          const dx = o.tx - this.x, dy = o.ty - this.y;
+          if (dx || dy) this.angle = Math.atan2(dy, dx);
+        }
         if (before < 0 && age >= 0) {
           if (h.cast === cast) { finishCast(h); h.cast = null; }
           AUDIO.play('impact');
@@ -833,46 +1059,55 @@
           const offset = last ? 0 : R * .45;
           const tx = clamp(o.tx + Math.cos(a) * offset, floor.x0 + 12, floor.x1 - 12);
           const ty = clamp(o.ty + Math.sin(a) * offset, floor.y0 + 22, floor.y1);
-          shots.push({ tx, ty, last, when: (i + 1) * CANNON.INTERVAL, path: skillFlightPath({ x, y: y - 18 }, y, tx, ty) });
-          if (layerFx()) sfx('skillShake', x, y, .06, { amount: last ? 3 : 1 });
+          const when = (i + 1) * CANNON.INTERVAL, p = this.pose();
+          const ca = Math.cos(p.rot), sa = Math.sin(p.rot);
+          const muzzle = {
+            x: p.x + p.side * 36 * ca + 12 * sa,
+            y: p.y - 30 + p.roll + p.side * 36 * sa - 12 * ca,
+          };
+          shots.push({ tx, ty, last, when, path: skillFlightPath(muzzle, Math.max(p.y, muzzle.y), tx, ty) });
+          if (layerFx()) sfx('skillShake', p.x, p.y, .06, { amount: 1 });
           AUDIO.play('impSmash');
         }
         for (const shot of shots) {
           if (shot.landed || age + 1e-9 < shot.when + CANNON.FLY) continue;
           shot.landed = true;
-          hitCircle(shot.tx, shot.ty, R * (shot.last ? 1 : .5), o.dmg * (shot.last ? .4 : .2));
-          const impact = commonSkillFx('impact', shot.tx, shot.ty, R * (shot.last ? 2 : 1), o.ang, 2);
-          if (!impact || skillSequence('skill/u/korea-2')) {
-            sfx('art', shot.tx, shot.ty, .38, { img: 'skill/u/korea-2', mode: 'burst', landed: true, S: R * (shot.last ? 2 : 1) });
-          }
-          if (shot.last) G.hitstop = Math.max(G.hitstop || 0, .05);
+          hitCircle(shot.tx, shot.ty, R * (shot.last ? 1 : .5), o.dmg * (shot.last ? .4 : .2), {
+            each(a, dx, dy) {
+              a.koreaBurn = G.combatT;
+              const kb = a.type === 'boss' ? 60 : reduceMotion ? 200 : 260;
+              a.kb = dx || dy ? { x: dx * kb, y: dy * kb } : { x: o.dx * kb, y: o.dy * kb };
+            },
+          });
+          koreaBlast(shot.tx, shot.ty, shot.last);
+          if (shot.last) koreaImpactBeat(shot.tx, shot.ty, 3, .05, true);
           AUDIO.play(shot.last ? 'impSmash' : 'impact');
         }
-        return age + 1e-9 < volley + CANNON.FADE;
+        if (age < lastFire + Math.max(CANNON.FLY, CANNON.FADE)) return true;
+        this.mounted = false;
+        if (h.koreaBattery === this) h.koreaBattery = null;
+        return false;
       },
       draw(at) {
-        const age = this.t - CANNON.PREP;
-        const q = clamp(this.t / CANNON.PREP, 0, 1);
-        const px = origin.x + (x - origin.x) * q, py = o.y0 + (y - o.y0) * q;
-        const alpha = clamp(1 - (age - volley) / CANNON.FADE, 0, 1);
-        const fire = shots[shots.length - 1], fireAge = fire ? age - fire.when : -1;
-        at(px, py, () => {
-          const name = 'skill/prop/korea-2-fire';
-          if (fireAge >= 0 && fireAge < .30 && UI.img[name]?.naturalWidth === 6 * 192 && UI.img[name].naturalHeight === 192) {
-            const size = SKILL_PROP['korea-2'][0];
-            skillShadow(px, py, size, .25 * alpha);
-            drawSkillCell(name, 6, Math.min(5, Math.floor((fireAge + 1e-9) / .05)), px, py - size * 88 / 176, o.ang,
-              size * 192 / 176, alpha, { ground: py, add: false, facing: true });
-          } else drawProp('korea-2', px, py, 0, o.ang, alpha);
-        });
+        const age = this.t - CANNON.PREP, p = this.pose();
+        at(p.x, p.y, () => this.drawCannon(p));
         for (const shot of shots) {
           if (shot.landed) continue;
           const pos = shot.path(clamp((age - shot.when) / CANNON.FLY, 0, 1));
-          pos.age = age - shot.when;
-          drawSkillFlight('korea-2', pos, 14.4, CANNON.FLY, true, 0, at);
+          drawKoreaFireball(pos, age - shot.when, shot.last);
         }
       },
-    });
+    };
+    ent(battery);
+    h.koreaBattery = battery;
+  }
+
+  function drawKoreaFireball({ x, y, z, dx, dy, dz }, age, big) {
+    koreaShadow(x, y, z, 8, .28);
+    const p = R3D.proj(x, y, z), next = R3D.proj(x + dx * .01, y + dy * .01, z + dz * .01);
+    const angle = Math.atan2(next.y - p.y, next.x - p.x);
+    koreaCell('korea-2-act', Math.floor(age / .08) % 4, x, y, big ? 78 : 62, 1,
+      { ground: y, lift: z, angle, add: false });
   }
 
   // QA 고침 2026-11-27: 같은 꼭짓점을 조준 표시와 발동에 사용해요.
@@ -937,8 +1172,12 @@
         const sk = new Set(), dm = o.dmg * m.mul, x0 = h.x, y0 = h.y, T = Math.max(.65, Math.hypot(o.tx - x0, o.ty - y0) / 230); let t = 0, x = h.x, y = h.y;   // 돌면서 그 자리까지
         ent({ k: 'spin', update(dt) { t += dt; const q = Math.min(1, t / T); x = x0 + (o.tx - x0) * q; y = y0 + (o.ty - y0) * q; if (feelOn()) followPose(o.ang + t * 20, .06);
           if (Math.floor(t / .20) !== Math.floor((t - dt) / .20) || t === dt) commonSkillFx('slash', x, y, 108, o.ang + t * 20, 2);
-          hitCircle(x, y, 54, dm, { skip: sk }); this.x = x; this.y = y; this.t = t; return t < T; }, x, y, t: 0,
-          draw(at) { at(this.x, this.y, () => drawProp('spain-2', this.x, this.y, 14, this.t * 20, clamp((T - this.t) / .3, 0, 1), true, true)); } });
+          const hits = sk.size;
+          hitCircle(x, y, 54, dm, { skip: sk });
+          if (sk.size > hits) skillArt(o.sk, o.n, m, x, y, o.ang + t * 20, x, y, true);
+          this.x = x; this.y = y; this.t = t; return t < T; }, x, y, t: 0,
+          draw(at) { drawMovingSkill('spain-2', this.x, this.y, 14, o.ang, this.t, T, at); } });
+        return false;
       }
       else if (m.k === 'widen') {   // 체코 2: 사슬이 늘어나며 세 바퀴, 갈수록 넓게
         [50, 95, 140].forEach((r, i) => after(i * .25 + .001, () => {
@@ -961,8 +1200,10 @@
           const ex = a.x - HERO.x, ey = a.y - HERO.y, d = Math.hypot(ex, ey) || 1;
           HERO.x = clamp(a.x - ex / d * 22, f.x0 + 12, f.x1 - 12); HERO.y = clamp(a.y - ey / d * 18, f.y0 + 22, f.y1);
           damage(a, o.dmg * m.mul, ex / d, ey / d, true, { finisher: true, skill: true });
+          skillArt(o.sk, o.n, m, a.x, a.y, Math.atan2(ey, ex), HERO.x, HERO.y, true);
           commonSkillFx('slash', a.x, a.y, 120, 0); AUDIO.play('impSlash');
         });
+        return false;
       }
       else if (m.k === 'gust') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { dx: o.dx, dy: o.dy, each: a => { a.kb = { x: o.dx * 620, y: o.dy * 520 }; a.stun = .3; } }); }   // 포르투갈 1: 보는 방향으로 날려요
       else if (m.k === 'pole') {   // 폴란드 2: 아주 긴 창 한 자루가 한 바퀴 (멀리, 가늘게)
@@ -970,7 +1211,7 @@
         ent({ x: h.x, y: h.y, a: o.ang, t: 0, update(dt) { t += dt; const H = G.hero, cur = o.ang + Math.PI * 2 * Math.min(1, t / .45); this.x = H.x; this.y = H.y; this.a = cur; this.t = t; if (feelOn()) followPose(cur, .06);
           if (t === dt) commonSkillFx('slash', H.x, H.y, L * 2, cur);
           hitCircle(H.x, H.y, L, dm, { skip: sk, test: (a, ex, ey) => { const q = ((Math.atan2(ey, ex) - prev) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2); return q <= cur - prev + .2; } }); prev = cur; return t < .5; },
-          draw(at) { at(this.x, this.y, () => drawProp('poland-2', this.x, this.y, 22, this.a, clamp((.5 - this.t) / .3, 0, 1), true, true)); } });
+          draw(at) { drawMovingSkill('poland-2', this.x, this.y, 22, o.ang, this.t, .5, at); } });
       }
       else if (m.k === 'crack') {   // 슬로바키아 1: 앞으로 뻗는 지그재그 균열 (체코 충격파 = 둥근 물결과 다르게)
         const pts = [[h.x, h.y]], sk = new Set();
@@ -987,10 +1228,10 @@
         ent({ x: h.x, y: h.y, t: 0, update(dt) { t += dt; this.t = t; const H = G.hero; this.x = H.x; this.y = H.y; if ((tick -= dt) <= 0) { tick += .5; hitCircle(H.x, H.y, 85, dm, { heavy: false, main: false }); } return t < 2; },
           draw(at) {
             for (let i = 0; i < 3; i++) {
-              const a = this.t * 7 + i * Math.PI * 2 / 3;
+              const a = (reduceMotion ? 0 : this.t * Math.PI / 2) + i * Math.PI * 2 / 3;
               const r = 62 * Math.min(1, this.t / .15);
-              const x = this.x + Math.cos(a) * r, y = this.y + Math.sin(a) * r * GK();
-              at(x, y, () => drawProp('turkiye-1', x, y, 18, a, clamp((2 - this.t) / .3, 0, 1), true, true));
+              const x = this.x + Math.cos(a) * r, y = this.y + Math.sin(a) * r * SKILL_FLOOR_RATIO;
+              drawMovingSkill('turkiye-1', x, y, 18, a + Math.PI / 2, this.t, 2, at);
             }
           } });
       }
@@ -1014,12 +1255,13 @@
       if (m.k === 'javelin3') {   // 리투아니아 2: 하늘로 던진 창이 앞 일직선 세 곳에 차례로
         const h = G.hero, f = FIELD.floor; [1 / 3, 2 / 3, 1].forEach((s2, i) => { const x = clamp(h.x + (o.tx - h.x) * s2, f.x0 + 10, f.x1 - 10), y = clamp(h.y + (o.ty - h.y) * s2, f.y0 + 10, f.y1);   // 장수 → 그 자리 일직선 세 곳, 마지막이 그 자리
           const flight = .3 + i * .22;
-          launchSkillArt('lithuania-2', skillTip(h), h.y, x, y, flight, { weapon: true, peak: 105 });
-          after(flight, () => {
-            hitCircle(x, y, 38, o.dmg * m.mul);
-            commonSkillFx('impact', x, y, 76, o.ang, 2);
-            barrageArt(2, x, y, o.ang, 3);
-            AUDIO.play('impact');
+          launchSkillArt('lithuania-2', skillTip(h), h.y, x, y, flight, {
+            weapon: true, peak: 105, arrive() {
+              hitCircle(x, y, 38, o.dmg * m.mul);
+              commonSkillFx('impact', x, y, 76, o.ang, 2);
+              barrageArt(2, x, y, o.ang, 3);
+              AUDIO.play('impact');
+            },
           });
         });
         h.atkT = .2; return;
@@ -1027,25 +1269,24 @@
       G.hero.barrage = { t: 0, n: 0, skillN: o.n, N: m.k === 'boomer' || m.k === 'stick' || m.k === 'ricochet' ? 1 : m.n || SKB.BARRAGE_N, base: o.dmg, dmg: o.dmg / (m.div || SKB.BARRAGE_DIV), mod: m, ang: o.ang, tx: o.tx, ty: o.ty }; },
     zone(o) {
       const h = G.hero, f = FIELD.floor, m = o.mod;
-      G.zones.push({ x: clamp(o.tx, f.x0 + 40, f.x1 - 40), y: clamp(o.ty, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK / 2,   // 그 자리에 (GDD 0-17) · 첫 틱 0.25초 → 3초에 6번 (balance.md, QA M1)
-        base: o.dmg, dmg: o.dmg / (m.div || SKB.ZONE_DIV), mod: m, k: m.k, rings: [], nextRing: .15, skillN: o.n, col: (SKILL_COL[G.country.key] || [])[o.n - 1] || [SKW, SKG],
+      G.zones.push({ x: clamp(o.tx, f.x0 + 40, f.x1 - 40), y: clamp(o.ty, f.y0 + 30, f.y1 - 10), t: 0, nextTick: 0,
+        base: o.dmg, dmg: o.dmg / (m.div || SKB.ZONE_DIV), mod: m, k: m.k, rings: [], nextRing: 0, skillN: o.n, col: (SKILL_COL[G.country.key] || [])[o.n - 1] || [SKW, SKG],
         arrows: m.k === 'sky', slow: o.n === 2 && G.country.key === 'finland' });   // 한국 화살비 · 핀란드 눈 함정(느리게)
       { const z = G.zones[G.zones.length - 1]; if (m.life) z.life = m.life; if (m.k === 'ring6') { z.inside = new Map(); z.cnt = new Map(); } }
-      if (m.k === 'vortex') { const z = G.zones[G.zones.length - 1]; z.t = -.35; z.tick += .35; z.x0 = h.x; z.y0 = h.y; z.gy = h.y; }   // 칠레 2: 검은 바람이 날아가 떨어진 자리에
+      if (m.k === 'vortex') { const z = G.zones[G.zones.length - 1]; z.t = -.35; z.x0 = h.x; z.y0 = h.y; z.gy = h.y; }   // 칠레 2: 검은 바람이 날아가 떨어진 자리에
       if (feelOn()) {   // 시전감 (GDD 0-20): 장수에서 출발해 도착하는 순간 구역이 켜져요 · 자리·범위·피해는 그대로 (모든 설치)
         const z = G.zones[G.zones.length - 1], sky = m.k === 'sky', fly = sky ? FEEL_T.BOW_FLY : m.k === 'vortex' ? .35 : flyT(h.x, h.y, z.x, z.y);
         const rel = sky ? FEEL_T.BOW_REL : FEEL_T.THROW_REL, pre = rel + fly;
-        z.t = -pre; z.tick = sky ? pre : z.tick + pre - (m.k === 'vortex' ? .35 : 0); z.pre = pre; z.fly = fly; z.launch = m.k; z.x0 = h.x; z.y0 = h.y; z.ang = o.ang;   // 화살비는 첫 낙하와 첫 피해가 같은 순간
+        z.t = -pre; z.fly = fly; z.launch = m.k; z.x0 = h.x; z.y0 = h.y;   // 화살비는 첫 낙하와 첫 피해가 같은 순간
         if (sky) {   // 활을 조준 쪽 하늘(위 −70°)로 들고 당겼다가 0.15초에 놓아요
           const side = Math.cos(o.ang) >= 0 ? 1 : -1, up = -Math.PI / 2 + 20 * D2R * side;
           castStart('bowUp', FEEL_T.BOW_REL + FEEL_T.BOW_BACK, o.ang, { pending: true });
           h.bowM = { t: 0, T: FEEL_T.BOW_REL, ang: up, dx: 0, dy: 0, skill: true };
-          after(FEEL_T.BOW_REL, () => { finishCast(h); const f = bowFrame(G.hero), nk = bowPt(f, 0, BOW.tipV * f.sc * f.sx); z.rx = nk.x + f.ca * 28; z.ry = nk.y + f.sa * 28; z.up = up; z.flightOrigin = { x: z.rx, y: z.ry }; AUDIO.play('attack'); }, z);
+          after(FEEL_T.BOW_REL, () => { finishCast(h); const f = bowFrame(G.hero), nk = bowPt(f, 0, BOW.tipV * f.sc * f.sx); z.rx = nk.x + f.ca * 28; z.ry = nk.y + f.sa * 28; z.flightOrigin = { x: z.rx, y: z.ry }; AUDIO.play('attack'); }, z);
         } else {
           castStart('throw', FEEL_T.THROW_REL + FEEL_T.THROW_BACK, o.ang, { hide: m.k === 'trap', pending: true });   // 스위스만 창을 놓아요 · 나머지는 던지는/가리키는 동작만
           after(FEEL_T.THROW_REL, () => { finishCast(h); const H = G.hero; z.flightOrigin = skillTip(H); const foot = m.k === 'half'; z.rx = foot ? H.x : H.tip ? H.tip.x : H.x; z.ry = foot ? H.y : H.tip ? H.tip.y : H.y - 30; z.gy = H.y; if (m.k === 'vortex') { z.x0 = z.rx; z.y0 = z.ry + 24; }  AUDIO.play('attack'); }, z);
         }
-        after(pre, () => AUDIO.play('impact'), z);
       }
     },
   };
@@ -1062,12 +1303,19 @@
     const h = G.hero, k = m.k, img = 'skill/u/' + G.country.key + '-' + n;
     const b = { img, ang, black: k === 'vortex', playback: sk.type, landed }, dist = Math.hypot(tx - x0, ty - y0);
     if (k === 'lob' || k === 'javelin3') return;
+    if (sk.type === 'zone') {
+      const z = G.zones[G.zones.length - 1];
+      z.showArt = () => {
+        if (layerFx()) G.skillFlash = .06;
+        sfx('art', z.x, z.y, (z.life || SKB.ZONE_TIME) + SKILL_FADE, { ...b, mode: 'zone', z });
+      };
+      return;
+    }
     if (layerFx()) G.skillFlash = .06;
     if (k === 'orbit') return sfx('art', h.x, h.y, 2, { ...b, mode: 'orbit' });   // 튀르키예 1
-    if (sk.type === 'zone') { const z = G.zones[G.zones.length - 1]; if (z) sfx('art', z.x, z.y, (z.life || SKB.ZONE_TIME) - z.t + .3, Object.assign(b, { mode: 'zone', z })); return; }
     if (sk.type === 'dash') {
       const d = h.dash;
-      if (k === 'leap') return sfx('art', tx, ty, (d ? d.dur : .5) + .5, Object.assign(b, { mode: 'drop', delay: Math.max(0, (d ? d.dur : .5) - .08), seqDelay: 0, seqDash: d, S: 190 }));   // 멕시코 1: 착지 순간 독수리
+      if (k === 'leap') return;   // 착지 판정과 함께 독수리를 표시해요.
       if (k === 'blink') {
         commonSkillFx('line', x0, y0, 90, ang, n);
         commonSkillFx('line', tx, ty, 90, ang, n);
@@ -1075,10 +1323,10 @@
         return;
       }
       if (k === 'dashInv') { const w = d && d.wait || 0; return sfx('art', x0, y0, (d ? d.dur : .35) + .25 + w, Object.assign(b, { mode: 'front', S: 110, delay: w, tipped: feelOn(), dash: d })); }   // 룩셈부르크 1: 앞에 붙어 함께
-      return sfx('art', x0, y0, (d ? d.dur * (k === 'returnDash' ? 2 : 1) : .35) + (feelOn() ? AFTER.TRAIL_TAIL : .35), Object.assign(b, { mode: 'trail', H: 86, lite: feelOn(), dash: d }));   // 지나간 길을 따라 늘어나요
+      return sfx('art', x0, y0, (d ? (d.wait || 0) + d.dur * (k === 'returnDash' ? 2 : 1) : .35) + AFTER.TRAIL_TAIL, Object.assign(b, { mode: 'trail', H: 86, delay: d?.wait || 0, dash: d }));   // 지나간 길을 따라 늘어나요
     }
     if (sk.type === 'area') {
-      if (k === 'fear' || k === 'phalanx' || k === 'crack') return sfx('art', h.x, h.y, .6, Object.assign(b, { mode: 'beam', len: k === 'phalanx' ? 200 : k === 'fear' ? SKB.AREA_R * 1.3 : Math.max(240, dist), H: k === 'phalanx' ? 130 : k === 'fear' ? 200 : 90, floor: k !== 'fear' }));
+      if (k === 'fear' || k === 'phalanx' || k === 'crack') return sfx('art', h.x, h.y, .6, Object.assign(b, { mode: 'beam', len: k === 'phalanx' ? 200 : k === 'fear' ? SKB.AREA_R * 1.3 : Math.max(240, dist), H: k === 'phalanx' ? 130 : k === 'fear' ? 200 : 90, floor: k === 'crack', base: k === 'phalanx' }));
       if (k === 'cone') {
         const [x, y] = coneOrigin(h.heroSkill.x, h.heroSkill.y, tx, ty, m.back);
         return sfx('art', landed ? tx : x, landed ? ty : y, .36 + SKILL_FADE,
@@ -1086,7 +1334,7 @@
       }
       const rot = k === 'gust';
       if (k === 'pull') return sfx('art', tx, ty, .6, Object.assign(b, { mode: 'burst', flat: true, S: SKB.AREA_R * 2 / 1.1 }));   // 아일랜드 1 회오리: 바닥에 눕혀 범위 지름 안으로 (가장 클 때 1.1배 = 지름) · 디자인 요청
-      return sfx('art', k === 'arcs8' ? h.x : tx, k === 'arcs8' ? h.y : ty, .6, Object.assign(b, { mode: 'burst', rot, S: (k === 'widen' ? 300 : k === 'chain3' ? 220 : SKB.AREA_R * 2.1) }));
+      return sfx('art', k === 'pole' ? h.x : tx, k === 'pole' ? h.y : ty, .6, Object.assign(b, { mode: 'burst', rot, S: (k === 'widen' ? 300 : k === 'chain3' ? 220 : SKB.AREA_R * 2.1) }));
     }
     // 연사 그림은 탄 비행과 적중을 따라 재생해요.
   }
@@ -1109,6 +1357,7 @@
       return;
     }
     h.queuedSkill = null;
+    if (h.koreaBattery) { h.koreaBattery.mounted = false; h.koreaBattery.roll = 0; }
     if (h.throwM && !h.throwM.released && h.throwM.t / h.throwM.k <= .3) { h.throwM = null; h.handEmpty = false; }
     if (h.bowM && !h.bowM.rel && !h.bowM.skill && h.bowM.t <= .3) h.bowM = null;
     if (h.swing && !h.swing.hit && h.swing.t < .1) h.swing = null;
@@ -1152,6 +1401,11 @@
     G.msgs = G.msgs.filter(m => !m.shout);
     const nameKey = (n === 2 ? 'skill2.name.' : 'skill.name.') + String(G.country.rank).padStart(2, '0');
     const name = t_(nameKey);
+    if (id === 'korea-2') {
+      const duration = r.koreaCutinSeen ? .30 : .70;
+      r.koreaCutinSeen = true;
+      G.cutin = { name, duration, left: duration };
+    }
     G.msgs.push({ text: sk.shout, sub: name, t: n === 2 ? 1.6 : 1.2, life0: n === 2 ? 1.6 : 1.2, shout: true, rtl: G.country.lang === 'he' });   // 2번 외침은 길어서 1.6초
     if (settings.shake && sk.type !== 'area' && m.k !== 'turtle') G.shake = Math.max(G.shake, 2);
     AUDIO.play('skill');
@@ -1197,22 +1451,25 @@
       d.dx = dx; d.dy = dy;
       h.moving = true; h.walkT += dt; d.path.push([h.x, h.y]);
       const offs = d.k === 'clones' ? [0, 30, -30] : [0];   // 스웨덴 1: 은빛 분신 2명이 양옆에서
-      if (d.gT <= 0) { const lite = feelOn(); d.gT = NO_AFTER ? .03 : lite ? AFTER.GHOST_GAP : .045; const g = heroLookNow(); for (const o of offs) if (!NO_AFTER || (o && AFTER_EXC.clones)) G.fx.push({ kind: 'ghost', x: h.x - dy * o, y: h.y + dx * o * .8, cell: g.cell, flip: g.flip, folder: g.folder, t: 0, life: NO_AFTER ? .035 : o ? .5 : lite ? AFTER.GHOST_LIFE : .4, clone: !!o, dash: NO_AFTER ? d : null, lite: lite && !o }); }   // 잔상 줄이기: 0.075초마다 0.15초 → 동시에 최대 2개
-      let turtleHit = false;
+      if (d.gT <= 0) { const lite = feelOn(); d.gT = NO_AFTER ? .03 : lite ? AFTER.GHOST_GAP : .045; const g = heroLookNow(); for (const o of offs) if (!NO_AFTER || (o && AFTER_EXC.clones)) G.fx.push({ kind: 'ghost', x: h.x - dy * o, y: h.y + dx * o * .8, cell: g.cell, flip: g.flip, folder: g.folder, t: 0, life: NO_AFTER ? .035 : AFTER.GHOST_LIFE, clone: !!o, dash: d, lite: lite && !o }); }   // 잔상 줄이기: 0.075초마다 0.15초 → 동시에 최대 2개
+
       for (const o of (d.k === 'leap' || (d.k === 'turtle' && d.t === 0) ? [] : offs)) for (const a of G.aliens) if (!a.dead && !a.entering && !d.hit.has(a) && Math.hypot(a.x - (h.x - dy * o), a.y - (h.y + dx * o * .8)) < a.r + 24) {
         d.hit.add(a); let dmg = d.dmg;
-        if (d.k === 'turtle') turtleHit = true;
         if (d.k === 'focus') { if (!d.first) { d.first = a; dmg = d.base * m.first; } else dmg = d.base * m.rest; }   // 스페인 1: 첫 마리에 몰아서
         if (d.k === 'accel') dmg = d.base * (m.from + (m.to - m.from) * Math.min(1, d.t / d.dur));   // 뒤에 맞을수록 세게
-        damage(a, dmg, dx, dy, true, { finisher: true, skill: true, marking: d.k === 'mark' });
+        if (d.k === 'turtle') {
+          const contact = koreaContact(a, h.x, h.y, dx, dy);
+          const side = Math.sign((a.y - d.sy) * dx - (a.x - d.sx) * dy) || (d.hit.size % 2 ? 1 : -1);
+          damage(a, dmg, dx, dy, true, { finisher: true, skill: true, turtle: true });
+          const kb = a.type === 'boss' ? 60 : reduceMotion ? 200 : 320;
+          a.kb = { x: -dy * side * kb, y: dx * side * kb };
+          if (d.hit.size === 1) koreaImpactBeat(contact.x, contact.y, 2, .03, true);
+          AUDIO.play('impSmash');
+        } else damage(a, dmg, dx, dy, true, { finisher: true, skill: true, marking: d.k === 'mark' });
         if (d.k === 'mark') { a.mark = m.t; a.markX = m.x; }   // 덴마크 1: 표식 2초
         if (d.k === 'invHit' && d.inv < m.max - 1e-6) { d.inv += m.per; }   // 헝가리 2: 맞힐 때마다 무적 +0.2초
         if (d.k === 'seal') control(a, 'seal', 1);            // 핀란드 1: 눈에 덮여 1초 공격 못 함 (보스 0.3초 멈춤)
         if (d.k === 'wallSlam' && a.type !== 'boss') d.carry.push(a);   // 프랑스 2: 앞으로 밀고 가요
-      }
-      if (turtleHit && layerFx()) {
-        sfx('skillShake', h.x, h.y, .08, { amount: 2 });
-        G.hitstop = Math.max(G.hitstop || 0, .03);
       }
       for (const [i, a] of d.carry.entries()) if (!a.dead) { a.x = h.x + dx * (30 + i * 10); a.y = h.y + dy * (30 + i * 10) * .8; a.stun = .2; a.kb = { x: 0, y: 0 }; }
       if (d.k === 'seeds' && d.seeds < 3 && d.t >= d.dur * (.2 + d.seeds * .3)) { d.seeds++; seedEnt(h.x, h.y, d.base * m.seed); }   // 뉴질랜드 2: 씨앗 3개
@@ -1230,7 +1487,14 @@
           Math.max(80, Math.hypot(h.x - d.x0, h.y - d.y0)), d.a0, 1);
         if (d.k === 'invHit' && d.inv) h.skillT = Math.max(h.skillT, d.inv);
         if (d.k === 'spearEnd') G.shots.push(fromTip({ kind: 'lance', x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.3, vy: dy * TEMP.SHOT_SPEED * 1.3, dmg: d.base * m.spear, heroShot: 'spearEnd', life: .7, age: 0, skill: true, skillN: 2, hits: new Set() }, weaponTip(Math.atan2(dy, dx))));   // 그리스 2: 끝에서 창 던지기
-        if (d.k === 'leap') { hitCircle(h.x, h.y, 70, d.base * m.mul); if (settings.shake) G.shake = Math.max(G.shake, 5); AUDIO.play('impSmash'); }   // 착지
+        if (d.k === 'leap') {
+          hitCircle(h.x, h.y, 70, d.base * m.mul);
+          sfx('art', h.x, h.y, 6 * SKILL_FRAME + SKILL_FADE, {
+            img: 'skill/u/mexico-1', ang: d.a0, playback: 'area', landed: true, S: 190,
+          });
+          if (settings.shake) G.shake = Math.max(G.shake, 5);
+          AUDIO.play('impSmash');
+        }
         if (d.k === 'echo') { const path = d.path.slice(), look = d.look, dm = d.base * m.clone; after(1, () => echoEnt(path, look, dm)); }   // 콜롬비아 2
         if (d.k === 'endSmash') {
           sfx('art', h.x, h.y, .36 + SKILL_FADE, { img: 'skill/u/germany-2', ang: Math.atan2(dy, dx), rot: true, S: 72 });
@@ -1308,8 +1572,13 @@
     for (const z of G.zones) {   // 설치: 지름 180 구역 3초
       z.t += dt;
       updateZoneLink(z, dt);
-      if (z.t >= 0 && z.t - dt <= 0 && !z.impact) {
+      if (z.flightOrigin && z.releaseT == null) z.releaseT = z.t;
+      if (z.t < 0) continue;
+      if (!z.impact) {
         z.impact = true;
+        applyLinkHits(z);
+        z.showArt?.();
+        if (z.launch) AUDIO.play('impact');
         if (z.k === 'ring6') {   // QA 고침 2026-11-27: 도착 안쪽 피해는 경계 횟수와 별도예요.
           for (const a of G.aliens) {
             if (a.dead || a.entering) continue;
@@ -1320,7 +1589,7 @@
         }
       }
       if (z.k === 'rings') {   // 미국 2: 1초마다 퍼지는 고리가 지나가며 맞혀요
-        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing += 1; commonSkillFx('ring', z.x, z.y, SKB.ZONE_D, 0, z.skillN); }   // 0 / 0.22 / 0.44초 작은 고리
+        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing = z.nextRing === 0 ? 1.15 : z.nextRing + 1; commonSkillFx('ring', z.x, z.y, SKB.ZONE_D, 0, z.skillN); }
         for (const rg of z.rings) { const r = (z.t - rg.t0) / .6 * SKB.ZONE_D / 2; if (r > SKB.ZONE_D / 2 + 10) continue;
           hitCircle(z.x, z.y, r + 8, z.base / z.mod.div, { skip: rg.hit, heavy: false, main: false, test: (a, ex, ey, d) => d > r - 14 }); }
         continue;
@@ -1354,12 +1623,12 @@
         continue;
       }
       if (z.k === 'corners') {   // 이탈리아 1: 네 모서리에서 짧은 창이 가운데로 동시에
-        if (z.t >= .35 && !z.boom) { z.boom = true; const sk = new Set(); hitCircle(z.x, z.y, 34, z.base * z.mod.mul, { skip: sk }); hitCircle(z.x, z.y, R2 * 1.1, z.base * z.mod.edge, { skip: sk, test: (a, ex, ey) => Math.abs(ex) < R2 && Math.abs(ey) < R2 * .7 }); AUDIO.play('impact'); }
+        if (!z.boom) { z.boom = true; const sk = new Set(); hitCircle(z.x, z.y, 34, z.base * z.mod.mul, { skip: sk }); hitCircle(z.x, z.y, R2 * 1.1, z.base * z.mod.edge, { skip: sk, test: (a, ex, ey) => Math.abs(ex) < R2 && Math.abs(ey) < R2 * .7 }); AUDIO.play('impact'); }
         continue;
       }
-      z.tick -= dt;
-      if (z.tick <= 0 && z.t <= SKB.ZONE_TIME) {
-        z.tick += SKB.ZONE_TICK;
+      if (z.t + 1e-9 >= z.nextTick && z.nextTick < (z.life || SKB.ZONE_TIME)) {
+        // 첫 틱을 착지에서 소진하고 나머지는 기존 시각을 유지해요.
+        z.nextTick += z.nextTick === 0 && !z.arrows ? SKB.ZONE_TICK * 1.5 : SKB.ZONE_TICK;
         hitCircle(z.x, z.y, SKB.ZONE_D / 2 - 2, z.dmg, { heavy: false, main: false });
         if (z.slow) commonSkillFx('ring', z.x, z.y, SKB.ZONE_D, 0, z.skillN);
       }
@@ -1378,8 +1647,8 @@
     const h = G.hero, aim = Math.atan2(h.dir.y, h.dir.x), [cell, flip] = heroDir(aim), bf = bodyFrame(h, cell);
     return { cell: bf.cell, folder: bf.folder, flip };
   }
-  // 스킬 그림 (2D·3D 같이): at(x, 바닥y, fn) 은 3D에서 원근 자리로 옮겨요
-  const GK = () => (use3d ? .62 : .35);   // 바닥 원의 납작한 정도 (3D는 카메라가 더 위에서 봐요)
+  // at(x, 바닥y, fn)은 캔버스 효과를 3D 전장의 원근에 맞춰 그려요.
+  const SKILL_FLOOR_RATIO = .62;
   // 탄 그리기 (s.big = 크게: 호주 1 큰 부메랑)
   function drawShotS(s, lift) {
     if (s.skill) return drawSkillShot(s);
@@ -1405,10 +1674,9 @@
   }
   // ---- 스킬 그림과 조준 UI ----
   const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
-  const skillFloorRatio = () => use3d ? GK() : .45;
   const gEll = (x, y, r, a0 = 0, a1 = Math.PI * 2) => {
     ctx.beginPath();
-    ctx.ellipse(x, y, r, r * skillFloorRatio(), 0, a0, a1);
+    ctx.ellipse(x, y, r, r * SKILL_FLOOR_RATIO, 0, a0, a1);
   };
 
   function coneShape(x, y, r, angle, stroke) {
@@ -1467,7 +1735,7 @@
       };
       if (k === 'orbit') { ring(h.x, h.y, 62, true); ctx.restore(); return; }   // 튀르키예 1: 자리 지정 없음
       if (sk.type === 'zone') { link(); ring(tx, ty, R, false); ring(tx, ty, R * .7, true, SKG); }
-      else if (sk.type === 'area' && k === 'fear') { link(); ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * skillFloorRatio(), 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'fear') { link(); ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * SKILL_FLOOR_RATIO, 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.stroke(); }
       else if (sk.type === 'area' && k === 'phalanx') { const L = 180, W = 46, c = Math.cos(ang), s2 = Math.sin(ang), P = [[0, -W], [L, -W], [L, W], [0, W]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + s2 * u + c * v]);   // 판정과 같은 바닥 좌표
         ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke(); }
       else if (sk.type === 'area' && k === 'crack') { link(); ring(tx, ty, 20, true); }
@@ -1475,7 +1743,7 @@
       else if (sk.type === 'area') { link(); ring(tx, ty, R, true); ring(tx, ty, R + 8, false); }
       else if (sk.type === 'dash') {   // 몸 폭 30 띠 + 흐르는 › 3개 + 도착 원
         let ex = tx, ey = ty; if (k === 'long') { ex = clamp(h.x + (tx - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ty - h.y) * 2, f.y0 + 22, f.y1); }
-        const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v * g, h.y + s2 * u + c * v * g]);   // 길이는 바닥 좌표 그대로(끝 = 도착 원), 폭만 납작하게
+        const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = SKILL_FLOOR_RATIO, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v * g, h.y + s2 * u + c * v * g]);   // 길이는 바닥 좌표 그대로(끝 = 도착 원), 폭만 납작하게
           ctx.globalAlpha = (aim.cancel ? .35 : 1) * a;
           ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40); for (const [i, j] of [[0, 1], [3, 2]]) { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); } ctx.setLineDash([]); return L; };
         if (k === 'long') band(ex, ey, .4);   // 리투아니아 1: 목표 너머까지 옅게 (40%, 디자인 463e6b5)
@@ -1489,7 +1757,7 @@
       else {   // 연사(쏘기): ±12° 부채꼴 + 목표 십자 원
         const L = Math.hypot(tx - h.x, ty - h.y) + 30, sp = 12 * Math.PI / 180; ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40);
         ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(ang - sp) * L, h.y + Math.sin(ang - sp) * L); ctx.lineTo(h.x + Math.cos(ang + sp) * L, h.y + Math.sin(ang + sp) * L); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
-        ring(tx, ty, 20, true); ctx.strokeStyle = SKW; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 26, ty); ctx.lineTo(tx + 26, ty); ctx.moveTo(tx, ty - 26 * GK()); ctx.lineTo(tx, ty + 26 * GK()); ctx.stroke();
+        ring(tx, ty, 20, true); ctx.strokeStyle = SKW; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 26, ty); ctx.lineTo(tx + 26, ty); ctx.moveTo(tx, ty - 26 * SKILL_FLOOR_RATIO); ctx.lineTo(tx, ty + 26 * SKILL_FLOOR_RATIO); ctx.stroke();
       }
       ctx.restore();
     });
@@ -1502,7 +1770,17 @@
       ctx.restore();
     });
   }
-  const SKILL_FRAME = .06, SKILL_FADE = .30, SMOKE_FRAME = .17;
+  const SKILL_FRAME = .06, SKILL_FADE = .30;
+  const FLY_WEAPON_PROPS = false;
+
+  function skillPop(age) {
+    if (reduceMotion) return 1;
+    if (age < .09) {
+      const q = clamp(age / .09, 0, 1);
+      return .5 + .65 * (1 - (1 - q) ** 2);
+    }
+    return 1.15 - .15 * clamp((age - .09) / .06, 0, 1);
+  }
 
   function skillSequence(name) {
     const seq = name.replace('skill/u/', 'skill/seq/'), im = UI.img[seq];
@@ -1511,66 +1789,39 @@
     return count === 6 || (count === 5 && seq === 'skill/seq/korea-1') ? [seq, count] : null;
   }
 
-  function skillFrame(type, age, ending = false) {
+  function skillFrame(type, age) {
     const tick = Math.max(0, Math.floor((age + 1e-9) / SKILL_FRAME));
     if (type === 'zone') {
-      if (ending) return 5;
       if (tick < 2) return tick;
       const phase = (tick - 2) % 4;
       return 2 + Math.min(phase, 4 - phase);
     }
     if (type === 'dash') return 2 + tick % 2;
-    return Math.min(5, tick);
+    return tick;
   }
 
   function drawSkillCell(name, count, frame, x, y, angle, size, alpha, opts = {}) {
-    const { ground = y, add = true, color, flat = false, facing = false, height = size } = opts;
-    const im = UI.img[name], cell = im.naturalWidth / count;
+    const { ground = y, add = true, color, flat = false, facing = false, rot = facing ? 0 : angle, height = size, base = false, lift = 0, tint = 1, orderOffset = 0, renderOrder } = opts;
     const flip = facing && Math.cos(angle) < 0;
-    const rot = facing ? 0 : angle;
-    if (use3d) {
-      const tex = R3D.cellTex(name, null, count, frame);
-      if (flat) R3D.decal(tex, x, ground, size, height, { alpha, add, angle: rot, order: 95 });
-      else {
-        const mo = { alpha, rot, flip, oy: y - ground, color };
-        const options = { aspect: size / height, below: height / 2, shadow: false, add, effect: true };
-        R3D.sprite(tex, x, ground, height, mo, options);
-        if (color) R3D.sprite(tex, x, ground, height, { ...mo, color: null, alpha: alpha * .35 }, options);
-      }
-      return;
+    const tex = count === 1 ? R3D.tex(name) : R3D.cellTex(name, null, count, frame);
+    if (flat) R3D.decal(tex, x, ground, size, height, { alpha, add, angle: rot, order: 95 });
+    else {
+      const mo = { alpha, rot, flip, oy: y - ground, color, tint };
+      const options = { aspect: size / height, center: !base, lift, shadow: false, add, effect: true, orderOffset, renderOrder };
+      R3D.sprite(tex, x, ground, height, mo, options);
+      if (color) R3D.sprite(tex, x, ground, height, { ...mo, color: null, alpha: alpha * .35 }, options);
     }
-    ctx.save();
-    ctx.globalCompositeOperation = add ? 'lighter' : 'source-over';
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y);
-    ctx.rotate(rot);
-    if (flip) ctx.scale(-1, 1);
-    const dx = -size / 2, dy = -height / 2;
-    if (color) {
-      ctx.drawImage(tintedSkillCell(im, cell, frame, color), dx, dy, size, height);
-      ctx.globalAlpha = alpha * .35;
-    }
-    ctx.drawImage(im, frame * cell, 0, cell, im.naturalHeight, dx, dy, size, height);
-    ctx.restore();
   }
 
   function drawSkillStamp(name, frame, x, y, angle, size, alpha, ground = y) {
-    const seq = frame == null ? null : skillSequence(name);
-    if (seq) return drawSkillCell(...seq, Math.min(seq[1] - 1, frame), x, y, angle, size, alpha, { ground });
-    const im = UI.img[name];
-    if (!im?.naturalWidth) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.drawImage(im, -size / 2, -size / 2, size, size);
-    ctx.restore();
+    const seq = skillSequence(name);
+    if (!UI.img[seq?.[0] || name]?.naturalWidth || frame >= (seq?.[1] || 1)) return;
+    drawSkillCell(...(seq || [name, 1]), frame, x, y, angle, size, alpha, { ground });
   }
 
   function barrageArt(n, x, y, angle, frame = 0) {
     const id = G.country.key + '-' + n, img = 'skill/u/' + id;
-    return sfx('art', x, y, (6 - frame) * SKILL_FRAME + SKILL_FADE, {
+    return sfx('art', x, y, (6 - frame) * SKILL_FRAME, {
       img, ang: angle, rot: true, S: SKILL_PROP[id][0] * 2, playback: 'barrage', landed: frame > 0, frame,
     });
   }
@@ -1597,7 +1848,7 @@
     'finland-1': [42, 'feet'], 'finland-2': [36, 'lowArc', 1, 'float'],
     'france-1': [48, 'slide'], 'france-2': [48, 'front'],
     'italy-1': [36, 'arc', 4, 'corners'], 'italy-2': [36, 'front'],
-    'korea-1': [72, 'front'], 'korea-2': [36, 'cannon'],
+    'korea-1': [108, 'front'], 'korea-2': [54, 'cannon'],
     'spain-1': [42, 'front'], 'spain-2': [42, 'frontSpin'],
     'czechia-1': [36, 'roll', 6, 'ring'], 'czechia-2': [36, 'straight', 1, 'tripleSpin'],
     'israel-1': [14, 'shot'], 'israel-2': [36, 'front'],
@@ -1649,23 +1900,25 @@
     });
   }
 
-  function drawZoneFlight(z, at) {
+  function drawZoneFlight(z) {
     if (z.t >= 0) return;
     const fly = z.fly || .35;
     if (z.t < -fly || (z.launch && !z.flightOrigin)) return;
     const id = G.country.key + '-' + z.skillN;
     const origin = z.flightOrigin || { x: z.x0, y: z.y0 - 30 };
     const path = skillFlightPath(origin, z.gy ?? z.y0, z.x, z.y);
-    const weapon = THROWN_SKILL_PROPS.has(id);
-    drawSkillFlight(id, path(clamp(1 + z.t / fly, 0, 1)), weapon ? SKILL_PROP[id][0] : 72, fly,
-      weapon, 0, at);
+    const weapon = THROWN_SKILL_PROPS.has(id), release = z.releaseT ?? -fly;
+    const age = Math.max(0, z.t - release);
+    drawSkillFlight(id, path(clamp(age / -release, 0, 1)),
+      FLY_WEAPON_PROPS && weapon ? SKILL_PROP[id][0] : 72, fly, age, weapon);
   }
 
-  function drawLaunchedSkill(e, q, at) {
-    drawSkillFlight(e.id, e.path(q), e.weapon ? SKILL_PROP[e.id][0] : 72, e.life, e.weapon, 0, at);
+  function drawLaunchedSkill(e, q) {
+    const size = FLY_WEAPON_PROPS && e.weapon ? SKILL_PROP[e.id][0] : 72;
+    drawSkillFlight(e.id, e.path(q), size, e.life, e.t, e.weapon);
   }
 
-  function drawSkillShot(s, at = at2d) {
+  function drawSkillShot(s) {
     const id = G.country.key + '-' + s.skillN;
     const duration = s.kind === 'boomerang' ? .42 : s.age + s.life;
     const q = clamp(s.age / duration, 0, 1);
@@ -1678,65 +1931,61 @@
     const peak = s.lob != null ? 44 : 30;
     const z = startZ * (1 - q) + 4 * peak * q * (1 - q);
     const pos = { x, y, z, dx, dy, dz: -startZ + 4 * peak * (1 - 2 * q) };
-    const spin = s.kind === 'axe' ? s.age * 22 : 0;
     const weapon = THROWN_SKILL_PROPS.has(id) || SKILL_BATTERIES.has(id);
-    drawSkillFlight(id, pos, (weapon ? SKILL_PROP[id][0] : 48) * (s.big || 1), duration, weapon, spin, at);
+    const size = FLY_WEAPON_PROPS && weapon ? SKILL_PROP[id][0] : 48;
+    drawSkillFlight(id, pos, size * (s.big || 1), duration, s.age, weapon);
   }
 
   function drawHeroProp(h, at) {
-    if (!h.heroSkill || h.dead) return;
+    if (!h.heroSkill || h.dead || skillOf(G.country, h.heroSkill.n).type === 'dash') return;
     const id = G.country.key + '-' + h.heroSkill.n, [size, mode, count = 1] = SKILL_PROP[id];
-    const d = h.dash, c = h.cast, age = G.combatT - h.heroSkill.start;
-    const attached = d || c?.k === 'dash' || h.poseFollow || (mode === 'front' && h.barrage) || id === 'japan-2' && age < .45;
+    const c = h.cast, age = G.combatT - h.heroSkill.start;
+    const attached = h.poseFollow || (mode === 'front' && h.barrage);
     const held = (id === 'france-1' || id === 'germany-1') &&
       c?.k === 'area' && c.t < FEEL_T.AREA_PREP + FEEL_T.AREA_HIT;
     const prepared = ['handShot', 'battery'].includes(mode) && (h.barrage || c?.k === 'aim');
-    if (!attached && !prepared && !held && c?.k !== 'turtle' && !(mode === 'orbit' && age < .18)) return;
-    if (['seed', 'clone'].includes(mode)) return;
-    const a = h.poseFollow?.ang ?? (d ? Math.atan2(d.dy, d.dx) : h.heroSkill.a);
+    if (!attached && !prepared && !held && !(mode === 'orbit' && age < .18)) return;
+    if (['seed', 'clone'].includes(mode) || (mode === 'orbit' && !FLY_WEAPON_PROPS)) return;
+    const a = h.poseFollow?.ang ?? h.heroSkill.a;
     const front = mode.startsWith('behind') ? -15 : mode === 'feet' || mode === 'head' || mode === 'orbit' || mode === 'sides' ? 0 : 17;
     const z = mode === 'head' || mode === 'orbit' ? 55 : mode === 'feet' || mode === 'battery' ? 0 : mode === 'behindRise' ? 18 * clamp(age / .16, 0, 1) : 20;
     for (let i = 0; i < (mode === 'orbit' ? 1 : count); i++) {
       const side = (i - (count - 1) / 2) * (mode === 'battery' ? 16 : size);
       const hand = held || mode === 'handShot' ? skillTip(h) : null;
-      const x = hand?.x ?? ((c?.end?.x ?? h.x) + Math.cos(a) * front - Math.sin(a) * side);
-      const y = (c?.end?.y ?? h.y) + Math.sin(a) * front + Math.cos(a) * side * .6;
-      const spin = mode === 'frontRoll' && d ? d.t * 20 : 0;
-      const alpha = c?.end ? clamp(1 - (c.t - c.end.t) / .3, 0, 1) : 1;
-      if (c?.k === 'turtle' && c.t >= TURTLE.PREP) {
-        const seq = skillSequence('skill/u/korea-1');
-        if (seq) {
-          const age = c.end ? c.t - c.end.t : c.t - TURTLE.PREP;
-          const frame = c.end ? (seq[1] === 5 ? 3 + Math.floor(age / SKILL_FRAME) : age < SKILL_FRAME ? 4 : 5)
-            : c.t < TURTLE.START ? Math.min(1, Math.floor(age / SKILL_FRAME)) : skillFrame('dash', c.t - TURTLE.START);
-          at(x, y, () => drawSkillStamp('skill/u/korea-1', frame, x, y - 12, a, size, alpha, y));
-        }
-      }
-      at(x, y, () => drawProp(id, x, y, hand ? Math.max(0, y - hand.y + 6) : z, a + spin, alpha, true, spin !== 0));
+      const x = hand?.x ?? (h.x + Math.cos(a) * front - Math.sin(a) * side);
+      const y = h.y + Math.sin(a) * front + Math.cos(a) * side * .6;
+      at(x, y, () => drawProp(id, x, y, hand ? Math.max(0, y - hand.y + 6) : z, a));
     }
   }
 
-  const COMMON_SKILL_ART = ['slash', 'impact', 'line', 'ring', 'smoke'];
-  const SMOKE_IMPACT_SKILLS = new Set(['korea-2', 'netherlands-1', 'germany-2', 'slovakia-1', 'israel-1', 'lithuania-2']);
-  const skillTints = new WeakMap();
-
-  function tintedSkillCell(im, size, frame, color) {
-    if (!skillTints.has(im)) skillTints.set(im, new Map());
-    const cache = skillTints.get(im), key = color + ':' + frame;
-    if (cache.has(key)) return cache.get(key);
-    const tile = mkCv(size, size), g = tile.getContext('2d');
-    const draw = () => g.drawImage(im, frame * size, 0, size, size, 0, 0, size, size);
-    draw();
-    g.globalCompositeOperation = 'multiply';
-    g.fillStyle = color;
-    g.fillRect(0, 0, size, size);
-    g.globalCompositeOperation = 'destination-in';
-    draw();
-    cache.set(key, tile);
-    return tile;
+  function turtlePose(h) {
+    const c = h.cast;
+    if (h.dead || c?.k !== 'turtle' || c.t < TURTLE.START - .10) return null;
+    const age = c.end ? c.t - c.end.t : c.t - TURTLE.START;
+    const alpha = c.end ? clamp(1 - age / .18, 0, 1) : clamp(1 + age / .10, 0, 1);
+    if (!alpha) return null;
+    const angle = c.ang, side = Math.cos(angle) < 0 ? -1 : 1;
+    const x = (c.end?.x ?? h.x) + side * 10, y = c.end?.y ?? h.y;
+    const center = y - 34 + (reduceMotion ? 0 : Math.sin(c.t * 28) * 1.5);
+    return {
+      x, y, center, side, angle, alpha, t: c.t, riding: !c.end,
+      riderX: x - side * 14, riderY: center - 4,
+    };
   }
 
-  function commonSkillFx(kind, x, y, size, angle, n = G.hero.heroSkill?.n || 1) {
+  function drawTurtleArt(p, front = false) {
+    const { x, y, center, side, angle, alpha, t } = p;
+    const glow = Math.floor(t / .07) % 4;
+    if (!front) koreaShadow(x, y + 2, 0, 48 * alpha, .35);
+    koreaCell('aura-water', glow, x - side * 4, center, 150, alpha * (front ? .55 : 1),
+      { ground: y, facing: true, angle, orderOffset: front ? .02 : -.02 });
+    if (!front) koreaCell('korea-1-act', Math.floor(t / .08) % 4, x, center, 118, alpha,
+      { ground: y, facing: true, angle, add: false, orderOffset: -.01 });
+  }
+
+  const COMMON_SKILL_ART = ['slash', 'impact', 'line', 'ring', 'smoke'];
+  const SMOKE_IMPACT_SKILLS = new Set(['netherlands-1', 'germany-2', 'slovakia-1', 'israel-1', 'lithuania-2']);
+  function commonSkillFx(kind, x, y, size, angle, n = G.hero.heroSkill?.n || 1, ground) {
     const key = G.country.key, id = key + '-' + n;
     if (kind === 'impact' && SMOKE_IMPACT_SKILLS.has(id)) {
       commonSkillFx('smoke', x, y, SKILL_PROP[id][0] * 2, angle, n);
@@ -1745,64 +1994,81 @@
     if (im?.naturalWidth !== 6 * 256 || im.naturalHeight !== 256) return false;
     const smoke = kind === 'smoke';
     const color = smoke ? null : SKILL_COL[key]?.[n - 1]?.[1] || (id === 'korea-2' ? '#FF8A2E' : SKW);
-    sfx('common', x, y, smoke ? 5 * SMOKE_FRAME + 1.5 : 6 * SKILL_FRAME + SKILL_FADE,
-      { name, size, angle, color, smoke });
+    const life = smoke ? .85 + 1.5 : 6 * SKILL_FRAME;
+    sfx('common', x, y, life, { name, size, angle, color, smoke, ground, flat: kind === 'ring' });
     return true;
   }
 
   function drawCommonSkillFx(e) {
-    const sootAge = e.t - 5 * SMOKE_FRAME;
+    const tick = skillFrame('area', e.t);
+    const remaining = e.life - e.t;
+    if (remaining <= 0) return;
     if (e.smoke) {
-      if (sootAge < -1e-9) {
-        drawSkillCell(e.name, 6, Math.min(4, Math.floor((e.t + 1e-9) / SMOKE_FRAME)), e.x, e.y - 10, 0, e.size, 1,
-          { ground: e.y, add: false });
+      if (remaining <= SKILL_FRAME) {
+        drawSkillCell(e.name, 6, 5, e.x, e.y, e.angle, e.size * 1.3, .6 * remaining / SKILL_FRAME,
+          { add: false, flat: true, height: e.size * 1.3 });
       } else {
-        drawSkillCell(e.name, 6, 5, e.x, e.y, e.angle, e.size, .6 * clamp(1 - sootAge / 1.5, 0, 1),
-          { ground: e.y, add: false, flat: true, height: e.size * .45 });
+        const frame = tick < 5 ? tick : 2 + (tick - 5) % 3;
+        const fade = clamp(remaining / .25, 0, 1);
+        drawSkillCell(e.name, 6, frame, e.x, e.y - 10, 0, e.size * skillPop(e.t) * (1.3 - .3 * fade),
+          fade, { ground: e.y, add: false });
       }
       return;
     }
-    drawSkillCell(e.name, 6, skillFrame('area', e.t), e.x, e.y - 10, e.angle, e.size,
-      clamp((e.life - e.t) / SKILL_FADE, 0, 1), { ground: e.y, color: e.color });
+    if (tick >= 6) return;
+    const fade = clamp(remaining / .15, 0, 1);
+    const size = e.size * skillPop(e.t) * (1.3 - .3 * fade);
+    const turn = e.flat && !reduceMotion ? e.t * Math.PI / 4 : 0;
+    drawSkillCell(e.name, 6, tick, e.x, e.flat || e.ground != null ? e.y : e.y - 10, e.angle + turn, size,
+      fade, { ground: e.ground ?? e.y, color: e.color, flat: e.flat });
   }
 
   function drawRepresentative(e) {
-    const seq = skillSequence(e.img), im = UI.img[e.img];
+    const seq = skillSequence(e.img);
     const t = e.t - ((seq ? e.seqDelay ?? e.delay : e.delay) || 0);
-    if (t < 0 || e.t >= e.life || (e.z && e.z.t < (e.z.artAt || 0))) return;
-    if (!seq && !im?.naturalWidth) return;
     const h = G.hero, z = e.z, mode = e.mode;
-    const pop = reduceMotion ? 1 : .85 + .15 * clamp((z ? z.t : t) / .08, 0, 1);
-    const alpha = clamp((e.life - e.t) / SKILL_FADE, 0, 1);
-    const zoneOpacity = z ? .7 + (reduceMotion ? 0 : .08 * Math.sin(Math.min(z.t, z.life || SKB.ZONE_TIME) * 5)) : 1;
+    const zoneAge = z ? z.t - (z.artAt || 0) : 0;
+    if (t < 0 || e.t >= e.life || zoneAge < 0 || !UI.img[seq?.[0] || e.img]?.naturalWidth) return;
+    const dash = e.seqDash || e.dash;
+    if (dash && (dash.wait > 0 || h.dash !== dash)) return;
+    const age = z ? zoneAge : dash ? dash.t : t;
+    const frameStart = e.frame || 0;
+    const count = seq?.[1] || 1;
+    const looping = !!z || !!dash || mode === 'orbit';
+    const playTime = seq ? (count - frameStart) * SKILL_FRAME : e.life - (e.t - t);
+    if (!looping && age >= playTime) return;
+    const remaining = looping ? e.life - e.t : playTime - age;
+    const fade = clamp(remaining / .15, 0, 1);
+    const burst = !looping || !!z;
+    const expansion = burst ? 1.3 - .3 * fade : 1;
+    const pulse = z && !reduceMotion ? 1 + .16 * Math.sin(Math.max(0, age - .15) * 2 * Math.PI / .8) : 1;
+    const scale = skillPop(age) * expansion * pulse;
     const attached = (seq && e.seqDash) || mode === 'orbit' || mode === 'front' || mode === 'trail';
     const beam = mode === 'beam';
-    const angle = beam || attached || e.rot ? e.ang : 0;
-    const x = attached ? h.x : beam && !e.landed ? e.x + Math.cos(angle) * e.len / 2 : e.x;
-    const y = attached ? h.y - 24 : e.landed ? e.y : beam ? e.y + Math.sin(angle) * e.len / 2 - 20 : e.y - 6 - (e.lift || 0);
-    const size = (mode === 'zone' ? SKB.ZONE_D * 2 * (.7 + (reduceMotion ? 0 : .08 * Math.sin(t * 5)))
-      : e.S || e.len || e.H || 150) * pop;
-    if (seq) {
-      const dash = e.seqDash || e.dash;
-      if (dash && (dash.wait > 0 || h.dash !== dash)) return;
-      const age = z ? z.t - (z.artAt || 0) : dash ? dash.t : t;
-      const type = e.playback || 'area';
-      const zoneEnd = z ? z.life || SKB.ZONE_TIME : 0;
-      const ending = !!z && (e.zoneGone || z.artEnd != null || age >= zoneEnd);
-      const frame = Math.min(seq[1] - 1, skillFrame(type, age + (e.frame || 0) * SKILL_FRAME, ending));
-      const height = (beam ? e.H * pop : size) * (e.flat ? GK() : 1);
-      drawSkillCell(...seq, frame, x, y, angle, size, alpha * zoneOpacity,
-        { ground: attached ? h.y : e.y, height, add: !e.black });
-      return;
+    const flat = !!z || e.flat || e.floor;
+    let turn = 0;
+    if (!reduceMotion) {
+      if (z || e.flat) turn = age * Math.PI * .3;
+      else if (mode === 'orbit') turn = age * Math.PI / 2;
     }
-    ctx.save();
-    ctx.globalAlpha = alpha * zoneOpacity;
-    ctx.globalCompositeOperation = e.black ? 'source-over' : 'lighter';
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    const height = (beam ? e.H * pop : size) * (e.flat ? GK() : 1);
-    ctx.drawImage(im, -size / 2, -height / 2, size, height);
-    ctx.restore();
+    const facing = beam || attached || e.rot ? e.ang : 0;
+    const x = attached ? h.x : beam && !e.landed ? e.x + Math.cos(facing) * e.len / 2 : e.x;
+    const ground = attached ? h.y : beam && !e.landed ? e.y + Math.sin(facing) * e.len / 2 : e.y;
+    const base = !flat && !attached && (!beam || e.base);
+    const y = flat || base ? ground : attached ? ground - 24 : ground - 20;
+    const size = (z ? SKB.ZONE_D * 1.4 : e.S || e.len || e.H || 150) * scale;
+    let frame = 0;
+    if (seq) {
+      if (z) {
+        const ending = (e.zoneGone || z.artEnd != null) && remaining <= SKILL_FRAME;
+        frame = ending ? count - 1 : skillFrame('zone', age);
+      } else if (dash) frame = skillFrame('dash', age);
+      else if (mode === 'orbit') frame = skillFrame('area', age) % count;
+      else frame = frameStart + skillFrame('area', age);
+      if (frame >= count) return;
+    }
+    drawSkillCell(...(seq || [e.img, 1]), frame, x, y, facing + turn, size, fade * (z ? .7 : 1),
+      { ground, height: beam ? e.H * scale : size, add: !e.black, flat, base });
   }
 
   function drawSkills(at) {
@@ -1819,30 +2085,17 @@
     }
     for (const mk of G.marks) at(mk.x, mk.y, () => drawProp('austria-1', mk.x, mk.y, 0, mk.a, Math.min(.55, (mk.life - mk.t) / .3), false));
     for (const e of G.ents) e.draw?.(at);
-    for (const z of G.zones) drawZoneFlight(z, at);
+    for (const z of G.zones) drawZoneFlight(z);
     drawHeroProp(h, at);
   }
 
-  function drawJumps(at) {
-    for (const a of G.aliens) {
-      if (!a.jump || a.jump.ph === 'land') continue;
-      const J = a.jump, C = a.jumpCfg, k = J.ph === 'crouch' ? J.t / C.crouch : 1, fill = J.ph === 'air' ? Math.min(1, J.t / C.air) : 0;
-      at(J.tx, J.ty, () => {
-        ctx.save(); ctx.globalAlpha = .25 + .45 * k;
-        ctx.fillStyle = 'rgba(10,6,16,.45)'; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r, C.r * GK(), 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(202,87,229,.35)'; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r * fill, C.r * fill * GK(), 0, 0, Math.PI * 2); ctx.fill();   // 떨어질 때까지 차오름
-        ctx.strokeStyle = '#CA57E5'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r, C.r * GK(), 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
-      });
-    }
-  }
   let landGreen = null;   // 사격 외계인용 초록 (hue-rotate −150°, 한 번만 만들어요)
   function drawJumpLand(e, k) {
     let name = 'alien/fx-land';
     if (e.green) { const im = UI.img[name]; if (im && im.naturalWidth && !landGreen) { landGreen = UI.hueRotate(im, -150); UI.img['alien/fx-land-green'] = landGreen; } name = 'alien/fx-land-green'; }
     if (FX.cell(name, 6, k * 6, e.x, e.y, 0, e.r * 2.4, .9)) return;
     ctx.save(); ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = '#E2B6F0'; ctx.lineWidth = 5 * (1 - k) + 1;
-    const R = e.r * (.6 + .6 * k); ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * GK(), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    const R = e.r * (.6 + .6 * k); ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * SKILL_FLOOR_RATIO, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
   function drawSkillFx(e, k) {
     if (e.type === 'art') return drawRepresentative(e);
@@ -1879,7 +2132,19 @@
     const q0 = clamp(t0 / life, 0, 1), q1 = clamp(t1 / life, 0, 1);
     if (q0 >= q1) return;
     const [x0, y0] = path(q0), [x1, y1] = path(q1);
-    hitSeg(x0, y0, x1, y1, LINK_WIDTH[style] / 2, dmg, owner.linkHits ||= new Set(), true);   // 여러 줄이나 화살이 겹쳐도 스킬마다 한 번만
+    const width = LINK_WIDTH[style] / 2, length = Math.hypot(x1 - x0, y1 - y0) || 1;
+    const hits = owner.linkHits ||= new Map();
+    for (const a of G.aliens) {
+      if (a.dead || a.entering || hits.has(a) || distSeg(a.x, a.y, x0, y0, x1, y1) >= width + a.r * .5) continue;
+      hits.set(a, { dmg, dx: (x1 - x0) / length, dy: (y1 - y0) / length });
+    }
+  }
+  function applyLinkHits(owner) {
+    if (!owner.linkHits) return;
+    for (const [a, { dmg, dx, dy }] of owner.linkHits) {
+      if (!a.dead && !a.entering) damage(a, dmg, dx, dy, false, { finisher: false, link: true, skill: true });
+    }
+    owner.linkHits.clear();
   }
   function updateZoneLink(z, dt) {
     if (z.k !== 'vortex' && (!z.launch || z.launch === 'sky')) return;
@@ -1891,7 +2156,7 @@
     const x = shadow || style === 'vortex' ? z.x0 : z.rx;
     const dmg = z.base * LINK_DMG, R = SKB.ZONE_D / 2, floor = linkLine(x, z.gy, z.x, z.y);
     if (style === 'lines4') {
-      for (const [sx, sy] of LINK_CORNERS) sweepLink(z, style, linkLine(x, z.gy, z.x + sx * R, z.y + sy * R * .7 * GK()), t - dt, t, fly, dmg);
+      for (const [sx, sy] of LINK_CORNERS) sweepLink(z, style, linkLine(x, z.gy, z.x + sx * R, z.y + sy * R * .7 * SKILL_FLOOR_RATIO), t - dt, t, fly, dmg);
     } else if (style === 'boomer3') {
       const art = boomerSweepArtPath(z.rx, z.ry, z.x, z.y);
       for (const i of [-1, 0, 1]) sweepLink(z, style, q => boomerLinkPoint(floor, art, q, i), t - dt, t, fly, dmg);
@@ -1918,52 +2183,40 @@
     });
   }
 
-  function drawSkillFlight(id, pos, size, duration, weapon, spin, at) {
+  function drawSkillFlight(id, pos, size, duration, age, weapon, alpha = 1) {
     const { x, y, z, dx, dy, dz } = pos;
-    const name = 'skill/u/' + id;
-    const cannonball = SKILL_BATTERIES.has(id);
-    const prop = weapon && UI.img[cannonball ? CANNONBALL_ART : 'skill/prop/' + id];
-    const art = UI.img[name];
-    let im = prop?.naturalWidth ? prop : art;
-    let cell = im?.naturalWidth, sourceX = 0;
-    if (weapon && !prop?.naturalWidth) {
-      const seq = skillSequence(name);
-      if (seq) {
-        im = UI.img[seq[0]];
-        cell = im.naturalWidth / seq[1];
-      }
-    } else if (!weapon && !art?.naturalWidth) {
-      im = UI.img['skill/seq/' + id];
-      cell = im?.naturalHeight;
-      if (im?.naturalWidth >= cell * 3) sourceX = cell * 2;
-    }
-    if (!im?.naturalWidth) return;
-    const shadow = () => skillShadow(x, y, size * .3 * (1 - .2 * clamp(z / 80, 0, 1)),
-      Math.max(.1, .25 - z / 400));
-    let px = x, py = y - z, vx = dx, vy = dy - dz;
-    let scale = .85 + .25 * clamp((y - FIELD.floor.y0) / (FIELD.floor.y1 - FIELD.floor.y0), 0, 1);
-    if (use3d && R3D.built) {
-      at(x, y, shadow);
-      const p = R3D.proj(x, y, z);
-      px = p.x; py = p.y; scale = p.s;
-      const next = R3D.proj(x + dx * .01, y + dy * .01, z + dz * .01);
-      vx = (next.x - px) * 100; vy = (next.y - py) * 100;
-    } else {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(scale, scale);
-      ctx.translate(-x, -y);
-      shadow();
-      ctx.restore();
-    }
+    const battery = SKILL_BATTERIES.has(id);
+    const prop = battery ? CANNONBALL_ART : 'skill/prop/' + id;
+    const hasProp = FLY_WEAPON_PROPS && weapon && UI.img[prop]?.naturalWidth > 0;
+    const art = 'skill/u/' + id;
+    const seq = skillSequence(art);
+    const [name, count] = hasProp ? [prop, 1] : seq || [art, 1];
+    if (!UI.img[name]?.naturalWidth) return;
+    const frame = Math.floor(age / .05) % Math.min(3, count);
+    const altitude = clamp(z / 80, 0, 1);
+    const radius = size * .3 * (1 - .5 * altitude);
+    const shadow = alpha * (.35 - .2 * altitude);
+    R3D.blob(x, y, radius, shadow);
+    const p = R3D.proj(x, y, z);
+    const next = R3D.proj(x + dx * .01, y + dy * .01, z + dz * .01);
+    const vx = (next.x - p.x) * 100, vy = (next.y - p.y) * 100;
+    const turn = reduceMotion || battery ? 0 : Math.sin(age * 8) * .24;
+    const angle = Math.atan2(vy, vx) + turn;
     const stretch = 1 + .15 * clamp(Math.hypot(vx, vy) / (duration * 900), 0, 1);
-    ctx.save();
-    ctx.translate(px, py);
-    ctx.rotate(Math.atan2(vy, vx) + spin);
-    ctx.scale(scale * stretch, scale);
-    if (cannonball && prop?.naturalWidth) ctx.filter = 'grayscale(1) brightness(.65)';
-    ctx.drawImage(im, sourceX, 0, cell, im.naturalHeight, -size / 2, -size / 2, size, size);
-    ctx.restore();
+    const height = size * skillPop(age);
+    drawSkillCell(name, count, frame, x, y, angle, height * stretch, alpha,
+      { ground: y, lift: z, height, add: !hasProp, tint: hasProp && battery ? .65 : 1 });
+  }
+
+  function drawMovingSkill(id, x, y, z, angle, age, life, at) {
+    const alpha = clamp((life - age) / .15, 0, 1);
+    const turn = reduceMotion ? 0 : age * Math.PI * 1.2;
+    if (FLY_WEAPON_PROPS) {
+      at(x, y, () => drawProp(id, x, y, z, angle + turn, alpha, true, true));
+      return;
+    }
+    const pos = { x, y, z, dx: Math.cos(angle + turn), dy: Math.sin(angle + turn), dz: 0 };
+    drawSkillFlight(id, pos, SKILL_PROP[id][0] * 1.5, life, age, false, alpha);
   }
 
   function skillShadow(x, y, radius, alpha) {
@@ -1976,8 +2229,6 @@
     ctx.fill();
     ctx.restore();
   }
-
-  const at2d = (x, y, fn) => fn();
 
   function drawGhost(e, k) {
     if (e.clone && (G.country.key === 'sweden' || G.country.key === 'colombia')) {
@@ -2008,7 +2259,7 @@
     a.hp -= dmg;
     if (o.skill && dmg > 0) a.skillLiftT = SKILL_HIT_LIFT_TIME;
     // 피격 실루엣 (리뷰 4): 흰 0.025초 → 몸 색 외곽선 0.07초 · 공격축으로 눌렸다 복원 0.1초
-    a.flash = 0.025; a.edgeT = 0.095; a.hitT = 0.1; a.hitAx = Math.abs(nx) >= Math.abs(ny) ? 'x' : 'y';
+    a.flash = o.turtle ? .05 : .025; a.edgeT = 0.095; a.hitT = 0.1; a.hitAx = Math.abs(nx) >= Math.abs(ny) ? 'x' : 'y';
     // 넉백 (리뷰 2): 처음 0.04초는 쫓아오기를 15%로 눌러 실제로 밀려나요 → 35ms에 약 5px, 이후 3~4px 더
     const kb = a.type === 'boss' ? 60 : heavy ? 200 : o.gun ? 50 : 120;   // 총알은 2px만 밀렸다 돌아와요
     a.kb = { x: nx * kb, y: ny * kb }; a.stun = a.type === 'boss' ? 0.02 : 0.04;
@@ -2028,7 +2279,7 @@
       a.dead = true; G.run.kills++; G.run.killsRound++;
       // 처치 (리뷰 10): 몸이 0.08초 동안 0.65배로 접히며 사라진 뒤 파편 6개 + 처치 잔광
       const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
-      { const L = alienLook(a); G.fx.push({ kind: 'corpse', img: L.name, cell: L.cell ? L.cell.i : null, x: a.x, y: a.y, hgt: L.hgt, flip: L.mo.flip, t: 0, life: .08 }); }
+      { const L = alienLook(a); G.fx.push({ kind: 'corpse', img: L.name, cell: L.cell ? L.cell.i : null, x: a.x, y: a.y, hgt: L.hgt, flip: L.mo.flip, flash: o.turtle ? .05 : 0, t: 0, life: .08 }); }
       if (!o.skill) shardBurst(a.x, a.y - 20, Math.atan2(ny, nx), alienCol(a), 6, o.finisher ? 1.3 : 1.1, .07, 20);
       G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), h0: a.type === 'boss' ? 60 : 22, size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: -.07, life: 0.2 });
       later(() => AUDIO.play('kill'), 30);
@@ -2056,8 +2307,9 @@
       const cast = h.cast, flying = new Set(G.zones.filter(z => z.t < 0));
       G.timers = G.timers.filter(tm => !((cast && tm.owner === cast) || (h.swing && tm.owner === h.swing) || flying.has(tm.owner)));
       G.zones = G.zones.filter(z => !flying.has(z));
-      G.fx = G.fx.filter(e => e.type !== 'link' && !flying.has(e.z) && !e.dash);
+      G.fx = G.fx.filter(e => !(e.type === 'flight' && e.linkDmg) && !flying.has(e.z) && !e.dash);
       G.ents = G.ents.filter(e => !e.owner || e.owner.k !== 'cannon');
+      h.koreaBattery = null;
       h.skillDebit = null; h.queuedSkill = h.cast = h.poseFollow = h.dash = h.barrage = h.swing = h.throwM = h.bowM = null;
       h.handEmpty = false;
       clearInput();
@@ -2113,6 +2365,7 @@
     if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
     updateSkills(dt);
     useQueuedSkill(h);
+    if (G.cutin) return;
 
     if (r.clearT < 0) updateSpawns(dt);
 
@@ -2192,6 +2445,7 @@
     // 우리 탄
     if (G.shots.length > 120) G.shots.splice(0, G.shots.length - 120);
     for (const s of G.shots) {
+      if (s.skill && !s.launched) { s.launched = true; continue; }   // 놓는 프레임에는 손 위치에서 그려요.
       const step = s.lob != null ? Math.min(dt, s.life) : dt;
       s.x += s.vx * step; s.y += s.vy * step; s.life -= dt; s.age += step;
       if (s.lob != null && s.life <= 0) {
@@ -2217,7 +2471,11 @@
           s.x = clamp(s.x, f.x0 - 9, f.x1 + 9); s.y = clamp(s.y, f.y0 - 9, f.y1 + 9);
         } else s.life = 0;
       }
-      if (s.stick != null && (s.life <= 0) && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); }
+      if (s.stick != null && s.life <= 0 && !s.stuck) {
+        s.stuck = true;
+        barrageImpact(s, s.x, s.y);
+        axeEnt(s.x, s.y, s.stick);
+      }
       if (s.noHit) continue;
       if (s.hits) {   // 꿰뚫는 탄(부메랑·충격파): 지나가며 맞히고, 한 번 지날 때 같은 외계인은 한 번만
         for (const a of G.aliens) if (s.life > 0 && !a.dead && !s.hits.has(a) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + (s.kind === 'quake' ? 16 : 8)) ** 2) {
@@ -2228,7 +2486,7 @@
       }
       if (s.life <= 0 && !s.skill && s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 });
       const gunK = (s.kind === 'beam' || s.kind === 'bullet') && FX.GUN[G.country.key] ? G.country.key : null;
-      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED, false, { gun: gunK, skill: s.skill }); s.life = 0; barrageImpact(s, a.x, a.y); if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water' && !s.skill) G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
+      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED, false, { gun: gunK, skill: s.skill }); s.life = 0; barrageImpact(s, a.x, a.y); if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick, a); } if (s.kind === 'water' && !s.skill) G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
     }
     G.shots = G.shots.filter(s => s.life > 0);
     if (G.shots.length > 120) G.shots.splice(0, G.shots.length - 120);
@@ -2327,7 +2585,10 @@
         e.zoneGone = true;
         e.life = Math.min(e.life, e.t + .3);
       }
-      if (combat && e.arrive && e.t >= e.life) e.arrive();
+      if (combat && e.type === 'flight' && e.t >= e.life) {
+        applyLinkHits(e);
+        e.arrive?.();
+      }
     }
     G.fx = G.fx.filter(e => e.t < e.life);
   }
@@ -2335,16 +2596,28 @@
     syncLang(); musicLast = musicWant(); AUDIO.music(musicLast[0], musicLast[1]);
     const pt = portrait();
     if (pt !== wasPortrait) { wasPortrait = pt; clearInput(); if (pt && G.scene === 'play' && !G.paused) setPause(true); }
-    for (const m of G.msgs) m.t -= dt; G.msgs = G.msgs.filter(m => m.t > 0);
+    if (!G.cutin) {
+      for (const m of G.msgs) m.t -= dt;
+      G.msgs = G.msgs.filter(m => m.t > 0);
+    }
     if (pt || G.scene === 'ad') return;
     if (G.scene === 'play') {
       if (G.paused) return;
       if (G.hero.dead) { updatePlay(dt); return; }
+      if (G.cutin) {
+        G.cutin.left -= dt;
+        if (G.cutin.left <= 1e-9) G.cutin = null;
+        return;
+      }
       buf.melee = Math.max(0, buf.melee - dt); buf.ranged = Math.max(0, buf.ranged - dt);
       mousePending();
+      if (G.cutin) return;
       if (G.hitstop > 0) { G.hitstop -= dt; return; }
       if (G.run && !G.hold && G.run.clearT < 0) G.run.playT = (G.run.playT || 0) + dt;   // 실제 전투 시간만 세요
-      const gdt = G.slow > 0 ? dt * .7 : dt;
+      const slowDt = reduceMotion ? 0 : Math.min(dt, G.koreaSlow || 0);
+      G.koreaSlow = Math.max(0, (G.koreaSlow || 0) - dt);
+      const skillDt = dt - slowDt * .45;
+      const gdt = G.slow > 0 ? skillDt * .7 : skillDt;
       if (G.slow > 0) G.slow -= dt;
       G.t += gdt; G.combatT += gdt;
       updateEffects(gdt, true);
@@ -2362,14 +2635,12 @@
   const FIELD_SCENES = new Set(['play', 'roundPanel', 'ending', 'ad']);
   const BACK3D = new Set(['select', 'result']);
   function draw() {
-    FX.flat = use3d ? .62 : .35;
     ctx.setTransform(DPR * U, 0, 0, DPR * U, 0, 0);
     UI.hits = [];
-    if (use3d && R3D.lost) { use3d = false; R3D.show(false); }   // 3D가 죽으면(메모리 등) 그 자리에서 2D로
-    const f3 = use3d && FIELD_SCENES.has(G.scene) && !portrait();
+    const f3 = FIELD_SCENES.has(G.scene) && !portrait();
     // 나라 고르기·결과 화면: 3D 빈 방을 천천히 도는 배경 (2.5D 맞춤) · 시작 화면은 디자인 배경 그림 그대로
-    const bg3 = use3d && !f3 && BACK3D.has(G.scene) && !portrait() && R3D.backdrop(G.t, W, H, reduceMotion);
-    if (use3d) R3D.show(f3 || !!bg3);
+    const bg3 = !f3 && BACK3D.has(G.scene) && !portrait() && R3D.backdrop(G.t, W, H, reduceMotion);
+    R3D.show(f3 || !!bg3);
     if (f3) ctx.clearRect(0, 0, VW, VH);
     else if (bg3) { ctx.clearRect(0, 0, VW, VH); ctx.fillStyle = 'rgba(15,17,22,.78)'; ctx.fillRect(0, 0, VW, VH); }
     else { ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, VW, VH); }
@@ -2378,12 +2649,30 @@
       case 'loading': return drawLoading();
       case 'title': return drawTitle();
       case 'select': return drawSelect();
-      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); drawInvTimer(); if (G.paused && !G.hold) drawPause(); return;
+      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); drawInvTimer(); if (G.cutin) drawKoreaCutin(); if (G.paused && !G.hold) drawPause(); return;
       case 'roundPanel': drawField(); drawHUD(); drawRoundPanel(); return;
       case 'ending': drawField(); drawEnding(); return;
       case 'result': return drawResult();
       case 'ad': drawField(); ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(0, 0, VW, VH); return;
     }
+  }
+
+  function drawKoreaCutin() {
+    const c = G.cutin;
+    const slide = reduceMotion ? 1 : clamp((c.duration - c.left) / .13, 0, 1);
+    const progress = 1 - (1 - slide) ** 3;
+    ctx.fillStyle = 'rgba(10,11,15,.68)';
+    ctx.fillRect(0, 0, VW, VH);
+    const portrait = UI.img['hero/korea-cutin'];
+    const im = portrait?.naturalWidth ? portrait : UI.img['hero/korea'];
+    if (im?.naturalWidth) {
+      const scale = Math.min(VH * .45 / im.naturalHeight, VW * .28 / im.naturalWidth);
+      const w = im.naturalWidth * scale, h = im.naturalHeight * scale;
+      ctx.drawImage(im, -w + progress * (VW * .34 + w / 2), (VH - h) / 2, w, h);
+    }
+    const history = t_('lore.cut.15.2');
+    UI.txt(c.name, VW * .64, VH * (history ? .46 : .5), Math.min(48, VH * .10), COL.fg, 'center', 900, VW * .44);
+    if (history) UI.txt(history, VW * .64, VH * .58, 16, COL.gold, 'center', 600, VW * .44);
   }
 
   function drawLoading() {
@@ -2482,7 +2771,6 @@
     G.selScroll = clamp(G.selScroll, 0, selMaxScroll());
   }
   function drawSelect() {
-    if (!use3d) UI.stars(G.t * .3);
     UI.btnSub('back', VW * .08, VH * .11, 44, 'back');
     UI.txt(t_('ui.02'), VW * .14, VH * .11, 18, COL.fg, 'left', 800);
     const a = selArea(), gx = (a.w - CARD.cols * CARD.w) / (CARD.cols - 1);
@@ -2522,79 +2810,6 @@
     UI.btnWide('confirm', cx, VH * .95 - 32, Math.min(160, pw - 20), 44, 'play', t_('ui.01'), 'main');
   }
 
-  // 전장
-  function drawField() {
-    if (use3d) return drawField3D();
-    const fb = fieldBox;
-    ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH);
-    ctx.save();
-    const [sx, sy] = shakeOffset();
-    ctx.translate(fb.x + sx, fb.y + sy); ctx.scale(fb.s, fb.s);
-    UI.draw('room', 0, 0, FIELD.W, FIELD.H);
-    drawRoomLight();
-    const h = G.hero, r = G.run, t = G.t;
-    // 바닥 화폐
-    for (const it of G.items) {
-      const blink = it.life < 3 && Math.floor(it.life * 6) % 2 === 0;
-      ctx.save(); ctx.globalAlpha = blink ? .35 : 1;
-      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(it.x, it.y + 2, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = COL.glow; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(it.x, it.y, 22, 8, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * it.life / BAL.ITEM_LIFE); ctx.stroke();
-      UI.sprite('item/' + it.cur, it.x, it.y + 4, 34);
-      ctx.restore();
-    }
-    // 그림자·깊이 순서
-    const ents = [...G.aliens.map(a => ({ y: a.y, x: a.x, a })), { y: h.y, x: h.x, h }].sort((p, q) => p.y - q.y);
-    const drawEnt = e => {
-      // 원근: 위(먼 쪽)는 0.92배, 아래(가까운 쪽)는 1.08배 — 발을 기준으로 키워요
-      const ps = perspective(e.y);
-      ctx.save(); ctx.translate(e.x, e.y); ctx.scale(ps, ps); ctx.translate(-e.x, -e.y);
-      if (e.h) drawHero(); else drawAlien(e.a);
-      ctx.restore();
-    };
-    const fl = FIELD.floor;
-    // 캐릭터 모양 그림자: 모든 캐릭터 그림자를 먼저 바닥에 깔아요 (다른 캐릭터 위로 그림자가 올라가지 않게)
-    ents.filter(e => e.y >= fl.y0 - 4).forEach(e => {
-      const ps = perspective(e.y); ctx.save(); ctx.translate(e.x, e.y); ctx.scale(ps, ps); ctx.translate(-e.x, -e.y);
-      if (e.h) castHero(); else castAlien(e.a);
-      ctx.restore();
-    });
-    ents.filter(e => e.y < fl.y0 - 4).forEach(drawEnt);    // 위쪽 벽 너머(들어오는 중)
-    drawWallStrip('top');                                   // 위쪽 벽이 그 앞을 가려요
-    ents.filter(e => e.y >= fl.y0 - 4).forEach(drawEnt);
-    drawWallStrip('sides');                                 // 양옆·아래 벽은 문으로 들어오는 외계인 앞에
-    // 효과
-    for (const e of G.fx) {
-      const k = e.t / e.life;
-      if (e.t < 0 || hidesBasicEffect(e)) continue;   // 늦게 시작하는 효과와 시전 중 겹친 평타
-      if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
-      else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }   // 번쩍임 끄면 처치 잔광 없이 파편만
-      else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
-      else if (e.kind === 'corpse') { const q = Math.min(1, k), mo = { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }; if (e.cell != null) UI.cellSprite(e.img, 15, e.cell, e.x, e.y + 2, e.hgt, mo); else UI.sprite(e.img, e.x, e.y + 2, e.hgt, mo); }
-      else if (e.kind === 'groundRing') { ctx.save(); ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
-      else if (e.kind === 'muzzle') { const bi = bulletImg(e.key); if (bi && e.t < .05) FX.cell(bi, 4, 0, e.x, e.y, e.a, 48); FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key, !!bi); }   // 총구 섬광 그림 48px (핀란드 연기는 코드)
-      else if (e.kind === 'gunHit') { if (settings.flash) { const bi = bulletImg(e.key); if (bi) FX.cell(bi, 4, 3, e.x, e.y, e.dir, 56 * (1 + .3 * k), 1 - k); else FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); } }   // 튀김 56px, 1→1.3배로 커지며 사라짐
-      else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }   // 번쩍임 끄면 외곽선·파편으로만
-      else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
-      else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
-      else if (e.type === 'flight') drawLaunchedSkill(e, k, at2d);
-      else if (e.kind === 'skill') drawSkillFx(e, k);
-      else if (e.kind === 'basic') drawBasicFx(e, k);
-      else if (e.kind === 'ghost') drawGhost(e, k);
-      else if (e.kind === 'jumpLand') drawJumpLand(e, k);
-    }
-    drawSkills(at2d); drawJumps(at2d);
-    for (const s of G.shots) {
-      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / (s.lob != null ? s.age + s.life : .5)) * Math.PI) * 22 : s.kind === 'quake' ? -22 : 0;   // 충격파는 바닥에   // 투석은 포물선
-      if (!s.skill) softShadow(s.x, s.y, 7, 2.5, .28);   // 날아가는 것 아래 바닥 그림자 (높이가 보여요)
-      drawShotS(s, lift);
-    }
-    for (const s of G.eshots) { softShadow(s.x, s.y, 5, 2, .25); ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
-    for (const p of G.parts) { if (p.t < 0) continue; ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
-    ctx.restore();
-    // 맞음: 화면 테두리 빨강 (번쩍임 끄면 장수 테두리만)
-    if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
-  }
-
   // ---- 2.5D (B안, 사용자 "b안"): 바닥·벽·문은 3D, 장수·외계인·화폐는 판(빌보드), 효과·HUD는 2D를 원근에 맞춰 위에 겹쳐요 ----
   const HERO_BOX = { l: 80, t: 104, w: 160, h: 144, k: 2 };          // 장수 판: 발 기준 왼쪽 80 · 위 104 (무기 포함) · 2배 해상도
   const GROUND_BOX = { w: 76, h: 30, k: 2, stretch: 2.1 };           // 발밑 빛·화폐 고리 (2D 납작 타원을 바닥에 맞게 세로로 늘려요)
@@ -2622,7 +2837,7 @@
     }
     return [sx, sy];
   }
-  function drawField3D() {
+  function drawField() {
     const fb = fieldBox, h = G.hero, [sx, sy] = shakeOffset();
     if (!R3D.begin()) { ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH); return; }
     const GB = GROUND_BOX;
@@ -2641,23 +2856,36 @@
     // 장수: 발밑 빛은 바닥에, 몸·무기는 판 하나 (기존 2D 그리기를 그대로 판에 그려요)
     if (h) {
       if (!heroCv) { heroCv = mkCv(HERO_BOX.w * HERO_BOX.k, HERO_BOX.h * HERO_BOX.k); heroTex = R3D.canvasTex(heroCv); groundCv = mkCv(GB.w * GB.k, GB.h * GB.k); groundTex = R3D.canvasTex(groundCv); }
-      paintBox(groundCv, GB.k, GB.w / 2, GB.h / 2, h.x, h.y, () => heroGround(false));
+      paintBox(groundCv, GB.k, GB.w / 2, GB.h / 2, h.x, h.y, heroGround);
       groundTex.needsUpdate = true;
       R3D.decal(groundTex, h.x, h.y, GB.w, GB.h * GB.stretch, { order: 45 });
-      R3D.blob(h.x, h.y, 17, .6);
-      paintBox(heroCv, HERO_BOX.k, HERO_BOX.l, HERO_BOX.t, h.x, h.y, heroBody);
+      const turtle = turtlePose(h), cannon = h.dead ? null : h.koreaBattery?.mount();
+      const ride = turtle?.riding ? turtle : cannon;
+      if (!ride) R3D.blob(h.x, h.y, 17, .6);
+      if (turtle) drawTurtleArt(turtle);
+      paintBox(heroCv, HERO_BOX.k, HERO_BOX.l, HERO_BOX.t, ride?.riderX ?? h.x, ride?.riderY ?? h.y, heroBody);
       heroTex.needsUpdate = true;
-      R3D.sprite(heroTex, h.x, h.y, HERO_BOX.h, {}, { aspect: HERO_BOX.w / HERO_BOX.h, below: HERO_BOX.h - HERO_BOX.t, shadow: !(h.dead && G.scene !== 'ending') });
+      R3D.sprite(heroTex, ride?.riderX ?? h.x, ride?.y ?? h.y, HERO_BOX.h,
+        ride ? { oy: ride.riderY - ride.y } : {}, {
+          aspect: HERO_BOX.w / HERO_BOX.h, below: HERO_BOX.h - HERO_BOX.t,
+          shadow: !ride && !(h.dead && G.scene !== 'ending'), orderOffset: ride ? .01 : 0,
+        });
+      if (turtle) drawTurtleArt(turtle, true);
     }
     // 외계인
     for (const a of G.aliens) {
       const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || 'lit';
       delete mo.white; delete mo.edge;
       R3D.sprite(L.cell ? R3D.cellTex(L.name, v, 15, L.cell.i) : R3D.tex(L.name, v), a.x, a.y + 2, L.hgt * 1.04, mo, { upright: 40 });   // 카메라를 똑바로 보는 판(56° 기움)보다 16° 덜 눕혀 원근이 판에 걸리게 — 키는 1.04배로 보정
+      drawKoreaBurn(a, L.lift);
       const lk = 1 - Math.min(.55, L.lift / 160); R3D.blob(a.x, a.y, a.r * 1.3 * (1 - L.hop * .03) * lk, .78 * lk);   // 뛰면 그림자가 작고 옅어져요
     }
     // 처치 직후 접히는 몸
-    for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(e.cell != null ? R3D.cellTex(e.img, 'lit', 15, e.cell) : R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
+    for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) {
+      const q = Math.min(1, e.t / e.life), variant = settings.flash && e.t < e.flash ? 'white' : 'lit';
+      const tex = e.cell != null ? R3D.cellTex(e.img, variant, 15, e.cell) : R3D.tex(e.img, variant);
+      R3D.sprite(tex, e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false });
+    }
     // 점프 예고 원: 3D에선 진짜 바닥 무늬로 (공중의 외계인을 덮지 않게)
     let ji = 0;
     for (const a of G.aliens) {
@@ -2680,7 +2908,8 @@
     for (const e of G.fx) {
       const k = e.t / e.life;
       if (e.t < 0 || e.kind === 'corpse' || e.type === 'skillShake' || hidesBasicEffect(e)) continue;
-      if (e.type === 'flight') { drawLaunchedSkill(e, k, at); continue; }
+      if (e.type?.startsWith('korea')) { drawKoreaFloor(e); drawKoreaEffect(e); continue; }
+      if (e.type === 'flight') { drawLaunchedSkill(e, k); continue; }
       if (e.type === 'art' && (['front', 'orbit', 'trail'].includes(e.mode) || (e.seqDash && skillSequence(e.img)))) { at(G.hero.x, G.hero.y, () => drawRepresentative(e)); continue; }
       const h0 = e.h0 != null ? e.h0 : (FX_H0[e.kind] || 0);
       at(e.anchorX ?? e.x, e.y + h0, () => {
@@ -2702,7 +2931,7 @@
     drawSkills(at);
     for (const s of G.shots) {
       const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / (s.lob != null ? s.age + s.life : .5)) * Math.PI) * 22 : s.kind === 'quake' ? -22 : 0;   // 충격파는 바닥에
-      if (s.skill) drawSkillShot(s, at);
+      if (s.skill) drawSkillShot(s);
       else at(s.x, s.y, () => drawShotS(s, lift));
     }
     for (const s of G.eshots) at(s.x, s.y, () => { ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); });
@@ -2712,69 +2941,10 @@
     if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
   }
 
-  // ---- 입체감 (사용자 "입체감이 전혀없어" → A안: 2D에 그림자·조명·원근·높이) ----
-  const perspective = y => { const f = FIELD.floor; return .86 + .26 * clamp((y - f.y0) / (f.y1 - f.y0), 0, 1); };   // 먼 쪽 0.86배 ~ 가까운 쪽 1.12배
-  function castAlien(a) {
-    const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
-    const L = alienLook(a), mo = { flip: L.mo.flip, shadow: a.entering ? .15 : .3 };
-    if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, mo);
-  }
-  function castHero() {
-    const h = G.hero, c = G.country; if (!h || (h.dead && G.scene !== 'ending')) return;
-    const im = UI.img['dir/' + c.key]; if (!im || !im.naturalWidth) return;
-    const pose = h.cast || h.poseFollow;
-    const aim = pose?.ang ?? (!skillPoseActive(h) && h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x));
-    const [cell, flip] = heroDir(aim, c.key);
-    const bf = bodyFrame(h, cell);
-    UI.dirBody(c.key, bf.cell, h.x, h.y, 60, { flip, shadow: .3 }, bf.folder);
-  }
-  // 부드러운 타원 그림자 (가운데 진하고 가장자리로 사라져요)
-  function softShadow(x, y, rx, ry, a) {
-    ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx);
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(.6, `rgba(0,0,0,${a * .5})`); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-  }
-  // 방 조명: 위 왼쪽 따뜻한 빛 + 가장자리·구석 어둠 (한 번 그려 두고 다시 써요)
-  let roomLight = null;
-  function drawRoomLight() {
-    if (!roomLight) {
-      const c = document.createElement('canvas'), k = 2; c.width = Math.ceil(FIELD.W * k); c.height = Math.ceil(FIELD.H * k);
-      const x = c.getContext('2d'); x.scale(k, k);
-      const v = x.createRadialGradient(FIELD.W * .45, FIELD.H * .42, 60, FIELD.W * .5, FIELD.H * .5, FIELD.W * .62);
-      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(.65, 'rgba(8,6,12,.22)'); v.addColorStop(1, 'rgba(8,6,12,.6)');
-      x.fillStyle = v; x.fillRect(0, 0, FIELD.W, FIELD.H);
-      const far = x.createLinearGradient(0, 0, 0, FIELD.H); far.addColorStop(0, 'rgba(10,8,16,.22)'); far.addColorStop(.55, 'rgba(10,8,16,0)');   // 먼 쪽(위)이 조금 어두워요
-      x.fillStyle = far; x.fillRect(0, 0, FIELD.W, FIELD.H);
-      const l = x.createRadialGradient(FIELD.W * .32, FIELD.H * .28, 10, FIELD.W * .32, FIELD.H * .28, FIELD.W * .45);
-      l.addColorStop(0, 'rgba(255,226,180,.10)'); l.addColorStop(1, 'rgba(255,226,180,0)');
-      x.globalCompositeOperation = 'lighter'; x.fillStyle = l; x.fillRect(0, 0, FIELD.W, FIELD.H);
-      // 벽 바로 아래 바닥에 벽 그림자 (위쪽 벽이 빛을 가려요)
-      x.globalCompositeOperation = 'source-over';
-      const w = x.createLinearGradient(0, FIELD.floor.y0 - 8, 0, FIELD.floor.y0 + 22); w.addColorStop(0, 'rgba(0,0,0,.35)'); w.addColorStop(1, 'rgba(0,0,0,0)');
-      x.fillStyle = w; x.fillRect(0, FIELD.floor.y0 - 8, FIELD.W, 30);
-      const lw = x.createLinearGradient(FIELD.floor.x0 - 6, 0, FIELD.floor.x0 + 18, 0); lw.addColorStop(0, 'rgba(0,0,0,.28)'); lw.addColorStop(1, 'rgba(0,0,0,0)');
-      x.fillStyle = lw; x.fillRect(FIELD.floor.x0 - 6, 0, 24, FIELD.H);
-      roomLight = c;
-    }
-    ctx.drawImage(roomLight, 0, 0, FIELD.W, FIELD.H);
-  }
-  // 벽 띠를 캐릭터 위에 다시 그려 앞뒤 겹침을 만들어요 (room 그림의 같은 부분)
-  const WALL = { top: 44, side: 40, bottom: 358 };
-  function drawWallStrip(which) {
-    const im = UI.img.room; if (!im || !im.naturalWidth) return;
-    const kx = im.naturalWidth / FIELD.W, ky = im.naturalHeight / FIELD.H;
-    const lk = roomLight ? roomLight.width / FIELD.W : 1;
-    const part = (x, y, w, h) => { ctx.drawImage(im, x * kx, y * ky, w * kx, h * ky, x, y, w, h); if (roomLight) ctx.drawImage(roomLight, x * lk, y * lk, w * lk, h * lk, x, y, w, h); };   // 같은 조명도 입혀요
-    if (which === 'top') part(0, 0, FIELD.W, WALL.top);
-    else { part(0, WALL.top, WALL.side, FIELD.H - WALL.top); part(FIELD.W - WALL.side, WALL.top, WALL.side, FIELD.H - WALL.top); part(WALL.side, WALL.bottom, FIELD.W - WALL.side * 2, FIELD.H - WALL.bottom); }
-  }
-
-  function drawHero() { if (!G.hero) return; heroGround(); heroBody(); }
-  function heroGround(blob = true) {
+  function heroGround() {
     const h = G.hero, r = G.run;
     const money = r ? Math.max(0, r.money) : 50;
-    // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
-    if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }
+    // 발밑: 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
     if (h.boostT > 0) { const q = Math.min(1, h.boostT / BAL.SKILL_TIME), red = h.boostT <= .4; ctx.save(); ctx.lineCap = 'round';   // 무적 남은 시간 (style-guide C안): 발밑 고리가 12시부터 시계 방향으로 남은 만큼, 0.4초 남으면 빨강
       ctx.strokeStyle = 'rgba(201,206,214,.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.strokeStyle = red ? '#FF6B6B' : '#C9CED6'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * q); ctx.stroke(); ctx.restore(); }
@@ -2790,7 +2960,15 @@
     const skillPose = skillPoseActive(G.hero);
     // 연결 스킬의 판정은 기존 무기 끝 좌표를 계속 사용해요.
     if (skillPose) heroBodyPose(false, true);
-    heroBodyPose(skillPose, false);
+    const h = G.hero, turtle = turtlePose(h);
+    const ride = turtle?.riding ? turtle : !h.dead && h.koreaBattery?.mount();
+    if (ride) {
+      if (!skillPose) heroBodyPose(false, true);
+      ctx.save();
+      ctx.translate(ride.riderX - h.x, ride.riderY - h.y);
+      heroBodyPose(skillPose, false);
+      ctx.restore();
+    } else heroBodyPose(skillPose, false);
   }
 
   function heroBodyPose(skillPose, tipOnly) {
@@ -3119,15 +3297,8 @@
     else { const q = (e.t - .025) / .075; ctx.globalAlpha = .45 * (1 - q); UI.circ(e.x, e.y, 5 + 4 * q, 'rgba(232,217,168,.35)'); }   // 옅은 금 꼬리 (고리 대신 번지는 빛)
     ctx.restore();
   }
-  function drawAlien(a) {
-    const L = alienLook(a);
-    const lk = 1 - Math.min(.55, L.lift / 160);   // 뛰면 그림자가 작고 옅어져요
-    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - L.hop * .03) * lk, a.r * .5 * lk, .5 * lk); softShadow(a.x, a.y, a.r * .7 * lk, a.r * .25 * lk, .4 * lk);
-    if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, L.mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, L.mo);
-    if (a.type === 'boss') bossBar(a, 140);
-  }
   const bossBar = (a, hgt) => { const w = 90; UI.rr(a.x - w / 2, a.y - hgt - 12, w, 6, 3, 'rgba(0,0,0,.6)'); UI.rr(a.x - w / 2, a.y - hgt - 12, w * Math.max(0, a.hp / a.max), 6, 3, COL.green); };   // 보스 체력
-  // 외계인 모양: 그림 이름·키·움직임 (2D·3D가 같이 써요)
+  // 외계인 빌보드의 그림 이름·키·움직임
   // 외계인 8방향 (11차 그림 alien/<종류>-dir: 15칸 = 방향 5 × 서기·A·B, 왼쪽은 뒤집기 · 걸을 때 서기→A→서기→B)
   // 칸 높이: 예전 정면 그림과 보이는 키가 같게 (그림 속 키 ≈ 칸 × 0.8)
   const ALIEN_CELL = { grunt: 55, shooter: 56, boss: 183 }, ALIEN_FPS = { grunt: 10, shooter: 8, boss: 5 };
@@ -3258,11 +3429,11 @@
     badge(B.skill, sLeft(1)); badge(B.skill2, sLeft(2)); badge(B.invuln, r.invuln);
   }
 
-  // 장수 머리 위 화면 좌표 (2D·3D)
+  // 장수 머리 위 화면 좌표
   function heroHead() {
     const h = G.hero, fb = fieldBox; if (!h) return { x: VW / 2, y: VH * .3 };
-    if (use3d && R3D.built) { const p = R3D.proj(h.x, h.y); return { x: fb.x + p.x * fb.s, y: fb.y + (p.y - 70 * p.s) * fb.s }; }
-    return { x: fb.x + h.x * fb.s, y: fb.y + (h.y - 70) * fb.s };
+    const p = R3D.proj(h.x, h.y);
+    return { x: fb.x + p.x * fb.s, y: fb.y + (p.y - 70 * p.s) * fb.s };
   }
   let shoutBox = null;
   function drawInvTimer() {   // 무적 남은 초: 머리 위 16px, 0.1초 단위, 굵게 11px 흰색 + 어두운 띠 28×13 · 0.4초부터 빨강 + 두근 (style-guide C안)
@@ -3280,11 +3451,16 @@
       if (m.big) { UI.rr(VW / 2 - 110, VH * .42 - 26, 220, 52, 12, 'rgba(10,11,15,.6)'); UI.txt(m.text, VW / 2, VH * .42, 30, COL.fg, 'center', 800, 200); }
       else if (m.hint) UI.para(m.text, VW / 2, VH * .84, 12, COL.muted, VW * .9, 15, 600);   // 긴 언어(독일어·헝가리어 등)는 줄바꿈
       else if (m.shout) {   // 외침: 장수 머리 위 1.2초, 양피지색 글자 + 어두운 반투명 띠 (style-guide)
-        const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
+        const hd = heroHead(), p = G.country.key === 'korea' ? .72 : 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
         UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, Math.max(UI.x.measureText(m.text).width, m.sub ? (UI.x.font = `700 ${11 * p}px system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`, UI.x.measureText(m.sub).width) : 0) + 36));
         const HUD_B = VH * .17 + 16, top = 18 * p, height = (m.sub ? 50 : 36) * p;
         let x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8);
         let y = clamp(hd.y - 22 - top < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + top, VH - 40);
+        if (G.country.key === 'korea') {
+          const back = G.hero.dir.x >= 0 ? -1 : 1;
+          x = clamp(hd.x + back * (w / 2 + 18), w / 2 + 8, VW - w / 2 - 8);
+          y = Math.max(HUD_B + top, hd.y - 26);
+        }
         if (G.touchUI) {
           const buttons = Object.values(btnPos());
           const left = Math.min(...buttons.map(b => b.x - b.r)) - 8;
@@ -3388,7 +3564,6 @@
 
   function drawResult() {
     const R = G.result, c = G.country, r = G.run;
-    if (!use3d) { UI.draw('room', 0, 0, VW, VH); ctx.fillStyle = 'rgba(15,17,22,.85)'; ctx.fillRect(0, 0, VW, VH); }
     // 장수: 결과가 어떻든 같은 그림
     UI.hero(c.key, VW * .15, VH - 6, Math.min(190, VH * .5), { sy: reduceMotion ? 1 : 1 + Math.sin(G.t * 2.2) * .015 });
     const cx = VW / 2;
@@ -3421,26 +3596,29 @@
   }
 
   // ---------- 루프 ----------
-  let lastT = 0, slowT = 0;
-  // 미리보기 전용 진단 표시
-  const renderToggle = document.getElementById('rt');
-  const diag = renderToggle ? {
-    on: new URLSearchParams(location.search).get('debug') === '1', errs: [], el: null,
+  let lastT, sampledFrame = false, fpsMs = 0, fpsFrames = 0, fpsPass = 0;
+  document.addEventListener('visibilitychange', () => { sampledFrame = false; });
+  // 미리보기·디버그용 진단 표시
+  const preview = window.__AW_PREVIEW__ === true;
+  const debug = new URLSearchParams(location.search).get('debug') === '1';
+  const diag = preview || debug ? {
+    on: true, errs: [], el: null,
     show(on) {
       this.on = on;
-      renderToggle.hidden = !on;
       if (this.el) this.el.hidden = !on;
     },
     err(m) { const s = String(m).split('\n').slice(0, 2).join(' | ').slice(0, 220); if (this.errs[this.errs.length - 1] !== s) this.errs.push(s); if (this.errs.length > 6) this.errs.shift(); },
     draw() {
       if (!this.el) { this.el = document.createElement('div'); this.el.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9;max-width:70vw;font:10px/1.35 monospace;color:#F2E3C6;background:rgba(0,0,0,.72);padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre-wrap;word-break:break-all'; document.body.appendChild(this.el); }
-      const i = use3d && R3D.built ? R3D.info() : null;
-      const t = `${use3d ? '3D' : '2D'}${R3D.lost ? '(lost)' : ''} · maxTex ${i ? i.maxTex : '-'} · filter ${UI.FILTER_OK ? 'O' : 'X'} · dpr ${(window.devicePixelRatio || 1).toFixed(1)} · ${innerWidth}×${innerHeight}${i && i.low ? ' · low' : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 110)}` + (this.errs.length ? '\n⚠ ' + this.errs.join('\n⚠ ') : '');
+      const i = R3D.built ? R3D.info() : null;
+      const t = `3D · maxTex ${i ? i.maxTex : '-'} · filter ${UI.FILTER_OK ? 'O' : 'X'} · dpr ${(window.devicePixelRatio || 1).toFixed(1)} · ${innerWidth}×${innerHeight}${i && i.low ? ' · low' : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 110)}` + (this.errs.length ? '\n⚠ ' + this.errs.join('\n⚠ ') : '');
       if (t !== this.last) { this.el.textContent = t; this.last = t; }
     },
   } : null;
   if (diag) {
-    try { diag.on ||= localStorage.getItem('aw.debug') === '1'; } catch {}
+    if (!debug) {
+      try { diag.on = localStorage.getItem('aw.debug') !== '0'; } catch {}
+    }
     diag.show(diag.on);
     const taps = [];
     window.addEventListener('pointerup', e => {
@@ -3457,14 +3635,35 @@
     window.addEventListener('unhandledrejection', e => diag.err('promise: ' + (e.reason && (e.reason.message || e.reason))));
   }
   function loop(t) {
-    let left = Math.min((t - lastT) / 1000 || 0, 0.25);
+    if (R3D.lost) {
+      R3D.show(false);
+      diag?.show(false);
+      showWebGLNotice();
+      return;
+    }
+    const elapsedMs = t - lastT || 0;
+    let left = Math.min(elapsedMs / 1000, .25);
     lastT = t;
-    // 3D가 버거운 기기면 화질을 한 번 낮춰요 (3초 넘게 40fps 아래)
-    if (use3d && !R3D.low && G.scene === 'play' && !G.paused && left > 0) { slowT = left > 1 / 40 ? slowT + left : Math.max(0, slowT - left * .5); if (slowT > 3) R3D.lowQuality(); }
+    if (fpsPass < 2 && sampledFrame && !document.hidden && elapsedMs > 0) {
+      fpsMs += elapsedMs;
+      fpsFrames++;
+      if (fpsMs >= 3000) {
+        const fps = fpsFrames * 1000 / fpsMs;
+        if (fpsPass === 0 && fps < 40) {
+          R3D.lowQuality(.75);
+          fpsPass = 1;
+        } else {
+          if (fpsPass === 1 && fps < 30) R3D.lowQuality(.6);
+          fpsPass = 2;
+        }
+        fpsMs = fpsFrames = 0;
+      }
+    }
     try {
       while (left > 0) { const step = Math.min(left, 1 / 30); update(step); left -= step; }
       draw();
     } catch (err) { console.error(err); diag?.err(err && (err.stack || err.message) || String(err)); }
+    sampledFrame = G.scene === 'play' && !G.paused && !portrait() && !document.hidden;
     if (diag?.on) diag.draw();
     requestAnimationFrame(loop);
   }

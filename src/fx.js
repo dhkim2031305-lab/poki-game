@@ -79,9 +79,9 @@
     star(x, px, py, dir) { x.save(); x.translate(px, py); x.rotate(dir); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
       x.strokeStyle = PALE + '.8)'; x.lineWidth = 7; x.beginPath(); x.moveTo(-34, 0); x.lineTo(8, 0); x.stroke(); x.strokeStyle = '#FFFFFF'; x.lineWidth = 3; x.stroke();
       star(x, 10, 0, 4, 11, 3, '#FFFFFF'); x.restore(); },
-    // 충격파 (체코 도리깨, 사용자 확정): 땅을 따라 나가는 은빛 물결 — 바닥 높이에 납작하게 (FX.flat = 바닥 원 납작 비율)
+    // 충격파 (체코 도리깨, 사용자 확정): 땅을 따라 나가는 은빛 물결 — 바닥 높이에 납작하게 (3D 카메라 기준 납작 비율)
     quake(x, px, py, dir, t) {
-      const fl = Math.max(.55, FX.flat || .35), k = Math.min(1, t / .62);   // 둥근 물결이 ">"로 보이지 않게: 크게·넓게·덜 납작하게 (QA M6)
+      const fl = .62, k = Math.min(1, t / .62);   // 둥근 물결이 ">"로 보이지 않게: 크게·넓게·덜 납작하게 (QA M6)
       x.save(); x.translate(px, py); x.globalCompositeOperation = 'lighter'; x.lineCap = 'round';
       for (let i = 0; i < 3; i++) {
         const r = 26 + i * 11 + k * 14, a = .95 - i * .22;
@@ -238,8 +238,9 @@
 
   // 스킬 이펙트 시트 (10차 skill/fx-<유형>.webp): 칸 n개 가로, +x 방향, 가산 합성 · frame 번째 칸을 그려요
   function cell(name, n, frame, cx, cy, ang, size, alpha = 1, flip = false) {
-    const im = UI.img[name]; if (!im || !im.naturalWidth) return false;
-    const cw = im.naturalWidth / n, f = Math.max(0, Math.min(n - 1, frame | 0)), x = UI.x, h = size * im.naturalHeight / cw;
+    const im = UI.img[name];
+    if (!im?.naturalWidth || !Number.isFinite(frame) || frame < 0 || frame >= n) return false;
+    const cw = im.naturalWidth / n, f = Math.floor(frame), x = UI.x, h = size * im.naturalHeight / cw;
     x.save(); x.globalCompositeOperation = 'lighter'; x.globalAlpha = alpha; x.translate(cx, cy); x.rotate(ang); if (flip) x.scale(-1, 1);
     x.drawImage(im, f * cw, 0, cw, im.naturalHeight, -size / 2, -h / 2, size, h); x.restore();
     return true;

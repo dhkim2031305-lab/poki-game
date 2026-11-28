@@ -9,7 +9,7 @@
 > **결정 변경 (2026-11-25, 사용자 "b안", 팀장 세션 전달)**: 처음엔 "엔진·외부 라이브러리 안 씀"이었는데, 입체감 **B안(2.5D, Three.js)**으로 바꿨어요.
 > - Three.js **r149 (0.149.0)** 고정, **CDN 안 씀**: `src/vendor/three.min.js`(594KB, gzip 약 150KB) + 라이선스 `src/vendor/LICENSE-three.txt`(MIT)를 빌드 ZIP에 같이 넣어요. r149는 전역 `THREE`로 쓰는 단일 파일 빌드가 있는 마지막 판이에요(빌드 도구 없이 `<script>`로 불러요). 버전을 올리려면 `npm pack three@<버전>`으로 받아 두 파일을 바꾸고 여기에 적어요
 > - 3D로 그리는 것: 바닥·벽·문·조명·그림자 (`src/render3d.js`). 장수·외계인·화폐는 카메라를 보는 2D 판, 공격 효과·HUD·메뉴는 2D 캔버스를 위에 겹쳐요
-> - **되돌리기(예전 2D 렌더러)**: 주소 뒤에 `?render=2d`, 또는 저장된 설정 `aw.settings`의 `render: "2d"`. WebGL이 안 되는 기기도 자동으로 2D예요
+> - 렌더러: 3D만(2026-11-28 사용자 결정), WebGL 없으면 안내 화면
 > - 느린 기기: 플레이 중 3초 넘게 40fps 아래면 해 그림자를 끄고 픽셀 배율을 1로 낮춰요(한 번만)
 
 - (처음 이유) 2D 아케이드라 엔진이 필요 없고, 웹게임 유저는 폰 비중이 높아 **첫 로딩 용량이 작을수록 유리**해요.
@@ -87,7 +87,7 @@ npm run build                  # 모든 사이트 ZIP: dist/poki.zip, crazygames
 npm run build -- poki          # 한 사이트만
 npm run build -- poki web      # 여러 개
 npm run build:single           # 한 파일 HTML: dist/single.html (그림·스크립트를 모두 넣은 web판, 약 10.6MB)
-npm run build:single -- --preview   # 미리보기용 dist/single-preview.html (2D/3D 비교 버튼 + 진단 표시)
+npm run build:single -- --preview   # 미리보기용 dist/single-preview.html (진단 표시)
 ```
 
 개발 서버 주소:
@@ -189,11 +189,10 @@ npm run build:single -- --preview   # 미리보기용 dist/single-preview.html (
 ### 2026-11-25 — 2.5D(B안) 시제품 (개발팀)
 - 사용자 결정 "b안"(팀장 세션 전달): 엔진·외부 라이브러리 안 씀 → **Three.js r149 사용**. 로컬 파일·버전 고정·MIT 라이선스 동봉 (위 1절)
 - `src/render3d.js` 추가, `index.html`에 `vendor/three.min.js`·`render3d.js` 추가, `style.css`에 두 캔버스 겹치기
-- 기존 2D 렌더러는 그대로 남김 (`?render=2d`)
 - ZIP 약 5.95MB (Three.js +약 160KB 압축 기준)
 
 ### 2026-11-25 — 한 파일 빌드 (개발팀)
 - iOS Claude 앱은 여러 파일로 된 아티팩트를 못 열어요(사용자 확인 "ㅇㅇ 된다 아이폰에서"). 그래서 `tools/build-single.js`(`npm run build:single`)를 추가했어요. 팀장 `teams/3-개발/single-file-inline.py`를 Node로 옮긴 거예요
 - 방법: 그림을 data URI로 `window.__A`에 넣고, `<img>.src`에 'assets/...'를 넣으면 data URI로 바꿔 줘요. CSS·JS는 인라인, 어댑터는 web
 - 미리보기는 앞으로 한 파일판(https://claude.ai/artifact/Vui7cvNYFfNhZrdAP5Ruh1) 기준이에요. 아티팩트 한 파일 한도 16MB를 넘으면 빌드가 ⚠ 경고해요
-- 진단 표시: 정식 빌드는 주소에 `?debug=1`, 미리보기판은 항상 켜져 있어요. 시험용 주소 `?nofilter`(canvas filter 없는 척) · `?maxtex=2048`(텍스처 한도) · `?render=2d`
+- 진단 표시: 정식 빌드는 주소에 `?debug=1`, 미리보기판은 기본으로 켜져 있어요. 시험용 주소 `?nofilter`(canvas filter 없는 척) · `?maxtex=2048`(텍스처 한도)
