@@ -19,3 +19,7 @@
 - 저사양 자동 대응: 처음 3초 평균 프레임이 40fps 아래면 그림자 끄기 + 렌더 해상도 배율(pixelRatio) 낮추기(예 0.75), 그래도 30 아래면 0.6. 설정 저장은 하지 않음(매번 측정).
 
 ## 결과(-o, 한국어): 바꾼 곳 표, node --check.
+
+## 4-추가 (팀장 2026-11-28 07:26): WebGL 안내 정식 문구
+- 키 ui.nowebgl.title · why · fix1 · fix2 · retry (임시 키 title/body 대신). en·ko 값은 teams/1-기획/texts.md에서 그대로 src/i18n.js T.en·T.ko에 넣고, 18개 언어는 teams/1-기획/translations/nowebgl-2026-11-28/<언어>.json → node tools/i18n-merge.js (하위 폴더 지원됨).
+- 안내 화면은 WebGL이 없을 때 i18n·폰트만으로 떠야 해요 → 3D 초기화(R3D.init) 전에/실패와 상관없이 그릴 수 있게(2D 캔버스 컨텍스트로 글자만). retry = 다시 시도(새로고침).
