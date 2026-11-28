@@ -40,8 +40,8 @@ def ref(p,src,bg):
   b=Image.new('RGBA',(512,512),bg); b.alpha_composite(Image.open(src).convert('RGBA').resize((512,512),Image.LANCZOS)); b.convert('RGB').save(p)
 def key_green(a):
   a=a.astype(float); r,g,b=a[...,0],a[...,1],a[...,2]
-  gs=g-np.maximum(r,b); al=np.clip(1-(gs-20)/90,0,1)*255
-  a[...,1]=np.minimum(g,np.maximum(r,b)+10)  # 초록 번짐 제거
+  gs=g-np.maximum(r,b); al=np.clip(1-(gs-12)/70,0,1)*255
+  a[...,1]=np.minimum(g,np.minimum(np.maximum(r,b),r*.55+b*.45+8))  # 초록 번짐 제거
   a[...,3]=al; return a.clip(0,255).astype(np.uint8)
 def key_black(a):
   a=a.astype(float)/255; rgb=a[...,:3]; lum=(rgb*[.299,.587,.114]).sum(-1); al=np.clip((lum-.04)/.22,0,1)

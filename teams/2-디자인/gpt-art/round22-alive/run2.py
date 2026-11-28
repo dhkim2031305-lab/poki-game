@@ -34,7 +34,7 @@ def codex(dp,prompt,out):
   return True
 def key_green(a):
   a=a.astype(float); r,g,b=a[...,0],a[...,1],a[...,2]; gs=g-np.maximum(r,b)
-  al=np.clip(1-(gs-20)/90,0,1)*255; a[...,1]=np.minimum(g,np.maximum(r,b)+10); a[...,3]=al; return a.clip(0,255).astype(np.uint8)
+  al=np.clip(1-(gs-12)/70,0,1)*255; a[...,1]=np.minimum(g,np.minimum(np.maximum(r,b),r*.55+b*.45+8)); a[...,3]=al; return a.clip(0,255).astype(np.uint8)
 def key_black(a):
   a=a.astype(float)/255; rgb=a[...,:3]; lum=(rgb*[.299,.587,.114]).sum(-1); al=np.clip((lum-.04)/.22,0,1)
   rgb=np.clip(rgb/np.maximum(al[...,None],1e-3),0,1)*(al[...,None]>0); return (np.dstack([rgb,al])*255).astype(np.uint8)
