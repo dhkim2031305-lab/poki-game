@@ -27,6 +27,11 @@
 | `ui.07` | 파산 | Bankrupt | 파산 화면 제목 | 확정 |
 | `ui.09` | 설정 | Settings | 설정 버튼·화면 제목 | 확정 |
 | `ui.10` | Language | Language | 설정 화면 맨 위 (모든 언어에서 영어 그대로 + 지구본 아이콘) | 확정 |
+| `ui.nowebgl.title` | 이 기기에서 3D 화면을 열 수 없어요 | This device can't open the 3D view | WebGL 안내 화면 제목 (GDD 0-20 8, 2D 모드 없음) | 확정 (2026-11-28) · 18개 언어 번역 필요 |
+| `ui.nowebgl.why` | 이 게임은 3D로만 돌아가는데, 지금 브라우저에서 3D 그래픽(WebGL)이 꺼져 있거나 지원되지 않아요. | This game runs in 3D only, and 3D graphics (WebGL) are turned off or not supported in this browser. | WebGL 안내 화면 이유 | 확정 · 번역 필요 |
+| `ui.nowebgl.fix1` | 브라우저를 최신 버전으로 업데이트해 주세요. | Update your browser to the latest version. | 해결 1 | 확정 · 번역 필요 |
+| `ui.nowebgl.fix2` | 브라우저 설정에서 하드웨어 가속을 켜 주세요. | Turn on hardware acceleration in your browser settings. | 해결 2 | 확정 · 번역 필요 |
+| `ui.nowebgl.retry` | 다시 시도 | Try Again | 버튼 | 확정 · 번역 필요 |
 | `ui.08` | 1인당 GDP(PPP) · OECD 2024 | GDP per capita (PPP) · OECD 2024 | ~~나라 카드 출처 표시~~ → 화면에서 가림(GDD 0-13). 게임 설명 페이지용으로만 남겨요 | 확정 |
 | `x.keys` | WASD 이동 · 클릭/J 치기 · 우클릭/K 쏘기 · 우클릭 두 번/L 스킬1 · 클릭 두 번/; 스킬2 · 양쪽 동시/Space 무적 · ESC 일시정지 | WASD move · Click/J strike · Right-click/K ranged · Right ×2/L skill 1 · Left ×2/; skill 2 · Both/Space invincible · ESC pause | PC 조작 안내 (폰에서는 숨김) · 코드 `src/i18n.js` 같은 키. 영어는 나라와 상관없는 말로 써요("throw" 대신 "ranged", "guard" 대신 "invincible"). 일시정지는 Esc만(GDD 0-14) | 확정 (2026-11-25, QA 973fdd4 A3) |
 | `x.cancel` | 취소 | Cancel | 스킬 끌어서 쓰기의 취소 원 안 글자 (GDD 0-17, 개발 2189380) | 확정 (2026-11-25) |
