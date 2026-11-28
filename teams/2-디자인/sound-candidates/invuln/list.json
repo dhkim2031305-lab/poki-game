@@ -1,0 +1,152 @@
+[
+ {
+  "id": "01-luxembourg-inv",
+  "lang": "French",
+  "text": "Luxembourg ! Tiens bon !"
+ },
+ {
+  "id": "02-ireland-inv",
+  "lang": "English",
+  "text": "Ireland! Hold on!"
+ },
+ {
+  "id": "03-switzerland-inv",
+  "lang": "German",
+  "text": "Schweiz! Halt durch!"
+ },
+ {
+  "id": "04-usa-inv",
+  "lang": "English",
+  "text": "America! Hold on!"
+ },
+ {
+  "id": "05-netherlands-inv",
+  "lang": "Dutch",
+  "text": "Nederland! Hou vol!"
+ },
+ {
+  "id": "06-denmark-inv",
+  "lang": "Danish",
+  "text": "Danmark! Hold ud!"
+ },
+ {
+  "id": "07-austria-inv",
+  "lang": "German",
+  "text": "Österreich! Halt durch!"
+ },
+ {
+  "id": "08-australia-inv",
+  "lang": "English",
+  "text": "Australia! Hold on!"
+ },
+ {
+  "id": "09-germany-inv",
+  "lang": "German",
+  "text": "Deutschland! Halt durch!"
+ },
+ {
+  "id": "10-sweden-inv",
+  "lang": "Swedish",
+  "text": "Sverige! Håll ut!"
+ },
+ {
+  "id": "11-canada-inv",
+  "lang": "English",
+  "text": "Canada! Hold on!"
+ },
+ {
+  "id": "12-finland-inv",
+  "lang": "Finnish",
+  "text": "Suomi! Kestä!"
+ },
+ {
+  "id": "13-france-inv",
+  "lang": "French",
+  "text": "France ! Tiens bon !"
+ },
+ {
+  "id": "14-italy-inv",
+  "lang": "Italian",
+  "text": "Italia! Resisti!"
+ },
+ {
+  "id": "15-korea-inv",
+  "lang": "Korean",
+  "text": "한국! 버텨!"
+ },
+ {
+  "id": "16-spain-inv",
+  "lang": "Spanish",
+  "text": "¡España! ¡Aguanta!"
+ },
+ {
+  "id": "17-czechia-inv",
+  "lang": "Czech",
+  "text": "Česko! Vydrž!"
+ },
+ {
+  "id": "18-israel-inv",
+  "lang": "Hebrew",
+  "text": "ישראל! תחזיק מעמד!"
+ },
+ {
+  "id": "19-lithuania-inv",
+  "lang": "Lithuanian",
+  "text": "Lietuva! Laikykis!"
+ },
+ {
+  "id": "20-newzealand-inv",
+  "lang": "English",
+  "text": "New Zealand! Hold on!"
+ },
+ {
+  "id": "21-japan-inv",
+  "lang": "Japanese",
+  "text": "日本！踏ん張れ！"
+ },
+ {
+  "id": "22-portugal-inv",
+  "lang": "Portuguese",
+  "text": "Portugal! Aguenta!"
+ },
+ {
+  "id": "23-poland-inv",
+  "lang": "Polish",
+  "text": "Polska! Wytrzymaj!"
+ },
+ {
+  "id": "24-hungary-inv",
+  "lang": "Hungarian",
+  "text": "Magyarország! Tarts ki!"
+ },
+ {
+  "id": "25-slovakia-inv",
+  "lang": "Slovak",
+  "text": "Slovensko! Vydrž!"
+ },
+ {
+  "id": "26-greece-inv",
+  "lang": "Greek",
+  "text": "Ελλάδα! Κράτα γερά!"
+ },
+ {
+  "id": "27-turkiye-inv",
+  "lang": "Turkish",
+  "text": "Türkiye! Dayan!"
+ },
+ {
+  "id": "28-chile-inv",
+  "lang": "Spanish",
+  "text": "¡Chile! ¡Aguanta!"
+ },
+ {
+  "id": "29-mexico-inv",
+  "lang": "Spanish",
+  "text": "¡México! ¡Aguanta!"
+ },
+ {
+  "id": "30-colombia-inv",
+  "lang": "Spanish",
+  "text": "¡Colombia! ¡Aguanta!"
+ }
+]
