@@ -137,7 +137,9 @@ def post(dp,j):
     border=np.concatenate([g[:6].ravel(),g[-6:].ravel(),g[:,:6].ravel(),g[:,-6:].ravel()])
     return Image.fromarray(key_green(t) if np.median(border)>80 else key_black(t))   # 실제 배경색으로 판단
   def trim(im):  # 칸 가장자리 20px은 비움(여백 지시 28px) — 칸 테두리 선 제거
-    t=np.array(im); t[:40,:,3]=0; t[-40:,:,3]=0; t[:,:40,3]=0; t[:,-40:,3]=0; return Image.fromarray(t)
+    t=np.array(im).astype(float); n=t.shape[0]; d=np.arange(n); e=np.minimum(d,n-1-d)
+    r=np.clip((e-16)/32,0,1); r=r*r*(3-2*r)   # 가장자리 16px 투명 → 48px까지 부드럽게(직선 잘림 방지)
+    t[...,3]*=r[:,None]*r[None,:]; return Image.fromarray(t.clip(0,255).astype(np.uint8))
   cs=[trim(proc(a[y*512:y*512+512,x*512:x*512+512].copy())).resize((c,c),Image.LANCZOS) for y in range(gy) for x in range(gx)]
   s=Image.new('RGBA',(len(cs)*c,c)); [s.alpha_composite(q,(i*c,0)) for i,q in enumerate(cs)]; s.save(f'{D}/out/{j["key"]}.webp','WEBP',quality=86,method=6)
 if __name__=='__main__':
