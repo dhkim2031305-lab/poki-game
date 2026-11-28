@@ -20,7 +20,7 @@ Aliens have invaded Earth. Pick one of 30 OECD countries and fight as its genera
 Money is power. Each general's strength starts from real economic data, and every round you clear costs the same amount. Same aliens, same map, same rules. Only the starting line is different. How far can your country go?
 
 - 60 unique skills: two for every country, cast anywhere you aim
-- Strike up close or shoot from afar, then trigger 3 seconds of invincibility to attack even faster
+- Strike up close or shoot from afar, then trigger 2 seconds of invincibility to attack even faster
 - A boss in every round, and aliens that leap at you from Round 3
 - Grab currency on the battlefield for a short attack boost
 - Finish all six rounds and see your time
@@ -34,7 +34,7 @@ Economic data: GDP per capita (PPP) · OECD 2024
 돈이 곧 힘이에요. 장수의 힘은 실제 경제 자료에서 시작하고, 라운드를 깰 때마다 모든 나라에서 같은 금액이 줄어요. 같은 외계인, 같은 맵, 같은 규칙. 출발선만 달라요. 여러분의 나라는 어디까지 갈 수 있을까요?
 
 - 고유 스킬 60개: 나라마다 2개, 원하는 자리에 써요
-- 가까이서 치고 멀리서 쏘고, 3초 무적으로 더 빠르게 공격해요
+- 가까이서 치고 멀리서 쏘고, 2초 무적으로 더 빠르게 공격해요
 - 라운드마다 보스, 3라운드부터는 뛰어드는 외계인
 - 전장에 떨어지는 화폐를 주우면 잠깐 공격력이 올라요
 - 6라운드를 다 깨면 걸린 시간이 나와요
@@ -48,10 +48,10 @@ Aliens have invaded Earth. Pick one of 30 OECD countries and fight as its genera
 ## 조작법
 
 ### English (358자, GD 200~500자 기준 안)
-PC: WASD to move. Left-click (J) to strike, right-click (K) to shoot. Double right-click (L) / double left-click (;) casts skill 1 / skill 2 at the cursor. Both buttons (Space): 3s invincibility. Esc: pause. Mobile: left stick or tap to move. Push the big right circle to shoot. Arrows: ← strike, ↑ skill 1, → skill 2 (hold and drag to aim), ↓ invincibility.
+PC: WASD to move. Left-click (J) to strike, right-click (K) to shoot. Double right-click (L) / double left-click (;) casts skill 1 / skill 2 at the cursor. Both buttons (Space): 2s invincibility. Esc: pause. Mobile: left stick or tap to move. Push the big right circle to shoot. Arrows: ← strike, ↑ skill 1, → skill 2 (hold and drag to aim), ↓ invincibility.
 
 ### 한국어
-- PC: WASD 이동 · 왼쪽 클릭(J) 치기 · 오른쪽 클릭(K) 쏘기 · 오른쪽 두 번(L) / 왼쪽 두 번(;) = 스킬 1 / 스킬 2, 마우스 자리에 써요 · 양쪽 동시(Space) = 무적 3초 · Esc 일시정지
+- PC: WASD 이동 · 왼쪽 클릭(J) 치기 · 오른쪽 클릭(K) 쏘기 · 오른쪽 두 번(L) / 왼쪽 두 번(;) = 스킬 1 / 스킬 2, 마우스 자리에 써요 · 양쪽 동시(Space) = 무적 2초 · Esc 일시정지
 - 폰: 왼쪽 조이스틱 또는 가고 싶은 곳을 톡 · 오른쪽 큰 원을 밀면 그쪽으로 계속 쏴요 · 화살표 ← 치기 · ↑ 스킬 1 · → 스킬 2 (꾹 누르고 끌어서 조준) · ↓ 무적
 
 ## 태그 [제안]
