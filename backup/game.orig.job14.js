@@ -1,0 +1,3480 @@
+// 강한 놈만 살아남는 세상 — 게임 본체 (1차)
+// 기준: teams/1-기획/GDD.md · balance.md · monetization.md · texts.md / teams/2-디자인/ui.md · style-guide.md · sound.md
+// 광고·SDK는 window.Platform 만 불러요.
+(() => {
+  const { COUNTRIES, CURRENCY_MUL, CURRENCY_SYM, BAL, TEMP, FIELD, SKILL_COL } = window.DATA;
+  const UI = window.UI, I18N = window.I18N, AUDIO = window.AUDIO, COL = UI.COL;
+  const t_ = (k, v) => I18N.t(k, v);
+  const cv = document.getElementById('game');
+  let ctx = cv.getContext('2d');
+  UI.x = ctx;
+  // 다른 캔버스에 그리기 (3D 판에 쓸 장수 그림 등) — 기존 그리기 함수를 그대로 써요
+  function paintTo(c2, fn) { const o = ctx; ctx = c2; UI.x = c2; try { fn(); } finally { ctx = o; UI.x = o; } }
+
+  // ---------- 저장 (막혀 있어도 안 터지게) ----------
+  const store = {
+    get(k, d) { try { const v = JSON.parse(localStorage.getItem('aw.' + k)); return v ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('aw.' + k, JSON.stringify(v)); } catch {} },
+  };
+  const reduceMotion = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } })();
+  const settings = Object.assign({ sound: true, shake: !reduceMotion, flash: !reduceMotion }, store.get('settings', {}));
+  const saveSettings = () => store.set('settings', settings);
+  // 렌더러: 2.5D(Three.js, B안)가 기본 · 되돌리기 = 주소 ?render=2d 또는 설정 render: '2d' (WebGL이 없어도 2D)
+  let use3d = (() => { try { if (new URLSearchParams(location.search).get('render') === '2d') return false; } catch {} return settings.render !== '2d' && !!window.R3D && window.R3D.init(cv); })();
+  AUDIO.enabled = settings.sound;
+  const best = store.get('best', {});     // 나라 key → { rounds, kills }
+  let lastCountry = store.get('lastCountry', null);
+  // 언어 (GDD 0-6, 2026-11-26 사용자 "첫화면과 메뉴만 영어"): 나라 고르기 전 화면 = 영어 · 나라 고른 뒤 게임 안 = 그 나라 언어 · 설정 Language로 고르면 그 언어가 모든 화면에 우선
+  const PAUSE_LANG = 'country';   // [확정 2026-11-27 사용자 결정] 일시정지 메뉴 언어: 'country' = 그 나라 언어 · 'en' = 영어로 바꾸려면 이 한 줄만
+  let langPick = store.get('langPick', null);   // 플레이어가 고른 언어 (예전 'lang' 저장값은 자동으로 들어간 것도 섞여 있어서 안 써요)
+  const IN_GAME = { loading: 1, play: 1, roundPanel: 1, ending: 1, result: 1, ad: 1 };
+  function wantLang() {
+    if (langPick) return langPick;
+    const c = G.scene === 'loading' ? COUNTRIES[G.sel] : G.country;
+    if (!c || !IN_GAME[G.scene]) return 'en';
+    if (G.scene === 'play' && G.paused && !G.hold && PAUSE_LANG === 'en') return 'en';
+    return c.lang;
+  }
+  const syncLang = () => { const l = wantLang(); if (I18N.lang !== l) I18N.set(l); };
+  I18N.set('en');
+
+  // ---------- 화면 크기 ----------
+  let W = 0, H = 0, DPR = 1, U = 1, VW = 844, VH = 390;
+  const fieldBox = { x: 0, y: 0, s: 1 };
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    U = Math.min(W / 844, H / 390); VW = W / U; VH = H / U; UI.VW = VW; UI.VH = VH;
+    fieldBox.s = Math.min(VW / FIELD.W, VH / FIELD.H);
+    fieldBox.x = (VW - FIELD.W * fieldBox.s) / 2; fieldBox.y = (VH - FIELD.H * fieldBox.s) / 2;
+    if (use3d) R3D.resize(W, H, DPR);
+  }
+  window.addEventListener('resize', resize); resize();
+  const coarse = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } })();
+  const portrait = () => (G.touchUI || coarse) && H > W;   // 세로 폰이면 회전 안내 + 모든 진행 멈춤
+
+  // ---------- 상태 ----------
+  // scene: loading · title · select · play · roundPanel · ending · result · ad
+  const G = window.G = {
+    t: 0, combatT: 0, scene: 'loading', paused: false, sel: 0, selScroll: 0, country: null, run: null, hero: null,
+    aliens: [], shots: [], eshots: [], items: [], fx: [], zones: [], marks: [], timers: [], ents: [], parts: [], msgs: [], shake: 0, hurtFlash: 0,
+    touchUI: (() => { try { return matchMedia('(pointer: coarse)').matches; } catch { return false; } })(), load: 0, titleHeroes: [], result: null, panel: null, ending: null,   // touchUI: 터치 기기면 첫 터치 전부터 터치 버튼, PC 안내 숨김 (QA F3)
+  };
+  const rnd = a => a[Math.floor(Math.random() * a.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+  // 같은 맵 규칙: 라운드마다 같은 순서가 나오게 고정 시드
+  const seeded = s => () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+  // 돈 → 능력치 (balance.md)
+  const stats = (m, c) => {
+    const M = Math.max(0, m), top = c && c.rank === 1 ? BAL.TOP1 : null, F = (0.625 + 0.375 * M / 100) * (top ? top.F : 1), S = (0.7 + 0.3 * M / 100) * (top ? top.S : 1);   // F 공식 0.4+0.6·M → 0.625+0.375·M (사용자 확정 2026-11-25, balance.md)
+    const Fhp = (0.5125 + 0.4875 * M / 100) * (top ? top.F : 1);   // 체력만 반만 되돌리기 (사용자 결정 2026-11-26, 팀장 전달): 공격은 F 그대로
+    return { hp: Math.round(BAL.BASE.hp * Fhp), Fhp, melee: BAL.BASE.melee * F, ranged: BAL.BASE.ranged * F, speed: BAL.BASE.speed * S, F, S };
+  };
+
+  // ---------- 에셋 ----------
+  // 첫 로딩은 가볍게 (사용자 결정): 시작·나라 고르기·전투 공통 그림만 먼저, 고른 나라의 8방향 몸·무기는 나라를 고른 뒤
+  function loadList(list, onProgress) {
+    let done = 0;
+    return new Promise(res => {
+      if (!list.length) return res();
+      list.forEach(n => {
+        if (UI.img[n] && UI.img[n].complete) { if (++done === list.length) res(); return; }
+        const im = new Image();
+        const fin = () => { done++; onProgress && onProgress(done / list.length); if (done === list.length) res(); };
+        im.onload = fin; im.onerror = fin;
+        im.src = 'assets/' + n + (n.startsWith('flag/') ? '.svg' : '.webp');
+        UI.img[n] = im;
+      });
+    });
+  }
+  const BULLET_IMG = { usa: 'fx/bullet-usa', finland: 'fx/bullet-fin' };   // 가로 4칸(128): ① 총구 섬광 ② 탄 A ③ 탄 B ④ 맞을 때 튀김 · 가산 합성
+  const bulletImg = key => { const n = BULLET_IMG[key], im = n && UI.img[n]; return im && im.naturalWidth ? n : null; };
+  function countryAssets(c) {
+    const l = ['dir/' + c.key, 'walk/' + c.key, 'pose/' + c.key];
+    if (!FX.GUN[c.key]) l.push('weapon/' + c.key); else l.push(BULLET_IMG[c.key]);   // 총알 그림 (디자인 54fe35d)
+    if (c.ranged === 'arrow') l.push('weapon/korea-ranged');
+    if (c.ranged === 'sling') l.push('weapon/israel-ranged');
+    l.push('skill/u/' + c.key + '-1', 'skill/u/' + c.key + '-2');   // 스킬 대표 그림 (13차, 디자인 5091312)
+    l.push('skill/prop/' + c.key + '-1', 'skill/prop/' + c.key + '-2');
+    l.push(...COMMON_SKILL_ART.map(name => 'skill/seq/common-' + name));
+    l.push('skill/seq/' + c.key + '-1', 'skill/seq/' + c.key + '-2');
+    if (c.key === 'korea') l.push('skill/prop/korea-2-fire');
+    l.push('alien/grunt-jump', 'alien/boss-jump', 'alien/fx-land');   // 점프 그림 (12차) — 점프하는 졸개·보스만
+    return l;
+  }
+  function loadAssets() {
+    const list = [];
+    COUNTRIES.forEach(c => { list.push('hero/' + c.key, 'flag/' + c.iso); });
+    list.push('alien/grunt-dir', 'alien/shooter-dir', 'alien/boss-dir', 'room', 'title-bg', 'fx/slash', 'fx/thrust', 'fx/smash', 'fx/hit', 'fx/death', 'fx/wave',
+      '3d/floor', '3d/wall', '3d/wall-top', '3d/door-arch', '3d/pillar', 'skill/icon-dash', 'skill/icon-area', 'skill/icon-barrage', 'skill/icon-zone'); // title-bg는 없어도 돼요(없으면 코드 돈더미)
+    Object.keys(CURRENCY_MUL).forEach(c => list.push('item/' + c));
+    return loadList(list, k => { G.load = k; });
+  }
+
+  // 예약한 소리 (화면을 떠나면 취소)
+  let laters = [];
+  const later = (fn, ms) => laters.push(setTimeout(fn, ms));
+  const cancelLater = () => { laters.forEach(clearTimeout); laters = []; AUDIO.cancelPending(); };
+
+  // ---------- 판 · 라운드 ----------
+  function newRun(ci) {
+    G.country = COUNTRIES[ci];
+    G.run = { round: 1, money: G.country.money, skillsLeft: [0, BAL.SKILL_PER_RUN, BAL.SKILL_PER_RUN], kills: 0, reviveUsed: false, rewardedSeen: false, bankrupts: 0, maxRound: 0 };
+    startRound(true);
+  }
+  function startRound(first) {
+    clearInput();
+    G.combatT = 0;
+    const r = G.run, c = G.country, wave = BAL.WAVES[r.round - 1], st = stats(r.money, c);
+    r.wave = wave; r.st = st; r.roundT = 0; r.spawned = 0; r.grunts = 0; r.jumpers = 0; r.spawnT = 0.8; r.killsRound = 0; r.bossSpawned = false;
+    r.itemIdx = 0; r.invuln = BAL.INVULN_PER_ROUND; r.clearT = -1; r.rng = seeded(r.round * 7919 + 13);
+    G.hero = {
+      x: FIELD.W / 2, y: FIELD.H / 2 + 30, r: 14, hp: st.hp, maxHp: st.hp, dir: { x: 1, y: 0 }, moving: false, walkT: 0,
+      inv: 0, skillT: 0, dash: null, barrage: null, meleeCd: 0, rangedCd: 0, atkT: 0, buff: null, dead: false, deadT: 0, hitT: 0,
+    };
+    G.aliens = []; G.shots = []; G.eshots = []; G.items = []; G.fx = []; G.parts = []; G.zones = []; G.marks = []; G.timers = []; G.ents = [];
+    G.msgs = G.msgs.filter(m => m.keep);
+    G.msgs.push({ text: t_('ui.03', { n: r.round }), t: 1.4, big: true });
+    if (first && r.round === 1 && !G.touchUI) G.msgs.push({ text: t_('x.keys'), t: 3, hint: true });
+    G.scene = 'play'; G.paused = false;
+    Platform.gameplayStart();
+  }
+  const remaining = () => G.run.wave.n + 1 - G.run.killsRound;
+
+  function spawnAlien(type) {
+    const r = G.run, w = r.wave, d = FIELD.doors[Math.floor(r.rng() * 4)], j = (r.rng() - .5) * 40;
+    const a = {
+      type, x: d.x + (d.dx ? 0 : j), y: d.y + (d.dy ? 0 : j), dx: d.dx, dy: d.dy, entering: true,
+      hp: type === 'boss' ? w.boss : w.hp, max: type === 'boss' ? w.boss : w.hp,
+      speed: w.speed * (type === 'boss' ? TEMP.BOSS_SPEED_MUL : type === 'shooter' ? 0.9 : 1),
+      r: type === 'boss' ? 38 : 15, flash: 0, shootT: type === 'boss' ? 2 : 1 + r.rng(), seed: r.rng() * 10, vx: 0, kb: { x: 0, y: 0 }, recoil: 0,
+    };
+    // 점프 (GDD 0-11): 3라운드부터 졸개 일부(라운드별 수, 졸개 2마리 중 1마리), 4라운드부터 보스 — 모든 나라가 같은 순서
+    const J = TEMP.JUMP, BJ = TEMP.BOSS_JUMP;
+    if (type === 'grunt') { if (r.grunts++ % 2 === 0 && r.jumpers < J.n[r.round - 1]) { r.jumpers++; a.jumpCfg = J; a.jumpT = J.gap[r.round - 1]; } }
+    else if (type === 'boss' && r.round >= BJ.from) { a.jumpCfg = BJ; a.jumpT = BJ.gap * .5; }
+    G.aliens.push(a);
+  }
+
+  function updateSpawns(dt) {
+    const r = G.run, w = r.wave;
+    r.spawnT -= dt;
+    const alive = G.aliens.filter(a => a.type !== 'boss').length;
+    if (r.spawned < w.n && r.spawnT <= 0 && alive < TEMP.MAX_ALIVE) {
+      const shooter = r.round >= 2 && r.spawned % TEMP.SHOOTER_EVERY === TEMP.SHOOTER_EVERY - 1;
+      spawnAlien(shooter ? 'shooter' : 'grunt'); r.spawned++; r.spawnT = TEMP.SPAWN_GAP[r.round - 1];
+    }
+    // 보스: 그 라운드 외계인이 절반 남았을 때
+    if (!r.bossSpawned && r.killsRound >= Math.ceil(w.n / 2)) { r.bossSpawned = true; spawnAlien('boss'); r.bossAt = r.roundT; AUDIO.sfxFile('assets/sound/bgm/sfx-boss-thunder.mp3'); }   // 보스 등장: 천둥 한 번 → 이어서 보스 곡
+    // 화폐: 모든 나라 같은 시간·자리·종류
+    if (r.itemIdx < BAL.ITEMS_PER_ROUND && r.roundT >= TEMP.ITEM_TIMES[r.itemIdx]) {
+      const sp = TEMP.ITEM_SPOTS[((r.round - 1) * 2 + r.itemIdx) % TEMP.ITEM_SPOTS.length], f = FIELD.floor;
+      const cur = TEMP.ITEM_CURS[r.round - 1][r.itemIdx];
+      G.items.push({ cur, x: f.x0 + (f.x1 - f.x0) * sp[0], y: f.y0 + (f.y1 - f.y0) * sp[1], life: BAL.ITEM_LIFE });
+      r.itemIdx++;
+    }
+  }
+
+  // ---------- 입력 ----------
+  const keys = new Set();
+  const input = { mx: 0, my: 0, melee: false, ranged: false, mMelee: false, mRanged: false };
+  const mouse = { on: false, x: 0, y: 0, gx: 0, gy: 0 };   // x·y = 조준(가슴 높이) · gx·gy = 커서가 가리키는 바닥 점 (스킬 자리, GDD 0-17)
+  let aim = null;   // 폰 스킬 버튼 끌기 { n, id, b, drag, cancel, t: 바닥 점 } (GDD 0-17)   // 전장 좌표의 마우스 커서 (마우스로 조준할 때)
+  const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+  const held = { melee: new Set(), ranged: new Set() };
+  const buf = { melee: 0, ranged: 0 };   // 누른 것을 0.1초 기억 (히트스톱 중 짧은 탭)   // 버튼을 누르고 있는 손가락들
+  // 폰 오른쪽 (GDD 0-18, 디자인 e2f8c4d): 큰 원 중심 (VW−130, VH−130) 반지름 56 · 화살표 66×66은 원 테두리에서 4 띄워 바깥으로 (중심까지 56 + 4 + 33)
+  const STICK_R = 56, ARROW = 66;
+  // 안전 영역 (아이폰 가로의 둥근 모서리·홈 막대, QA M15): env(safe-area-inset-*)를 읽고, 0이면 최소 12px [제안]. 테스트: ?safe=왼,위,오른,아래 (CSS px)
+  const SAFE_MIN = 12;
+  const safeProbe = (() => { try { const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(d); return d; } catch { return null; } })();
+  const safeTest = (/[?&]safe=([\d.,]+)/.exec(location.search) || [])[1];
+  let safeC = null, safeAt = -1;
+  function safeArea() {   // 가상 좌표(VW·VH) 단위로 돌려줘요 (0.5초마다 다시 읽어요)
+    const now = performance.now(); if (safeC && now - safeAt < 500 && safeC.U === U) return safeC;
+    let l = 0, t = 0, rr = 0, b = 0;
+    if (safeTest) [l, t, rr, b] = safeTest.split(',').map(Number);
+    else if (safeProbe) { const cs = getComputedStyle(safeProbe); l = parseFloat(cs.paddingLeft) || 0; t = parseFloat(cs.paddingTop) || 0; rr = parseFloat(cs.paddingRight) || 0; b = parseFloat(cs.paddingBottom) || 0; }
+    const m = v => Math.max(v || 0, SAFE_MIN) / U;
+    safeAt = now; return (safeC = { l: m(l), t: m(t), r: m(rr), b: m(b), U });
+  }
+  G.safeArea = safeArea;   // 테스트용
+  const btnPos = () => {
+    // 오른쪽 무리: 스킬2 취소 원(화살표 중심 + 33 + 14)과 아래 무적 화살표가 안전 영역 안에 들어오게 (QA M14·M15)
+    const S = safeArea(), d = STICK_R + 4 + ARROW / 2, r = ARROW / 2, cx = VW - S.r - (d + r + 14), cy = VH - S.b - (d + r);
+    return {
+      stick: { x: cx, y: cy, r: STICK_R },
+      melee: { x: cx + d, y: cy, r, a: 0 },
+      skill: { x: cx - d, y: cy, r, a: Math.PI },
+      skill2: { x: cx, y: cy - d, r, a: -Math.PI / 2 },
+      invuln: { x: cx, y: cy + d, r, a: Math.PI / 2 },
+      // 배치 (사용자 2026-11-26 "기본공격 우측, 스킬1 좌측, 스킬2 북측"): → 치기 · ← 스킬1 · ↑ 스킬2 · ↓ 무적
+    };
+  };
+  const rstick = { id: null, x: 0, y: 0 };
+  // 폰 톡 이동 (GDD 0-19, 사용자 "휴대폰 화면 클릭하면 클릭한 위치로 이동"): 짧게(0.25초 안) 거의 안 움직이고(12px 안) 떼면 그 바닥 지점까지 걸어가요
+  const TAP_T = .25, TAP_D = 12;
+  let tapP = null, moveTo = null;   // 오른쪽 손잡이 (−1..1)
+  const mArrow = { id: null, x0: 0, y0: 0, dir: null };   // → 치기 화살표: 누르고 있으면 계속, 끌면 끈 방향
+  const arrowHeld = () => aim != null || mArrow.id != null;   // 화살표를 누르는 동안 쏘기 멈춤
+  G.btnPos = btnPos;   // 테스트용 (버튼 자리)
+  const toV = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) / U, y: (e.clientY - b.top) / U }; };
+  let drag = null;
+
+  function toGround(p) {
+    const fb = fieldBox; let x = (p.x - fb.x) / fb.s, y = (p.y - fb.y) / fb.s;
+    if (use3d) { const q = R3D.unproj(x, y); if (q) { x = q.x; y = q.y; } }
+    return { x, y };
+  }
+  // 테스트용: 바닥 점 → 화면(가상) 좌표 · 마우스 상태
+  // 스킬 조준 (사용자 "스킬은 버튼 꾹 누르면 원하는 방향으로"): 장수 화면 자리 + 손가락이 움직인 만큼 × 3 → 바닥 점. 엄지를 조금만 움직여도 전장 대부분에 닿아요 [제안 3배]
+  const AIM_GAIN = 3, AIM_HOLD = .2;
+  const aimPoint = a => { const h = G.hero, hs = G.dbgField(h.x, h.y); return toGround({ x: hs.x + a.dp.x * AIM_GAIN, y: hs.y + a.dp.y * AIM_GAIN }); };
+  G.dbgField = (x, y) => { const fb = fieldBox; if (use3d && R3D.built) { const q = R3D.proj(x, y); return { x: fb.x + q.x * fb.s, y: fb.y + q.y * fb.s }; } return { x: fb.x + x * fb.s, y: fb.y + y * fb.s }; };
+  G.dbgMouse = () => mouse; G.dbgAim = () => aim; G.dbgMoveTo = () => moveTo;
+  cv.addEventListener('pointerdown', e => {
+    e.preventDefault(); AUDIO.unlock();
+    if (e.pointerType !== 'mouse') { G.touchUI = true; mouse.on = false; }
+    const p = toV(e);
+    if (G.scene === 'ad' || portrait()) return;
+    try { cv.setPointerCapture(e.pointerId); } catch {}
+    let id = UI.hitAt(p.x, p.y);
+    if (id === 'pause' && e.pointerType === 'mouse') id = null;   // 마우스 클릭은 언제나 공격 (GDD 0-14) — 터치 겸용 PC에서도
+    if (id) { if (id.startsWith('card:')) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false, card: id }; return; } AUDIO.play('button'); return action(id); }
+    if (G.scene === 'select' && p.x < VW * .6 && p.y > VH * .18) { drag = { id: e.pointerId, y0: p.y, s0: G.selScroll, moved: false }; return; }
+    if (G.scene !== 'play' || G.paused) return;
+    if (e.pointerType === 'mouse') { mouseButtons(e); return; }   // 좌클릭 = 치기, 우클릭 = 쏘기
+    const B = btnPos();
+    // 처음 닿은 자리로만 정해요 (GDD 0-18): 화살표 → 그 동작 · 큰 원 안 → 쏘기 손잡이 · 왼쪽 절반 → 이동
+    for (const k of ['melee', 'skill', 'skill2', 'invuln']) {
+      const b = B[k];
+      if (Math.abs(p.x - b.x) < b.r + 4 && Math.abs(p.y - b.y) < b.r + 4) {
+        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0 && !aim) aim = { n, id: e.pointerId, b, drag: false, cancel: false, left: false, t: null, t0: e.timeStamp / 1000, p0: { x: p.x, y: p.y }, dp: { x: 0, y: 0 } }; }   // 끌어서 자리 고르기 (GDD 0-17)
+        else if (k === 'invuln') useInvuln();
+        else if (!normalAttackLocked() && mArrow.id == null) { mArrow.id = e.pointerId; mArrow.x0 = p.x; mArrow.y0 = p.y; mArrow.dir = null; held.melee.add(e.pointerId); input.melee = true; buf.melee = 0.1; }
+        return;
+      }
+    }
+    if (rstick.id == null && Math.hypot(p.x - B.stick.x, p.y - B.stick.y) < B.stick.r + 4) {
+      if (!normalAttackLocked()) { rstick.id = e.pointerId; rstick.x = rstick.y = 0; }
+      return;
+    }
+    if (!tapP) tapP = { id: e.pointerId, x: p.x, y: p.y, t: e.timeStamp / 1000, moved: false };   // 톡 이동 후보
+    if (p.x < VW / 2 && joy.id == null) { joy.id = e.pointerId; joy.ox = p.x; joy.oy = p.y; joy.x = 0; joy.y = 0; }
+  });
+  // 마우스 버튼은 한 포인터에 여러 버튼이라 buttons 비트로 읽어요 (1 = 왼쪽, 2 = 오른쪽)
+  // 마우스 조작 (사용자 결정 2026-11-25): 좌클릭 치기 · 우클릭 쏘기 · 우클릭 2번 = 1번 스킬 · 좌클릭 2번 = 2번 스킬 · 좌·우 동시 = 무적
+  // [제안] 동시 = 두 버튼 0.08초 안, 두 번 = 같은 버튼 0.25초 안. 첫 클릭은 0.07초만 기다렸다가 나가요(동시 누름이면 치기·쏘기 없이 무적만)
+  // 동시 0.08 → 0.12초 (QA M8). 시각은 프레임이 아니라 입력 이벤트 시각(e.timeStamp)으로 재요 — 3D가 느려도 두 번 누르기가 먹게 (QA M9)
+  const MC = { b: 0, mute: 0, pend: null, last: { 1: -9, 2: -9 }, down: { 1: -9, 2: -9 } }, M_SIM = .12, M_DBL = .25, M_WAIT = .07;
+  const ATTACK_BACK = .3;
+  const normalAttackLocked = () => G.hero?.attackLock > 0;
+  function lockNormalAttacks(dur) {
+    const h = G.hero;
+    h.attackLock = Math.max(h.attackLock || 0, dur + ATTACK_BACK);
+    keys.delete('KeyJ'); keys.delete('KeyK');
+    held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = false;
+    mArrow.id = null; mArrow.dir = null; rstick.id = null; rstick.x = rstick.y = 0;
+    buf.melee = buf.ranged = 0; MC.pend = null; MC.mute |= MC.b; mouseHeld();   // 누르고 있던 공격은 다시 눌러야 나가요
+  }
+  function pressBtn(bit, now) {
+    const other = bit === 1 ? 2 : 1, prevDown = MC.down[other]; MC.down[bit] = now;
+    if (now - prevDown <= M_SIM) { MC.pend = null; MC.mute |= 3; MC.last[1] = MC.last[2] = MC.down[1] = MC.down[2] = -9; useInvuln(); return; }
+    if (now - MC.last[bit] <= M_DBL) { MC.last[bit] = -9; MC.mute |= bit; if (MC.pend && MC.pend.bit === bit) MC.pend = null; useSkill(bit === 2 ? 1 : 2, cursorTarget()); return; }
+    MC.last[bit] = now;
+    if (normalAttackLocked()) { MC.mute |= bit; return; }
+    MC.pend = { bit, t: now };
+  }
+  const cursorTarget = () => (mouse.on && !G.touchUI ? { x: mouse.gx, y: mouse.gy, pc: true } : null);   // PC: 커서 자리가 곧 조준 (GDD 0-17)
+  function mouseHeld() {
+    const ok = bit => !!(MC.b & bit) && !(MC.mute & bit) && !(MC.pend && MC.pend.bit === bit);
+    input.mMelee = ok(1); input.mRanged = ok(2);
+  }
+  function mousePending() {   // 기다리던 첫 클릭을 내보내요 (update에서)
+    if (!MC.pend || performance.now() / 1000 - MC.pend.t < M_WAIT) return;   // e.timeStamp와 performance.now()는 같은 시계예요
+    buf[MC.pend.bit === 1 ? 'melee' : 'ranged'] = 0.1; MC.pend = null; mouseHeld();
+  }
+  function mouseButtons(e) {
+    // 브라우저가 커서를 안 움직였는데도 보내는 이동 신호(예: 페이지를 띄울 때 0,0)는 조준으로 치지 않아요
+    if (e.type === 'pointermove' && !mouse.on && !e.movementX && !e.movementY && !e.buttons) return;
+    const on = G.scene === 'play' && !G.paused && !G.hero.dead;
+    const b = on ? e.buttons & 3 : 0, prev = MC.b, now = (e.timeStamp || performance.now()) / 1000; MC.b = b;
+    MC.mute &= b;                                     // 손을 떼면 막아 둔 버튼이 풀려요
+    const pressed = b & ~prev;
+    if (e.type === 'pointermove' && e.button === -1) MC.mute |= pressed;   // 초기화 전에 누른 버튼은 뗄 때까지 대기
+    else for (const bit of [1, 2]) if (pressed & bit) pressBtn(bit, now);
+    mouseHeld();
+    const p = toV(e), fb = fieldBox;
+    mouse.x = (p.x - fb.x) / fb.s; mouse.y = (p.y - fb.y) / fb.s; mouse.on = true;
+    mouse.gx = mouse.x; mouse.gy = mouse.y;
+    if (use3d) { const q = R3D.unproj(mouse.x, mouse.y); if (q) { mouse.x = q.x; mouse.y = q.y - 24; mouse.gx = q.x; mouse.gy = q.y; } }   // 3D: 커서가 가리키는 바닥 점 (조준은 가슴 높이 기준이라 −24)
+  }
+  cv.addEventListener('pointermove', e => {
+    if (e.pointerType === 'mouse') mouseButtons(e);
+    const p = toV(e);
+    if (drag && drag.id === e.pointerId) {
+      if (Math.abs(p.y - drag.y0) > 6) drag.moved = true;
+      if (drag.moved) G.selScroll = clamp(drag.s0 - (p.y - drag.y0), 0, selMaxScroll());
+      return;
+    }
+    if (tapP && tapP.id === e.pointerId && Math.hypot(p.x - tapP.x, p.y - tapP.y) > TAP_D) tapP.moved = true;
+    if (rstick.id === e.pointerId) {   // 오른쪽 손잡이: 밀면 그 방향으로 쏘기
+      const B = btnPos(); let dx = (p.x - B.stick.x) / 40, dy = (p.y - B.stick.y) / 40; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+      rstick.x = dx; rstick.y = dy; return;
+    }
+    if (mArrow.id === e.pointerId) { const dx = p.x - mArrow.x0, dy = p.y - mArrow.y0, l = Math.hypot(dx, dy); mArrow.dir = l > 14 ? { x: dx / l, y: dy / l } : null; return; }   // → 치기를 끌면 끈 방향
+    if (aim && aim.id === e.pointerId) {   // 스킬 버튼 끌기: 버튼 둘레(취소 원) 밖으로 나가면 조준, 다시 들어오면 취소 상태
+      const inC = Math.hypot(p.x - aim.b.x, p.y - aim.b.y) < aim.b.r + 14;
+      if (!inC) { aim.left = true; aim.drag = true; }
+      aim.dp = { x: p.x - aim.p0.x, y: p.y - aim.p0.y };
+      const was = aim.cancel; aim.cancel = aim.left && inC;   // 한 번 나갔다가 버튼 위로 돌아오면 취소
+      if (aim.cancel && !was) { try { navigator.vibrate && navigator.vibrate(10); } catch {} }
+      aim.t = aimPoint(aim); return;
+    }
+    if (joy.id === e.pointerId) {
+      let dx = p.x - joy.ox, dy = p.y - joy.oy; const d = Math.hypot(dx, dy), R = 52;
+      if (d > R) { joy.ox = p.x - dx / d * R; joy.oy = p.y - dy / d * R; dx = dx / d * R; dy = dy / d * R; } // 손잡이를 따라 기준점도 끌려와요
+      joy.x = dx / R; joy.y = dy / R;
+    }
+  });
+  const release = (e, tap) => {
+    AUDIO.unlock();   // iOS 사파리는 손을 뗄 때(터치 끝)에야 소리를 켜 주기도 해요
+    if (e.pointerType === 'mouse') { MC.b = e.buttons & 3; MC.mute &= MC.b; mouseHeld(); }
+    if (drag && drag.id === e.pointerId) { if (tap && !drag.moved && drag.card) { AUDIO.play('button'); action(drag.card); } drag = null; }
+    if (joy.id === e.pointerId) { joy.id = null; joy.x = joy.y = 0; }
+    if (rstick.id === e.pointerId) { rstick.id = null; rstick.x = rstick.y = 0; }
+    if (tapP && tapP.id === e.pointerId) {   // 톡이면 그 바닥 지점으로 (다시 톡하면 바뀌어요)
+      const tp = tapP; tapP = null;
+      if (tap && !tp.moved && e.timeStamp / 1000 - tp.t < TAP_T && G.scene === 'play' && !G.paused && G.hero) { const f = FIELD.floor, q = toGround(toV(e)); moveTo = { x: clamp(q.x, f.x0 + 12, f.x1 - 12), y: clamp(q.y, f.y0 + 22, f.y1), t0: G.t, stuck: 0 }; }   // 외계인 위를 톡해도 그냥 그 자리로 (GDD 0-19, 자동 공격 없음)
+    }
+    if (mArrow.id === e.pointerId) { mArrow.id = null; mArrow.dir = null; }
+    if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel) useSkill(a.n, Math.hypot(a.dp.x, a.dp.y) > 10 ? a.t : undefined); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
+    for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
+  };
+  cv.addEventListener('pointerup', e => release(e, true));
+  cv.addEventListener('pointercancel', e => release(e, false));      // 취소는 탭으로 치지 않아요
+  cv.addEventListener('lostpointercapture', e => release(e, false));
+  // 모든 입력 풀기 (광고 앞뒤, 창을 벗어날 때, 화면을 돌릴 때)
+  function clearInput() {
+    MC.b = MC.mute = 0; MC.pend = null;
+    MC.last[1] = MC.last[2] = MC.down[1] = MC.down[2] = -9;
+    buf.melee = buf.ranged = 0;
+    keys.clear(); drag = null; aim = null; tapP = null; moveTo = null; joy.id = null; joy.x = joy.y = 0; rstick.id = null; rstick.x = rstick.y = 0; mArrow.id = null; mArrow.dir = null;
+    held.melee.clear(); held.ranged.clear(); input.melee = input.ranged = input.mMelee = input.mRanged = false; input.mx = input.my = 0;
+  }
+  window.addEventListener('orientationchange', clearInput);
+  cv.addEventListener('wheel', e => { if (G.scene === 'select') { G.selScroll = clamp(G.selScroll + e.deltaY * .5, 0, selMaxScroll()); e.preventDefault(); } }, { passive: false });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+
+  const GAME_KEYS = ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Escape', 'Enter'];
+  window.addEventListener('keydown', e => {
+    if (GAME_KEYS.includes(e.code)) e.preventDefault();   // 페이지 스크롤 막기
+    if (G.scene === 'ad' || portrait()) return;
+    AUDIO.unlock();
+    if ((e.code === 'KeyJ' || e.code === 'KeyK') && (e.repeat || normalAttackLocked())) return;
+    keys.add(e.code);
+    if (e.repeat) return;
+    if (e.code === 'Escape') {   // 설정 창은 ESC로만 (사용자 "세팅창 esc 누르기전까지 나오지 않게해", 2026-11-25) — P는 스킬 키 L·; 옆이라 뺐어요
+      if (G.scene === 'play') { if (G.hold) { G.hold = false; return; } return setPause(!G.paused); }   // 조용히 멈춘 상태면 ESC로 설정 창을 열어요
+      if (G.scene === 'select') return action('back');
+    }
+    const ok = e.code === 'Enter' || e.code === 'Space';
+    // 한 번 누른 키가 다음 화면까지 이어서 눌리지 않게 화면마다 하나만 처리해요
+    if (G.scene === 'play') {   // [제안] L = 1번 스킬 · ; = 2번 스킬 · Space = 무적 (ESC·P = 일시정지)
+      if (!G.paused) { if (e.code === 'KeyL') useSkill(1, cursorTarget()); if (e.code === 'Semicolon') useSkill(2, cursorTarget()); if (e.code === 'Space') useInvuln(); }
+      if (e.code === 'KeyJ') buf.melee = 0.1; if (e.code === 'KeyK') buf.ranged = 0.1;
+    }
+    else if (G.scene === 'title') { if (ok) action('start'); }
+    else if (G.scene === 'select') {
+      const mv = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -5, ArrowDown: 5, KeyA: -1, KeyD: 1, KeyW: -5, KeyS: 5 }[e.code];
+      if (mv) { G.sel = clamp(G.sel + mv, 0, COUNTRIES.length - 1); scrollToSel(); }
+      if (ok) action('confirm');
+    } else if (G.scene === 'result' && G.result.t > 0.6) { if (ok) action('restart'); if (e.code === 'Escape') action('quit'); }
+  });
+  window.addEventListener('keyup', e => keys.delete(e.code));
+  // 창·탭을 벗어나면 설정 창 없이 조용히 멈추고(G.hold), 돌아오면 그대로 이어가요
+  const hold = () => { clearInput(); if (G.scene === 'play' && !G.paused) { setPause(true); G.hold = true; } };
+  const unhold = () => { if (G.hold && !document.hidden) { G.hold = false; setPause(false); } };
+  window.addEventListener('blur', hold); window.addEventListener('focus', unhold);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) hold(); else unhold(); });
+
+  function readMove() {
+    let x = 0, y = 0;
+    if (keys.has('KeyA') || keys.has('ArrowLeft')) x--; if (keys.has('KeyD') || keys.has('ArrowRight')) x++;
+    if (keys.has('KeyW') || keys.has('ArrowUp')) y--; if (keys.has('KeyS') || keys.has('ArrowDown')) y++;
+    if (joy.id != null) { x = joy.x; y = joy.y; }
+    const d = Math.hypot(x, y);
+    if (d > 1) { x /= d; y /= d; }
+    input.mx = Math.abs(x) < .12 ? 0 : x; input.my = Math.abs(y) < .12 ? 0 : y;
+    if (input.mx || input.my) moveTo = null;   // 조이스틱·키를 쓰면 톡 이동 취소
+    else if (moveTo && G.hero) { const dx = moveTo.x - G.hero.x, dy = moveTo.y - G.hero.y, d = Math.hypot(dx, dy); if (d < 6) moveTo = null; else { input.mx = dx / d; input.my = dy / d; } }   // 도착하면 멈춰요
+  }
+
+  function setPause(p) {
+    if (G.scene !== 'play') return;
+    G.paused = p; G.langOpen = false; if (!p) G.hold = false;
+    if (p) { Platform.gameplayStop(); clearInput(); }
+    else Platform.gameplayStart();
+  }
+
+  // ---------- 버튼 동작 ----------
+  function action(id) {
+    if (id === 'sound') { settings.sound = !settings.sound; AUDIO.enabled = settings.sound; return saveSettings(); }
+    if (id === 'shake') { settings.shake = !settings.shake; return saveSettings(); }
+    if (id === 'flash') { settings.flash = !settings.flash; return saveSettings(); }
+    if (id === 'lang') { G.langOpen = !G.langOpen; return; }
+    if (id.startsWith('lang:')) { I18N.set(id.slice(5)); langPick = I18N.lang; store.set('langPick', langPick); G.langOpen = false; return; }   // 고른 언어가 모든 화면에 우선 (GDD 0-6)
+    switch (G.scene) {
+      case 'title':
+        if (id === 'start') { G.scene = 'select'; G.sel = lastCountry != null ? lastCountry : 0; scrollToSel(); }
+        break;
+      case 'select':
+        if (id === 'back') G.scene = 'title';
+        if (id.startsWith('card:')) { const i = +id.slice(5); if (i === G.sel && G.touchUI) action('confirm'); else G.sel = i; }
+        if (id === 'confirm') {
+          lastCountry = G.sel; store.set('lastCountry', G.sel);
+          // 고른 나라의 몸·무기 그림을 불러온 뒤 시작 (이미 있으면 바로)
+          const ci = G.sel; G.scene = 'loading'; G.load = 0;
+          { const c = COUNTRIES[ci], v = `assets/sound/shout/${String(c.rank).padStart(2, '0')}-${c.key}-`; AUDIO.load(v + '1.mp3'); AUDIO.load(v + '2.mp3'); AUDIO.preload('battle'); }   // 외침 목소리 미리 받기 (없으면 조용히)
+          loadList(countryAssets(COUNTRIES[ci]), k => { G.load = k; }).then(() => { if (G.scene === 'loading') newRun(ci); });
+        }
+        break;
+      case 'play':
+        if (id === 'pause') setPause(!G.paused);
+        if (id === 'resume') setPause(false);
+        if (id === 'exit') { setPause(false); Platform.gameplayStop(); cancelLater(); G.scene = 'select'; }
+        break;
+      case 'result':
+        if (id === 'restart') restart();
+        if (id === 'quit') { cancelLater(); G.scene = 'title'; G.titleHeroes = []; }   // 종료: 광고 없이 시작 화면으로
+        if (id === 'revive') rewardedRevive();
+        if (id === 'bankruptGo') rewardedBankrupt();
+        break;
+    }
+  }
+
+  // ---------- 광고 (monetization.md) ----------
+  // 광고 공통: 들어가기 전 입력 풀고 소리 끄기 → 실패·예외·응답 없음도 처리 → 끝나면 꼭 소리·입력 복구
+  let adToken = 0;
+  const AD_TIMEOUT = 90000;   // 광고가 끝 신호를 안 보내면 90초 뒤 포기하고 게임으로 돌아와요
+  async function runAd(call) {
+    const my = ++adToken;
+    G.scene = 'ad'; clearInput(); AUDIO.setAdMute(true);
+    let res = false;
+    try {
+      res = await Promise.race([
+        Promise.resolve().then(() => call(() => AUDIO.setAdMute(true))),
+        new Promise(r => setTimeout(() => r('timeout'), AD_TIMEOUT)),
+      ]);
+    } catch (err) { console.warn('[ad] 실패 → 광고 없이 진행', err); res = false; }
+    finally { if (my === adToken) { AUDIO.setAdMute(false); clearInput(); } }
+    return my === adToken && res === true;   // 늦게 온 응답은 무시해요
+  }
+  // 다시하기: 실패·파산 화면은 광고 없이 바로 새 판 (광고는 "광고보기" 버튼으로만)
+  //          클리어 화면은 판 사이 광고 (보상형을 본 판이면 한 번 건너뜀)
+  async function restart() {
+    cancelLater();
+    const ci = G.country.rank - 1;
+    if ((G.result.kind === 'clear' || G.result.kind === 'far') && !G.run.rewardedSeen) await runAd(cb => Platform.commercialBreak(cb));
+    newRun(ci);
+  }
+  async function rewarded() {
+    cancelLater();
+    const ok = await runAd(cb => Platform.rewardedBreak(cb));
+    if (!ok) { G.result.adFailed = true; G.scene = 'result'; }   // 못 봤으면 보상 없음 + 그 버튼은 숨겨요
+    return ok;
+  }
+  async function rewardedRevive() {
+    if (!await rewarded()) return;   // 끝까지 안 봤거나 못 불러오면 보상 없음
+    const r = G.run, h = G.hero;
+    r.reviveUsed = true; r.rewardedSeen = true;
+    h.dead = false; h.deadT = 0; h.hp = h.maxHp; h.inv = BAL.REVIVE_INVULN;
+    G.eshots = []; G.aliens.forEach(a => { const d = Math.hypot(a.x - h.x, a.y - h.y) || 1; if (d < 90) { a.x += (a.x - h.x) / d * 40; a.y += (a.y - h.y) / d * 40; } });
+    G.scene = 'play'; G.paused = false; AUDIO.play('revive');
+    Platform.gameplayStart();
+  }
+  async function rewardedBankrupt() {
+    if (!await rewarded()) return;
+    const r = G.run;
+    r.rewardedSeen = true; r.money = BAL.BANKRUPT_GIFT; r.round++;
+    G.msgs.push({ text: t_('continue.ad'), t: 3, keep: true });
+    AUDIO.play('revive');
+    startRound();
+  }
+
+  // ---------- 전투 ----------
+  function aimAt(maxAngle) {
+    const h = G.hero; let bestA = null, bd = Infinity;
+    for (const a of G.aliens) {
+      if (a.entering && !inFloor(a)) continue;
+      const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
+      const ang = Math.acos(clamp((dx * h.dir.x + dy * h.dir.y) / (d || 1), -1, 1));
+      if (ang <= maxAngle && d < bd) { bd = d; bestA = a; }
+    }
+    return bestA;
+  }
+  const atkMul = () => (G.hero.buff ? G.hero.buff.mul : 1);
+  const atkSpd = () => (G.hero.boostT > 0 ? BAL.INVULN_ATK_SPEED : 1);   // 무적 중 공격 속도 2.5배
+  function melee() {
+    const h = G.hero, st = G.run.st;
+    const near = mouse.on || (mArrow.id != null && mArrow.dir) ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
+    if (mArrow.id != null && mArrow.dir) h.dir = { x: mArrow.dir.x, y: mArrow.dir.y };   // 폰 → 치기 화살표를 끌면 끈 방향 (GDD 0-18)
+    if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
+    h.meleeCd = BAL.MELEE_CD / atkSpd(); h.atkT = 0;
+    // 휘두르기 3단계: 예비동작 0.07 → 스윙 0.09 → 마무리 0.12 (피해는 스윙이 시작될 때)
+    h.swing = { t: 0, ang: Math.atan2(h.dir.y, h.dir.x), hit: false };
+    const swing = h.swing;
+    if (h.boostT > 0 && !reduceMotion && BASIC_TRAIL) for (const [dl, al] of [[.04, .4], [.08, .2]]) after(dl, () => {
+      if (h.swing === swing) basicFx('boostSlash', h.x, h.y, .12, { a: swing.ang, al });
+    }, swing);
+    AUDIO.play('swing');
+  }
+  const SWING = { wind: 0.07, strike: 0.09, follow: 0.12 };
+  // 무기별 타격 (GPT 타격 리뷰 review-2, 사용자 "11개 다해"):
+  //   hitK = 스윙 중 무기 끝이 표적에 닿는 지점(0~1) → 피해·궤적 정점·코어·피격음을 이 한 프레임에 모아요
+  //   stop = 히트스톱(초), snd = 피격음, kick = 큰 명중 카메라 킥
+  const WP = {
+    slash: { hitK: .2, stop: .034, snd: 'impSlash' }, bigslash: { hitK: .22, stop: .046, snd: 'impSlash', kick: true },
+    thrust: { hitK: .4, stop: .026, snd: 'impThrust' }, rapid: { hitK: .4, stop: .026, snd: 'impThrust' },
+    smash: { hitK: .45, stop: .05, snd: 'impSmash', dust: true }, spin: { hitK: .25, stop: .03, snd: 'impSlash' },
+  };
+  const WP_GUN = { hitK: .4, stop: .035, snd: 'impThrust', gun: true };   // 총검 (style-guide "미국 공격 고치기"): 멈춤 0.035초 + 1.5px 흔들림
+  const wp = () => (FX.GUN[G.country.key] ? WP_GUN : WP[G.country.melee] || WP.slash);
+  function meleeStrike() {
+    const h = G.hero, st = G.run.st, sw = h.swing, P = wp();
+    const dmg = st.melee * atkMul(), ang0 = sw.ang;
+    const mk = G.country.melee, life = FX.meleeTime(mk);
+    // 궤적은 가장 강한 칸(6칸 중 3번째)이 명중 프레임에 보이게 그 칸부터 재생해요
+    if (P.gun) { const tp = weaponTip(ang0, 12); basicFx('bayonet', tp.x, tp.y, .06, { h0: h.y - tp.y, a: ang0 }); }   // 총검 끝 흰 짧은 섬광
+    else G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, h0: 26 - Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
+    const hits = [];
+    for (const a of G.aliens) {
+      const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
+      if (a.dead || d > TEMP.MELEE_RANGE + a.r) continue;
+      let da = Math.abs(Math.atan2(dy, dx) - ang0); if (da > Math.PI) da = Math.PI * 2 - da;
+      if (d < a.r + 10 || da <= TEMP.MELEE_ARC / 2) hits.push({ a, d, nx: dx / (d || 1), ny: dy / (d || 1) });
+    }
+    if (!hits.length) return;   // 헛스윙: 히트스톱 없음
+    hits.sort((p, q) => p.d - q.d);
+    // 연속타 (리뷰 11): 0.62초 안에 이어 맞힌 3번째마다 파편 1.2배 + 금속 꼬리
+    h.combo = (G.combatT - (h.lastHitT || -9) <= 0.62) ? (h.combo || 0) + 1 : 1; h.lastHitT = G.combatT;
+    const finisher = h.combo >= 3 && h.combo % 3 === 0;
+    let killBoss = false;
+    hits.forEach((o, i) => {
+      const main = i === 0;   // 대표 표적 하나만 강한 코어, 나머지는 반쯤
+      const wasAlive = !o.a.dead;
+      damage(o.a, dmg, o.nx, o.ny, true, { main, finisher });
+      if (o.a.type === 'boss' && wasAlive && o.a.dead) killBoss = true;
+    });
+    const t0 = hits[0];
+    // 히트스톱: 한 번만, 무기별 차등 · 보스 결정타는 길게 + 잠깐 느리게
+    G.hitstop = killBoss ? .065 : P.stop;
+    if (P.gun && settings.shake) G.shake = Math.max(G.shake, 1.5);
+    if (killBoss) G.slow = .12;
+    // 카메라 킥 (리뷰 9): 큰 베기·보스급만, 공격축으로 2px 밀었다 돌아와요 (흔들림 끄기 존중은 그릴 때)
+    if (P.kick || killBoss || t0.a.type === 'boss') G.kick = { x: t0.nx, y: t0.ny, t: 0 };
+    // 내려찍기 (리뷰 8): 바닥에 납작한 고리 + 회갈색 먼지
+    if (P.dust) {
+      const gx = h.x + Math.cos(ang0) * 34, gy = h.y + Math.sin(ang0) * 18;
+      G.fx.push({ kind: 'groundRing', x: gx, y: gy, t: 0, life: .12 });
+      for (let i = 0; i < 4 && G.parts.length < 150; i++) { const an = Math.PI + (i / 3) * Math.PI; G.parts.push({ x: gx, y: gy, vx: Math.cos(an) * 40, vy: Math.sin(an) * 14 - 10, life: .14, t: 0, color: '#B1A599', s: 2 }); }
+    }
+    AUDIO.play(P.snd);
+    if (finisher) later(() => AUDIO.play('tink'), 30);
+  }
+  function ranged() {
+    const h = G.hero, st = G.run.st;
+    const sOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3;   // 폰 손잡이: 민 방향 그대로
+    const tgt = mouse.on || sOn ? null : aimAt(Math.PI * 75 / 180);
+    let dx = h.dir.x, dy = h.dir.y;
+    if (sOn) { const l = Math.hypot(rstick.x, rstick.y); dx = rstick.x / l; dy = rstick.y / l; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
+    if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
+    h.rangedCd = BAL.RANGED_CD / atkSpd(); h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.combatT;
+    const rk = G.country.ranged;
+    const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
+    if (rk === 'arrow') { const T = clamp(BAL.RANGED_CD / atkSpd() * .5, .05, .10); h.bowM = { t: 0, T, ang: Math.atan2(dy, dx), dx, dy, boost: h.boostT > 0, dmg: st.ranged * atkMul() }; return; }   // 한국 활 (style-guide "한국 활 당기기"): 당기기 0.10초(연사면 간격 × 0.5, 최소 0.05) → 놓기
+    if (THROW_ANIM[rk]) { h.throwM = { t: 0, ang: Math.atan2(dy, dx), dx, dy, kind: rk, k: h.boostT > 0 ? BAL.INVULN_ATK_SPEED : 1, boost: h.boostT > 0, dmg: st.ranged * atkMul(), hist: [], arc: [] }; h.handEmpty = false; return; }   // 창·도끼 (사용자 "창, 도끼만 바꿔"): 젖히기 → 놓기, 탄은 놓는 순간
+    const tip = weaponTip(Math.atan2(dy, dx));   // 무기 끝 (style-guide "원거리 공격 동작"): 판정 자리는 그대로, 그림만 무기 끝에서 출발
+    G.shots.push(fromTip({ boost: h.boostT > 0, kind: rk, x: h.x + dx * (quake ? 24 : 16), y: h.y + dy * (quake ? 24 : 16), vx: dx * sp, vy: dy * sp, dmg: st.ranged * atkMul(), life: quake ? .62 : 1.6, age: 0, hits: rk === 'boomerang' || quake ? new Set() : null }, tip, quake));
+    if (quake) {   // 체코 (사용자 확정): 도리깨를 내리쳐 땅을 따라 은빛 충격파 — 칼은 손에, 내려찍기 궤적·바닥음
+      G.fx.push({ kind: 'melee', m: 'smash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('smash') });
+      AUDIO.play('impSmash'); if (settings.shake) G.shake = Math.max(G.shake, 1.5);
+    }
+    if (rk === 'water') G.fx.push({ kind: 'splash', x: h.x + dx * 18, y: h.y - 24 + dy * 8, t: 0, life: 0.2 });
+    if (rk === 'wave') { AUDIO.play('swing'); G.fx.push({ kind: 'melee', m: G.country.melee === 'bigslash' ? 'bigslash' : 'slash', x: h.x + dx * 6, y: h.y - 26 + dy * 4, h0: 26 - dy * 4, a: Math.atan2(dy, dx), t: 0, life: FX.meleeTime('slash') * .8 }); }   // 검기: 칼을 휘두르는 궤적 + 검기
+    if (FX.GUN[G.country.key]) {   // 총구에서 번쩍 (미국 하늘 별 · 핀란드 금 불꽃 + 연기) · 핀란드는 탄피가 옆으로 튀어 떨어져요
+      G.fx.push({ kind: 'muzzle', key: G.country.key, x: tip.x, y: tip.y, h0: h.y - tip.y, a: Math.atan2(dy, dx), t: 0, life: 0.4 });
+      if (G.country.key === 'finland') basicFx('casing', tip.x - dx * 14, tip.y, .4, { h0: h.y - tip.y, side: dx >= 0 ? -1 : 1 });
+    }
+    AUDIO.play('attack');
+  }
+  // ---- 나라별 고유 스킬 (skills.md 확정): 유형 5개 · 라운드마다 2회 · 쓰는 동안 0.5초 무적 · 피해 40 × F ----
+  const SKB = BAL.SKILL, LINK_DMG = .3;
+  const BARRAGE_SHOT = { wave: 'wave', beam: 'beam', boomerang: 'boomerang', axe: 'axe', sling: 'sling', bullet: 'bullet', arrow: 'arrow' };   // 쏘는 무기 나라는 그 탄, 칼·창 나라는 빛줄기
+  const skillOf = (c, n) => (n === 2 ? c.skill2 : c.skill);
+  // 남은 횟수: 1번·2번 각각 5번 (BAL.SKILL_SHARED면 합쳐서 5번 — 1번 칸 하나를 같이 써요)
+  const sLeft = n => G.run.skillsLeft[BAL.SKILL_SHARED ? 1 : n];
+  // 무적 (좌·우 동시 / Space / 무적 버튼): 0.5초, 라운드마다 2번 — 고유 스킬과 따로 (사용자 결정 2026-11-25)
+  function useInvuln() {
+    const r = G.run, h = G.hero;
+    if (!r || r.invuln <= 0 || h.dead || h.skillT > 0) return;
+    r.invuln--; h.skillT = BAL.SKILL_TIME; h.boostT = BAL.SKILL_TIME;   // 무적 2초 + 그동안 공격 속도 2.5배 (GDD 0-15, 2026-11-26) · 끝나기 0.4초 전부터 2번 깜빡
+    G.fx.push({ kind: 'ring', x: h.x, y: h.y - 20, t: 0, life: 0.3 });
+    if (settings.shake) G.shake = Math.max(G.shake, 2);
+    AUDIO.play('revive');
+  }
+  // n = 1: 나라별 고유 스킬 (우클릭 2번 / L / 스킬 버튼) · n = 2: 두 번째 스킬 (좌클릭 2번 / ; ) — 기획팀 설계 중이라 자리만
+  // 횟수: 1번·2번 합쳐 한 판에 5번 (라운드마다 안 채워져요)
+  // ---- 스킬 엔진: 뼈대 5유형 함수 + 나라별 특징 sk.mod (skills-unique.md 60개, 기준 피해 80 × F) ----
+  // o = { sk, n(1·2번), dmg(= 80×F), ang, dx, dy, mod }
+  // 원 안 외계인 맞히기 → 맞힌 수 (o.test로 거르고, o.each로 맞은 외계인마다 넉백 등)
+  function hitCircle(x, y, r, dmg, o = {}) {
+    let n = 0;
+    for (const a of G.aliens) {
+      if (a.dead || a.entering || (o.skip && o.skip.has(a))) continue;
+      const ex = a.x - x, ey = a.y - y, d = Math.hypot(ex, ey) || 1;
+      if (d < r + a.r * .5 && (!o.test || o.test(a, ex, ey, d))) {
+        n++; if (o.skip) o.skip.add(a);
+        if (dmg > 0) damage(a, dmg, o.dx != null ? o.dx : ex / d, o.dy != null ? o.dy : ey / d, o.heavy !== false, { finisher: true, main: o.main, skill: true });
+        if (o.each) o.each(a, ex / d, ey / d, d);
+      }
+    }
+    return n;
+  }
+  const distSeg = (px, py, x0, y0, x1, y1) => { const vx = x1 - x0, vy = y1 - y0, L = vx * vx + vy * vy || 1, q = clamp(((px - x0) * vx + (py - y0) * vy) / L, 0, 1); return Math.hypot(px - x0 - vx * q, py - y0 - vy * q); };
+  function hitSeg(x0, y0, x1, y1, w, dmg, skip, link = false) {
+    let n = 0; const L = Math.hypot(x1 - x0, y1 - y0) || 1;
+    for (const a of G.aliens) { if (a.dead || a.entering || (skip && skip.has(a))) continue; if (distSeg(a.x, a.y, x0, y0, x1, y1) < w + a.r * .5) { n++; if (skip) skip.add(a); damage(a, dmg, (x1 - x0) / L, (y1 - y0) / L, !link, { finisher: !link, link, skill: true }); } }
+    return n;
+  }
+  const after = (t, fn, owner) => G.timers.push({ t, fn, owner });
+  const BAL_WEAK = .3;
+  // 제어(멈춤·봉인·묶기·띄우기): 보스에게는 0.3초 멈춤만 (skills-unique 규칙)
+  function control(a, kind, t) { if (a.type === 'boss') a.freeze = Math.max(a.freeze || 0, .3); else a[kind] = Math.max(a[kind] || 0, t); }
+  // 스킬이 남기는 물체 (박힌 도끼·씨앗·도는 칼날 등): update(dt) → false면 사라져요, draw(at)
+  const ent = o => G.ents.push(o);
+  // 장수 효과: 이동 속도 배율 · 받는 피해 배율
+  function heroSpd() {
+    const h = G.hero; let k = 1;
+    for (const z of G.zones) if (z.t >= 0 && z.k === 'speedZone' && Math.hypot(h.x - z.x, h.y - z.y) < SKB.ZONE_D / 2) k *= 1.5;   // 뉴질랜드 1
+    return k;
+  }
+  const heroDmgMul = () => { const h = G.hero; for (const z of G.zones) if (z.t >= 0 && z.k === 'half' && Math.abs(h.x - z.x) < SKB.ZONE_D / 2 && Math.abs(h.y - z.y) < SKB.ZONE_D / 2 * .7) return .5; return 1; };   // 체코 1   // 게임 시간 기준 예약 (일시정지·히트스톱에 맞춰요)
+  const basicFx = (type, x, y, life, extra) => G.fx.push({ kind: 'basic', type, x, y, t: 0, life, ...extra });
+  const sfx = (type, x, y, life, extra) => {
+    if (type === 'art' && skillSequence(extra.img) && (!extra.playback || extra.playback === 'area')) {
+      life = (extra.seqDelay ?? extra.delay ?? 0) + 6 * SKILL_FRAME + SKILL_FADE;
+    }
+    const effect = { kind: 'skill', type, x, y, t: 0, life, ...extra };
+    G.fx.push(effect);
+    return effect;
+  };
+  const SKILL_HIT_LIFT_TIME = .25, SKILL_HIT_LIFT_HEIGHT = 4;
+
+  // 박힌 도끼 (캐나다 1): 2초 동안 닿는 외계인 0.5초마다
+  function axeEnt(x, y, dmg) { let t = 0, tick = .5; ent({ x, y, update(dt) { t += dt; this.t = t; if ((tick -= dt) <= 0) { tick += .5; hitCircle(x, y, 20, dmg, { heavy: false, main: false }); } return t < 2; }, t: 0,
+    draw(at) { at(x, y, () => drawProp('canada-1', x, y, 0, .5, clamp((2 - this.t) / .3, 0, 1))); } }); }
+  // 씨앗 (뉴질랜드 2): 1초 뒤 작게 터져요
+  function seedEnt(x, y, dmg) { let t = 0, done = false; ent({ x, y, t: 0, update(dt) { t += dt; this.t = t; if (t >= 1 && !done) { done = true; hitCircle(x, y, 40, dmg); AUDIO.play('hit'); } return t < 1.05; },
+    draw(at) { at(x, y, () => drawProp('newzealand-2', x, y, 0, 0, clamp((1.05 - this.t) / .3, 0, 1))); } }); }
+  // 은빛 분신 (콜롬비아 2): 1초 뒤 같은 길을 다시 달려요
+  function echoEnt(path, look, dmg) { const sk = new Set(), N = path.length; let t = 0, gT = 0;
+    ent({ x: path[0][0], y: path[0][1], update(dt) { t += dt; const [x, y] = path[Math.min(N - 1, Math.floor(t / SKB.DASH_TIME * (N - 1)))]; this.x = x; this.y = y;
+      hitCircle(x, y, 32, dmg, { skip: sk }); if ((gT -= dt) <= 0) { gT = NO_AFTER ? .03 : .045; if (!NO_AFTER || AFTER_EXC.clones) G.fx.push({ kind: 'ghost', x, y, cell: look.cell, flip: look.flip, folder: look.folder, t: 0, life: NO_AFTER ? .035 : .45, clone: true, echo: NO_AFTER ? this : null }); }
+      if (t < SKB.DASH_TIME) return true;
+      if (NO_AFTER) G.fx = G.fx.filter(e => e.echo !== this);
+      return false; }, draw() {} }); }
+  // 튕기는 도끼 (슬로바키아 2): 맞으면 가까운 다음 외계인으로 (최대 3번)
+  function ricochet(a, s) {
+    if (s.bounces <= 0) return;
+    const nx = G.aliens.filter(b => !b.dead && !b.entering && !s.chain.has(b) && Math.hypot(b.x - a.x, b.y - a.y) < 240).sort((p, q) => Math.hypot(p.x - a.x, p.y - a.y) - Math.hypot(q.x - a.x, q.y - a.y))[0];
+    if (!nx) return;
+    const ex = nx.x - a.x, ey = nx.y - a.y, d = Math.hypot(ex, ey) || 1, sp = TEMP.SHOT_SPEED;
+    G.shots.push(Object.assign({}, s, { x: a.x, y: a.y, vx: ex / d * sp, vy: ey / d * sp, life: .9, age: 0, bounces: s.bounces - 1, art: barrageArt(s.skillN, a.x, a.y, Math.atan2(ey, ex)) }));
+  }
+  // ---- 스킬 시전감 (GDD 0-20, 사용자 "전부 추천대로" 2026-11-27) ----
+  // 시험 3개 먼저(한국 1·스위스 1·룩셈부르크 1). 사용자 확인 뒤 나라를 늘려요
+  const FEEL_ALL = true;   // 사용자 "57개 스킬에도 넓혀" (2026-11-27) · false면 아래 시험 3개만
+  const FEEL = new Set(['korea', 'switzerland', 'luxembourg']);
+  const feelOn = () => FEEL_ALL || FEEL.has(G.country.key);
+  // 시간은 style-guide "스킬 시전 동작" 표 (디자인팀 9e253d1)
+  const FEEL_T = { BOW_REL: .15, BOW_FLY: .30, BOW_BACK: .10, THROW_PREP: .10, THROW_REL: .15, THROW_BACK: .10, DASH_PREP: .06, DASH_BACK: .12, AREA_PREP: .10, AREA_HIT: .05, AREA_BACK: .10, AIM_PREP: .08 };
+  const AREA_AT_HERO = ['orbit', 'spinMove', 'fear', 'phalanx', 'crack', 'pole', 'chain3'];   // 장수 자리에서 터지는 범위 (연결체 없음)
+  const flyT = (x0, y0, x1, y1) => clamp(Math.hypot(x1 - x0, y1 - y0) / 900, .15, .35);   // 연결체 비행 = 거리 ÷ 900, 0.15~0.35초
+  // 잔상 없애기 (사용자 "전부다 잔상 남기지마", GDD 0-20 3) 8a572da): 분신·길 복제·긁힘·그을림·스킬 탄 꼬리 없음, 효과 본체는 끝에 0.15초 페이드
+  const NO_AFTER = true;
+  const BASIC_TRAIL = true;   // 평타 공속 잔상과 던지기 호
+  const AFTER_EXC = { clones: true };   // 스웨덴 1·콜롬비아 2 분신은 달리는 동안만 표시해요.
+  const AFTER = { GHOST_LIFE: .15, GHOST_GAP: .075, GHOST_AL: .18, TRAIL_TAIL: .15 };
+  const castStart = (k, dur, ang, ex) => { G.hero.cast = Object.assign({ k, t: 0, dur, ang }, ex); lockNormalAttacks(dur); };
+  /*
+   * 시전 무적 (모두 입력 즉시 시작)
+   * | 유형 | 해제 |
+   * | --- | --- |
+   * | 돌진 | 달리기와 복귀 종료 |
+   * | 범위 | 내려치기와 복귀 종료 (연결체는 별도) |
+   * | 연사 | 조준 동작과 연사 종료 |
+   * | 설치 | 놓기 동작과 복귀 종료 (비행·설치 효과는 별도) |
+   * | 한국 1 | 돌진 도착 0.42초 뒤 |
+   * | 한국 2 | 설치 완료 0.10초 |
+   *
+   * 한국 스킬 (입력 후 게임 시간, E는 거북선 도착)
+   * | 스킬 | 시간 | 동작 |
+   * | --- | --- | --- |
+   * | 거북선 | 0–0.08 / 0.08–0.22 / 0.22–0.28 | 디딤 / 철갑 맞물림 / 제자리 버팀 |
+   * | 거북선 | 0.28 / E+0.12 / E+0.30–0.42 | 출발 / 끝 연기 / 복귀 |
+   * | 천자총통 | 0–0.10 | 설치 |
+   * | 천자총통 | 설치 뒤 0.30초마다, 총 6발 | 둘레 5발 → 중앙 1발 (비행 0.30초) |
+   * | 천자총통 | 설치 뒤 1.80–2.10 | 화포 페이드 |
+   */
+  const skillPoseActive = h => !!(h.cast || h.dash || h.barrage || h.poseFollow || h.attackLock > 0);
+  const hidesBasicEffect = e => skillPoseActive(G.hero) &&
+    (e.kind === 'melee' || e.kind === 'muzzle' || e.type === 'boostSlash' || e.type === 'bayonet');
+  const castInvulnerable = h => G.scene === 'play' && !h.dead && !!(h.cast || h.dash || h.barrage);
+  const followPose = (ang, life, lean = 0) => { G.hero.poseFollow = { k: 'follow', ang, life, lean, t: 0 }; };
+  const finishCast = h => { if (h.cast) h.cast.pending = false; h.skillDebit = null; };
+  const D2R = Math.PI / 180;
+  const finitePoint = p => p && Number.isFinite(p.x) && Number.isFinite(p.y);
+  function skillTip(h) {
+    if (finitePoint(h.tip)) return h.tip;
+    const key = G.country.key, [cell, flip] = heroDir(Math.atan2(h.dir.y, h.dir.x), key), hd = handAt(cell, key);
+    const hand = hd && { x: h.x + (hd[0] - 64) * (60 / 112) * (flip ? -1 : 1), y: h.y + (hd[1] - 124) * (60 / 112) };
+    return finitePoint(hand) ? hand : { x: h.x, y: h.y - 30 };
+  }
+  // 시전 몸동작: 무기 각도·밀기·숨기기 + 몸 (평타·걷기 자세보다 먼저예요)
+  function castPose(c) {
+    const t = c.t, side = Math.cos(c.ang) >= 0 ? 1 : -1, ca = Math.cos(c.ang), sa = Math.sin(c.ang), rest = c.ang + REST * side, ease = q => q * q * (3 - 2 * q), rm = reduceMotion ? .5 : 1;
+    if (c.k === 'turtle') {
+      const ready = t < TURTLE.START;
+      const q = ready ? ease(clamp(.25 + .75 * t / TURTLE.PREP, 0, 1)) : c.end ? ease(clamp((t - c.end.t - TURTLE.END) / TURTLE.BACK, 0, 1)) : 0;
+      const angle = ready ? rest - (REST + 40 * D2R) * side * q : c.ang + (rest - c.ang) * q;
+      return { a: angle, push: 0, body: ready ? { oy: 3 * q, sx: 1 + .03 * q, sy: 1 - .05 * q } : { oy: c.end ? 2 * (1 - q) : 0 } };
+    }
+    if (c.k === 'cannon') {
+      const q = ease(clamp(t / CANNON.PREP, 0, 1));
+      return { a: rest + (c.ang - rest) * q, push: 3 * q, body: { oy: q } };
+    }
+    if (c.k === 'bowUp') {   // 활은 bowM이 그려요 · 몸만 살짝 젖혀요
+      const q = t < .1 ? ease(t / .1) : t < FEEL_T.BOW_REL ? 1 : 1 - ease(Math.min(1, (t - FEEL_T.BOW_REL) / FEEL_T.BOW_BACK));
+      return { a: rest, push: 0, body: { oy: -2 * q * rm } };
+    }
+    if (c.k === 'throw') {   // 스위스 1: 조준 −45° 젖힘(뒤로·위로 당김) → 조준 +15°까지 내지르며 놓기 → 복귀 0.10초 빈손
+      const P = FEEL_T.THROW_PREP, R = FEEL_T.THROW_REL, back = c.ang - 45 * D2R * side, fwd = c.ang + 15 * D2R * side;
+      if (t < P) { const q = ease(t / P); return { a: rest + (back - rest) * q, push: -6 * q, body: { ox: -ca * 2 * q * rm } }; }
+      if (t < R) { const q = (t - P) / (R - P); return { a: back + (fwd - back) * q, push: -6 + 20 * q, body: { ox: (-2 + 5 * q) * ca * rm } }; }
+      if (!c.hide) { const q = ease(Math.min(1, (t - R) / FEEL_T.THROW_BACK)); return { a: fwd + (rest - fwd) * q, push: 14 * (1 - q), body: { ox: 3 * ca * (1 - q) * rm } }; }   // 놓지 않는 설치(가리키기·찍기): 그대로 복귀
+      return { a: fwd, push: 0, hide: true, body: { ox: 3 * ca * (1 - (t - R) / FEEL_T.THROW_BACK) * rm } };
+    }
+    if (c.k === 'area') {   // 범위: 조준 −120°로 높이 들기(0.10) → +30°까지 내려치기(0.05) → 복귀(0.10)
+      const P = FEEL_T.AREA_PREP, H = P + FEEL_T.AREA_HIT, hi = c.ang - 120 * D2R * side, lo = c.ang + 30 * D2R * side;
+      if (t < P) { const q = ease(t / P); return { a: rest + (hi - rest) * q, push: 0, body: { oy: -2 * q * rm, sx: 1 - .03 * q, sy: 1 + .04 * q } }; }
+      if (t < H) { const q = (t - P) / (H - P); return { a: hi + (lo - hi) * q, push: 4 * q, body: { oy: (-2 + 5 * q) * rm, sx: 1 + .04 * q, sy: 1 - .05 * q } }; }
+      const q = ease(Math.min(1, (t - H) / FEEL_T.AREA_BACK)); return { a: lo + (rest - lo) * q, push: 4 * (1 - q), body: { oy: 3 * (1 - q) * rm, sx: 1 + .04 * (1 - q), sy: 1 - .05 * (1 - q) } };
+    }
+    if (c.k === 'follow') return { a: c.ang, push: 4, body: { ox: ca * (c.lean || 0) * rm, oy: sa * (c.lean || 0) * rm } };   // 무기가 타격 각도를 따라가요 (헝가리 1·폴란드 2·스페인 2)
+    if (c.k === 'aim') {   // 연사 준비: 조준 방향으로 들어 겨눔(손 뒤로 4px, 몸 1px 뒤로)
+      const q = ease(Math.min(1, t / FEEL_T.AIM_PREP)); return { a: rest + (c.ang - rest) * q, push: -4 * q, body: { ox: -ca * q * rm } };
+    }
+    if (c.k === 'dash') {   // 룩셈부르크 1: 준비(낮추고 검 뒤로 −40°) → 돌진 중(4px·5° 앞으로, 검 곧게) → 끝 뒤 0.12초 복귀
+      const P = FEEL_T.DASH_PREP, E = P + c.run;
+      if (t < P) { const q = ease(t / P); return { a: rest + (c.ang - 40 * D2R * side - rest) * q, push: 0, body: { ox: -ca * 2 * q * rm, sx: 1 + .03 * q, sy: 1 - .05 * q } }; }
+      if (t < E) return { a: c.ang, push: 4, body: { ox: ca * 4 * rm, oy: sa * 2 * rm, rot: side * 5 * D2R * rm } };
+      if (c.sheath) { const q = ease(clamp((t - E - .28) / .12, 0, 1)); return { a: c.ang - 100 * D2R * side * q, push: 4 * (1 - q), body: { rot: side * 5 * D2R * (1 - q) * rm } }; }   // 일본 1: 0.28초 뒤 0.12초에 칼집으로(−100°) → 그 순간 2타
+      const q = ease(Math.min(1, (t - E) / FEEL_T.DASH_BACK));
+      return { a: c.ang + (rest - c.ang) * q, push: 4 * (1 - q), body: { ox: ca * 4 * (1 - q) * rm, rot: side * 5 * D2R * (1 - q) * rm } };
+    }
+    return null;
+  }
+  const TURTLE = { PREP: .08, RISE: .14, START: .28, SMOKE: .12, END: .30, BACK: .12 };
+  const CANNON = { PREP: .10, INTERVAL: .30, COUNT: 6, FLY: .30, FADE: .30 };
+
+  function endTurtle(h, d) {
+    const cast = h.cast, x = h.x, y = h.y, dx = Math.cos(cast.ang), dy = Math.sin(cast.ang);
+    const elapsed = d.t - d.dur;
+    cast.end = { t: cast.t - elapsed, x, y };
+    after(TURTLE.SMOKE - elapsed, () => {
+      const hits = hitCircle(x, y, d.mod.r, d.base * d.mod.smoke, {
+        dx, dy, test: (a, ex, ey) => d.hit.has(a) || ex * dx + ey * dy >= Math.hypot(ex, ey) * Math.SQRT1_2,
+      });
+      commonSkillFx('impact', x, y, d.mod.r * 2, cast.ang, 1);
+      commonSkillFx('smoke', x, y, SKILL_PROP['korea-1'][0] * 2, cast.ang);
+      if (layerFx()) {
+        sfx('skillShake', x, y, .08, { amount: 2 });
+        if (hits) G.hitstop = Math.max(G.hitstop || 0, .03);
+      }
+      AUDIO.play('impact');
+    }, cast);
+  }
+
+  function startCannon(o) {
+    const h = G.hero, floor = FIELD.floor, R = SKB.AREA_R;
+    const x = clamp(h.x - o.dx * 24 - o.dy * 18, floor.x0 + 12, floor.x1 - 12);
+    const y = clamp(h.y - o.dy * 24 + o.dx * 18, floor.y0 + 22, floor.y1);
+    const origin = skillTip(h), shots = [];
+    castStart('cannon', CANNON.PREP, o.ang, { pending: true });
+    const cast = h.cast;
+    const volley = CANNON.INTERVAL * CANNON.COUNT;
+    ent({
+      owner: cast, x, y, t: 0,
+      update(dt) {
+        if (h.dead) return false;
+        const before = this.t - CANNON.PREP, age = (this.t += dt) - CANNON.PREP;
+        if (before < 0 && age >= 0) {
+          if (h.cast === cast) { finishCast(h); h.cast = null; }
+          AUDIO.play('impact');
+        }
+        while (shots.length < CANNON.COUNT && age + 1e-9 >= (shots.length + 1) * CANNON.INTERVAL) {
+          const i = shots.length, last = i === CANNON.COUNT - 1;
+          const a = o.ang + i * Math.PI * 2 / (CANNON.COUNT - 1);
+          const offset = last ? 0 : R * .45;
+          const tx = clamp(o.tx + Math.cos(a) * offset, floor.x0 + 12, floor.x1 - 12);
+          const ty = clamp(o.ty + Math.sin(a) * offset, floor.y0 + 22, floor.y1);
+          shots.push({ tx, ty, last, when: (i + 1) * CANNON.INTERVAL, path: linkArtPath(x, y, tx, ty) });
+          if (layerFx()) sfx('skillShake', x, y, .06, { amount: last ? 3 : 1 });
+          AUDIO.play('impSmash');
+        }
+        for (const shot of shots) {
+          if (shot.landed || age + 1e-9 < shot.when + CANNON.FLY) continue;
+          shot.landed = true;
+          hitCircle(shot.tx, shot.ty, R * (shot.last ? 1 : .5), o.dmg * (shot.last ? .4 : .2));
+          const impact = commonSkillFx('impact', shot.tx, shot.ty, R * (shot.last ? 2 : 1), o.ang, 2);
+          if (!impact || (shot.last && skillSequence('skill/u/korea-2'))) {
+            sfx('art', shot.tx, shot.ty, .38, { img: 'skill/u/korea-2', mode: 'burst', S: R * (shot.last ? 2 : 1) });
+          }
+          if (shot.last) G.hitstop = Math.max(G.hitstop || 0, .05);
+          AUDIO.play(shot.last ? 'impSmash' : 'impact');
+        }
+        return age + 1e-9 < volley + CANNON.FADE;
+      },
+      draw(at) {
+        const age = this.t - CANNON.PREP;
+        const q = clamp(this.t / CANNON.PREP, 0, 1);
+        const px = origin.x + (x - origin.x) * q, py = o.y0 + (y - o.y0) * q;
+        const alpha = clamp(1 - (age - volley) / CANNON.FADE, 0, 1);
+        const fire = shots[shots.length - 1], fireAge = fire ? age - fire.when : -1;
+        at(px, py, () => {
+          const name = 'skill/prop/korea-2-fire';
+          if (fireAge >= 0 && fireAge < .30 && UI.img[name]?.naturalWidth === 6 * 192 && UI.img[name].naturalHeight === 192) {
+            const size = SKILL_PROP['korea-2'][0];
+            skillShadow(px, py, size, .25 * alpha);
+            drawSkillCell(name, 6, Math.min(5, Math.floor((fireAge + 1e-9) / .05)), px, py - size * 88 / 176, o.ang,
+              size * 192 / 176, alpha, { ground: py, add: false, facing: true });
+          } else drawProp('korea-2', px, py, 0, o.ang, alpha);
+        });
+        for (const shot of shots) {
+          if (shot.landed) continue;
+          const pos = shot.path(clamp((age - shot.when) / CANNON.FLY, 0, 1));
+          pos.age = age - shot.when;
+          at(pos.x, pos.y, () => drawCannonShell(pos));
+        }
+      },
+    });
+  }
+
+  // QA 고침 2026-11-27: 같은 꼭짓점을 조준 표시와 발동에 사용해요.
+  function coneOrigin(x, y, tx, ty, offset) {
+    const dist = Math.hypot(tx - x, ty - y);
+    const back = dist > 0 ? Math.min(offset, dist) / dist : 0;
+    return [tx + (x - tx) * back, ty + (y - ty) * back];
+  }
+
+  const SKILL_FN = {
+    dash(o) {
+      const m = o.mod, h = G.hero, f = FIELD.floor;
+      if (m.k === 'blink') {   // 네덜란드 2: 그 자리로 순간이동하며 사이 줄을 베어요
+        if (feelOn() && !o.ready) { const x0 = h.x, y0 = h.y; castStart('dash', FEEL_T.DASH_PREP + .05 + FEEL_T.DASH_BACK, o.ang, { run: .05, pending: true }); after(FEEL_T.DASH_PREP, () => { finishCast(h); SKILL_FN.dash(Object.assign({}, o, { ready: true })); skillArt(o.sk, o.n, m, o.tx, o.ty, o.ang, x0, y0); }, h.cast); return; }   // 시전감: 낮췄다가 순간이동
+        const x1 = o.tx, y1 = o.ty;
+        hitSeg(h.x, h.y, x1, y1, 22, o.dmg * m.mul); h.x = x1; h.y = y1; h.skillT = Math.max(h.skillT, .2); AUDIO.play('swing');
+        return;
+      }
+      if (m.k === 'dashInv') h.skillT = Math.max(h.skillT, m.inv);   // 룩셈부르크 1: 돌진 무적 1초
+      // 그 자리까지 달려요 (GDD 0-17, 거리 제한 없음). 빠르기는 예전 그대로 (260을 0.35초에)
+      let ex = o.tx, ey = o.ty, L = Math.hypot(ex - h.x, ey - h.y);
+      if (L < 30) { ex = h.x + o.dx * 30; ey = h.y + o.dy * 30; L = 30; }
+      if (m.k === 'long') { ex = clamp(h.x + (ex - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ey - h.y) * 2, f.y0 + 22, f.y1); L = Math.hypot(ex - h.x, ey - h.y); }   // 리투아니아 1: 목표 너머로 같은 거리만큼 더 (벽에서 멈춤)
+      let dur = Math.max(.12, L / (SKB.DASH_DIST / SKB.DASH_TIME));
+      if (m.k === 'seal') dur *= .65;                   // 핀란드 1: 가장 빠른 돌진
+      if (m.k === 'leap') dur = .4 + L / 1600;          // 멕시코 1: 높이 뛰어 그 자리로
+      h.dash = { t: 0, dx: o.dx, dy: o.dy, a0: o.ang, base: o.dmg, dmg: o.dmg * (m.mul || 1), hit: new Set(), gT: 0, pT: 0, mod: m, k: m.k, x0: h.x, y0: h.y, sx: h.x, sy: h.y, ex, ey, L, tx: o.tx, ty: o.ty, path: [[h.x, h.y]], dur, carry: [], seeds: 0, inv: 0, look: heroLookNow() };
+      if (m.k === 'turtle') {
+        h.dash.wait = TURTLE.START;
+        castStart('turtle', h.dash.wait + dur + TURTLE.END + TURTLE.BACK, o.ang, { pending: true });
+        return false;
+      }
+      if (feelOn()) { const run = dur * (m.k === 'returnDash' ? 2 : 1); h.dash.wait = FEEL_T.DASH_PREP; castStart('dash', FEEL_T.DASH_PREP + run + (m.k === 'iai' ? .4 : FEEL_T.DASH_BACK), o.ang, { run, sheath: m.k === 'iai', pending: true }); }   // 시전감: 낮췄다가 출발 + 복귀 자세 (GDD 0-20, 모든 돌진)
+    },
+    area(o) {
+      const m = o.mod, HERO = G.hero, R = SKB.AREA_R, f = FIELD.floor;
+      if (m.k === 'cannon') { startCannon(o); return false; }
+      if (settings.shake) G.shake = Math.max(G.shake, 4);
+      // 그 자리를 중심으로 터져요 (GDD 0-17). 장수에서 뻗는 모양(사자의 포효·팔랑크스·균열)과 장수 둘레(튀르키예 1 예외)·움직이는 회전베기는 장수 자리에서
+      const h = ['orbit', 'spinMove', 'fear', 'phalanx', 'crack'].includes(m.k) ? HERO : { x: o.tx, y: o.ty };
+      const chainTargets = hit => G.aliens.filter(a => !a.dead && !a.entering && !hit.has(a) && Math.hypot(a.x - h.x, a.y - h.y) < 340)
+        .sort((p, q) => Math.hypot(p.x - h.x, p.y - h.y) - Math.hypot(q.x - h.x, q.y - h.y));
+      if (m.k === 'pull') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { each: (a, nx, ny) => { a.kb = { x: -nx * 320, y: -ny * 320 }; a.stun = .25; } }); }   // 아일랜드 1: 끌어당기기
+      else if (m.k === 'grow') {   // 덴마크 2: 맞힌 수만큼 원이 커져 한 번 더
+        const r1 = R * .75, n = hitCircle(h.x, h.y, r1, o.dmg * m.mul1), r2 = r1 * (1 + .15 * n);
+        commonSkillFx('ring', h.x, h.y, r1 * 2, o.ang);
+        after(.25, () => { hitCircle(h.x, h.y, r2, o.dmg * m.mul2); commonSkillFx('ring', h.x, h.y, r2 * 2, o.ang); });
+      }
+      else if (m.k === 'twoRings') {   // 오스트리아 2: 안쪽 원 → 0.3초 뒤 바깥 원
+        const r1 = R * .55, hx = h.x, hy = h.y; hitCircle(hx, hy, r1, o.dmg * m.mul);
+        commonSkillFx('ring', hx, hy, r1 * 2, o.ang);
+        after(.3, () => {
+          hitCircle(hx, hy, R, o.dmg * m.mul, { test: (a, ex, ey, d) => d >= r1 - 8 });
+          commonSkillFx('ring', hx, hy, R * 2, o.ang);
+        });
+      }
+      else if (m.k === 'cone') {
+        const [x, y] = coneOrigin(o.x0, o.y0, o.tx, o.ty, m.back);
+        hitCircle(x, y, R * 2, o.dmg * m.mul, { test: (a, ex, ey) => ex === 0 && ey === 0 || ex * o.dx + ey * o.dy > Math.hypot(ex, ey) * .5 });
+      }
+      else if (m.k === 'spinMove') {   // 스페인 2: 빙글 돌며 보는 방향으로 움직여요
+        const sk = new Set(), dm = o.dmg * m.mul, x0 = h.x, y0 = h.y, T = Math.max(.65, Math.hypot(o.tx - x0, o.ty - y0) / 230); let t = 0, x = h.x, y = h.y;   // 돌면서 그 자리까지
+        ent({ k: 'spin', update(dt) { t += dt; const q = Math.min(1, t / T); x = x0 + (o.tx - x0) * q; y = y0 + (o.ty - y0) * q; if (feelOn()) followPose(o.ang + t * 20, .06);
+          if (Math.floor(t / .20) !== Math.floor((t - dt) / .20) || t === dt) commonSkillFx('slash', x, y, 108, o.ang + t * 20, 2);
+          hitCircle(x, y, 54, dm, { skip: sk }); this.x = x; this.y = y; this.t = t; return t < T; }, x, y, t: 0,
+          draw(at) { at(this.x, this.y, () => drawProp('spain-2', this.x, this.y, 14, this.t * 20, clamp((T - this.t) / .3, 0, 1), true, true)); } });
+      }
+      else if (m.k === 'widen') {   // 체코 2: 사슬이 늘어나며 세 바퀴, 갈수록 넓게
+        [50, 95, 140].forEach((r, i) => after(i * .25 + .001, () => {
+          hitCircle(h.x, h.y, r, o.dmg * m.mul);
+          commonSkillFx('slash', h.x, h.y, r * 2, o.ang + i * Math.PI / 3);
+        }));
+      }
+      else if (m.k === 'chain3') {   // 일본 2: 타격할 때 목표점 근처에서 다음 적을 골라요
+        const hit = new Set(), count = Math.min(3, chainTargets(hit).length);
+        if (!count) {
+          hitSeg(HERO.x, HERO.y, o.tx, o.ty, 22, o.dmg * m.mul);
+          HERO.x = o.tx; HERO.y = o.ty; HERO.skillT = Math.max(HERO.skillT, .2);
+          AUDIO.play('impSlash');
+          return false;
+        }
+        HERO.skillT = Math.max(HERO.skillT, .45);
+        for (let i = 0; i < count; i++) after(i * .12 + .001, () => {
+          const a = chainTargets(hit)[0]; if (!a) return;
+          hit.add(a);
+          const ex = a.x - HERO.x, ey = a.y - HERO.y, d = Math.hypot(ex, ey) || 1;
+          HERO.x = clamp(a.x - ex / d * 22, f.x0 + 12, f.x1 - 12); HERO.y = clamp(a.y - ey / d * 18, f.y0 + 22, f.y1);
+          damage(a, o.dmg * m.mul, ex / d, ey / d, true, { finisher: true, skill: true });
+          commonSkillFx('slash', a.x, a.y, 120, 0); AUDIO.play('impSlash');
+        });
+      }
+      else if (m.k === 'gust') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { dx: o.dx, dy: o.dy, each: a => { a.kb = { x: o.dx * 620, y: o.dy * 520 }; a.stun = .3; } }); }   // 포르투갈 1: 보는 방향으로 날려요
+      else if (m.k === 'pole') {   // 폴란드 2: 아주 긴 창 한 자루가 한 바퀴 (멀리, 가늘게)
+        const sk = new Set(), L = R * 1.6, dm = o.dmg * m.mul; let t = 0, prev = o.ang;
+        ent({ x: h.x, y: h.y, a: o.ang, t: 0, update(dt) { t += dt; const H = G.hero, cur = o.ang + Math.PI * 2 * Math.min(1, t / .45); this.x = H.x; this.y = H.y; this.a = cur; this.t = t; if (feelOn()) followPose(cur, .06);
+          if (t === dt) commonSkillFx('slash', H.x, H.y, L * 2, cur);
+          hitCircle(H.x, H.y, L, dm, { skip: sk, test: (a, ex, ey) => { const q = ((Math.atan2(ey, ex) - prev) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2); return q <= cur - prev + .2; } }); prev = cur; return t < .5; },
+          draw(at) { at(this.x, this.y, () => drawProp('poland-2', this.x, this.y, 22, this.a, clamp((.5 - this.t) / .3, 0, 1), true, true)); } });
+      }
+      else if (m.k === 'crack') {   // 슬로바키아 1: 앞으로 뻗는 지그재그 균열 (체코 충격파 = 둥근 물결과 다르게)
+        const pts = [[h.x, h.y]], sk = new Set();
+        const CL = Math.max(240, Math.hypot(o.tx - h.x, o.ty - h.y)) / 8;   // 장수 → 그 자리까지 (짧으면 240)
+        for (let i = 1; i <= 8; i++) { const s = i * CL, w = i === 8 ? 0 : (i % 2 ? 14 : -14); pts.push([clamp(h.x + o.dx * s - o.dy * w, f.x0, f.x1), clamp(h.y + o.dy * s * .85 + o.dx * w, f.y0 + 6, f.y1)]); }
+        pts.forEach((p, i) => i && after(i * .035, () => hitSeg(pts[i - 1][0], pts[i - 1][1], p[0], p[1], 20, o.dmg * m.mul, sk)));
+        const [x, y] = pts[pts.length - 1];
+        after(.28, () => commonSkillFx('impact', x, y, 120, o.ang, 1));
+        AUDIO.play('impSmash');
+      }
+      else if (m.k === 'orbit') {   // 튀르키예 1: 굽은 칼날 3개가 2초 동안 둘레를 돌아요
+        let t = 0, tick = .25; const dm = o.dmg / m.div;   // 0.25·0.75·1.25·1.75초 = 2초에 4번 (QA M4)
+        commonSkillFx('line', h.x, h.y, 120, o.ang, 1);
+        ent({ x: h.x, y: h.y, t: 0, update(dt) { t += dt; this.t = t; const H = G.hero; this.x = H.x; this.y = H.y; if ((tick -= dt) <= 0) { tick += .5; hitCircle(H.x, H.y, 85, dm, { heavy: false, main: false }); } return t < 2; },
+          draw(at) {
+            for (let i = 0; i < 3; i++) {
+              const a = this.t * 7 + i * Math.PI * 2 / 3;
+              const r = 62 * Math.min(1, this.t / .15);
+              const x = this.x + Math.cos(a) * r, y = this.y + Math.sin(a) * r * GK();
+              at(x, y, () => drawProp('turkiye-1', x, y, 18, a, clamp((2 - this.t) / .3, 0, 1), true, true));
+            }
+          } });
+      }
+      else if (m.k === 'lift') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { heavy: false, each: a => { control(a, 'air', 1); if (a.type !== 'boss') { a.airH = 1; a.kb = { x: 0, y: 0 }; } } }); }   // 칠레 1: 띄우기 1초 (보스 0.3초 멈춤)
+      else if (m.k === 'roar') { hitCircle(h.x, h.y, R * 1.1, o.dmg * m.mul, { heavy: false, each: a => control(a, 'freeze', 1.2) }); commonSkillFx('ring', h.x, h.y, R * 1.1 * 2, 0); }   // 콜롬비아 1: 1.2초 멈춤 (보스 0.3초)
+      else if (m.k === 'fear') {   // 룩셈부르크 2: 앞쪽 넓은 반원 → 1초 공포 (보스 0.3초 멈춤)
+        hitCircle(h.x, h.y, R * 1.2, o.dmg * m.mul, { heavy: false, test: (a, ex, ey) => ex * o.dx + ey * o.dy > 0, each: a => control(a, 'fear', m.t) }); commonSkillFx('ring', h.x, h.y, 120, o.ang);
+      }
+      else if (m.k === 'phalanx') {   // 그리스 1: 앞쪽 직사각형을 창 5개가 동시에 → 약화 3초 (보스도)
+        const L = 180, W = 46; hitCircle(h.x, h.y, L + 20, o.dmg * m.mul, { dx: o.dx, dy: o.dy, test: (a, ex, ey) => { const u = ex * o.dx + ey * o.dy, v = Math.abs(-ex * o.dy + ey * o.dx); return u > 0 && u < L + a.r * .5 && v < W + a.r * .5; }, each: a => { a.weak = m.t; } });
+      }
+      else if (m.k === 'wings') {   // 멕시코 2: 왼쪽 먼저, 0.2초 뒤 오른쪽
+        const wing = side => { const H = h; hitCircle(H.x, H.y, R * 1.1, o.dmg * m.mul, { test: (a, ex, ey) => { const u = Math.atan2(ey, ex) - o.ang, q = Math.atan2(Math.sin(u), Math.cos(u)); return side < 0 ? q <= .15 && q > -Math.PI * .8 : q >= -.15 && q < Math.PI * .8; } }); commonSkillFx('slash', H.x, H.y, 120, o.ang); AUDIO.play('impSlash'); };
+        wing(-1); after(.2, () => wing(1));
+      }
+      else if (m.k === 'blast') { hitCircle(h.x, h.y, R, o.dmg * m.mul, { each: (a, nx, ny) => { a.kb = { x: nx * 640, y: ny * 640 }; a.stun = .3; } }); }   // 독일 1: 사방으로 멀리
+      else { hitCircle(h.x, h.y, R, o.dmg * (m.mul || 1)); }
+      G.hitstop = Math.max(G.hitstop || 0, .05);
+    },
+    barrage(o) { const m = o.mod;   // 그 자리를 향해 쏴요 (GDD 0-17)
+      if (m.k === 'javelin3') {   // 리투아니아 2: 하늘로 던진 창이 앞 일직선 세 곳에 차례로
+        const h = G.hero, f = FIELD.floor; [1 / 3, 2 / 3, 1].forEach((s2, i) => { const x = clamp(h.x + (o.tx - h.x) * s2, f.x0 + 10, f.x1 - 10), y = clamp(h.y + (o.ty - h.y) * s2, f.y0 + 10, f.y1);   // 장수 → 그 자리 일직선 세 곳, 마지막이 그 자리
+          if (feelOn()) after(i * .10 + .001, () => sfx('prop', h.tip?.x ?? h.x, h.tip?.y ?? h.y - 30, .16, { prop: 'lithuania-2', move: 'rise', a: o.ang, gy: h.y }));   // 손에서 하늘로 솟는 창
+          sfx('prop', x, y, .3 + i * .22, { prop: 'lithuania-2', move: 'fall', a: o.ang, gy: y }); after(.3 + i * .22, () => { hitCircle(x, y, 38, o.dmg * m.mul); commonSkillFx('impact', x, y, 76, o.ang, 2); AUDIO.play('impact'); }); });
+        h.atkT = .2; return;
+      }
+      G.hero.barrage = { t: 0, n: 0, skillN: o.n, N: m.k === 'boomer' || m.k === 'stick' || m.k === 'ricochet' ? 1 : m.n || SKB.BARRAGE_N, base: o.dmg, dmg: o.dmg / (m.div || SKB.BARRAGE_DIV), mod: m, ang: o.ang, tx: o.tx, ty: o.ty }; },
+    zone(o) {
+      const h = G.hero, f = FIELD.floor, m = o.mod;
+      G.zones.push({ x: clamp(o.tx, f.x0 + 40, f.x1 - 40), y: clamp(o.ty, f.y0 + 30, f.y1 - 10), t: 0, tick: SKB.ZONE_TICK / 2,   // 그 자리에 (GDD 0-17) · 첫 틱 0.25초 → 3초에 6번 (balance.md, QA M1)
+        base: o.dmg, dmg: o.dmg / (m.div || SKB.ZONE_DIV), mod: m, k: m.k, rings: [], nextRing: .15, skillN: o.n, col: (SKILL_COL[G.country.key] || [])[o.n - 1] || [SKW, SKG],
+        arrows: m.k === 'sky', slow: o.n === 2 && G.country.key === 'finland' });   // 한국 화살비 · 핀란드 눈 함정(느리게)
+      { const z = G.zones[G.zones.length - 1]; if (m.life) z.life = m.life; if (m.k === 'ring6') { z.inside = new Map(); z.cnt = new Map(); } }
+      if (m.k === 'vortex') { const z = G.zones[G.zones.length - 1]; z.t = -.35; z.tick += .35; z.x0 = h.x; z.y0 = h.y; z.gy = h.y; }   // 칠레 2: 검은 바람이 날아가 떨어진 자리에
+      if (feelOn()) {   // 시전감 (GDD 0-20): 장수에서 출발해 도착하는 순간 구역이 켜져요 · 자리·범위·피해는 그대로 (모든 설치)
+        const z = G.zones[G.zones.length - 1], sky = m.k === 'sky', fly = sky ? FEEL_T.BOW_FLY : m.k === 'vortex' ? .35 : flyT(h.x, h.y, z.x, z.y);
+        const rel = sky ? FEEL_T.BOW_REL : FEEL_T.THROW_REL, pre = rel + fly;
+        z.t = -pre; z.tick = sky ? pre : z.tick + pre - (m.k === 'vortex' ? .35 : 0); z.pre = pre; z.fly = fly; z.launch = m.k; z.x0 = h.x; z.y0 = h.y; z.ang = o.ang;   // 화살비는 첫 낙하와 첫 피해가 같은 순간
+        if (sky) {   // 활을 조준 쪽 하늘(위 −70°)로 들고 당겼다가 0.15초에 놓아요
+          const side = Math.cos(o.ang) >= 0 ? 1 : -1, up = -Math.PI / 2 + 20 * D2R * side;
+          castStart('bowUp', FEEL_T.BOW_REL + FEEL_T.BOW_BACK, o.ang, { pending: true });
+          h.bowM = { t: 0, T: FEEL_T.BOW_REL, ang: up, dx: 0, dy: 0, skill: true };
+          after(FEEL_T.BOW_REL, () => { finishCast(h); const f = bowFrame(G.hero), nk = bowPt(f, 0, BOW.tipV * f.sc * f.sx); z.rx = nk.x + f.ca * 28; z.ry = nk.y + f.sa * 28; z.up = up; AUDIO.play('attack'); }, z);
+        } else {
+          castStart('throw', FEEL_T.THROW_REL + FEEL_T.THROW_BACK, o.ang, { hide: m.k === 'trap', pending: true });   // 스위스만 창을 놓아요 · 나머지는 던지는/가리키는 동작만
+          after(FEEL_T.THROW_REL, () => { finishCast(h); const H = G.hero, foot = m.k === 'half'; z.rx = foot ? H.x : H.tip ? H.tip.x : H.x; z.ry = foot ? H.y : H.tip ? H.tip.y : H.y - 30; z.gy = H.y; if (m.k === 'vortex') { z.x0 = z.rx; z.y0 = z.ry + 24; }  AUDIO.play('attack'); }, z);
+        }
+        after(pre, () => AUDIO.play('impact'), z);
+      }
+    },
+  };
+  // 끌지 않고 쓸 때의 자리: 전장에서 가장 가까운 외계인, 없으면 바라보는 방향 앞 120 (GDD 0-17)
+  function autoTarget() {
+    const h = G.hero; let best = null, bd = 1e9;
+    for (const a of G.aliens) { if (a.dead || a.entering) continue; const d = Math.hypot(a.x - h.x, a.y - h.y); if (d < bd) { bd = d; best = a; } }
+    return best ? { x: best.x, y: best.y } : { x: h.x + h.dir.x * 120, y: h.y + h.dir.y * 120 * .8 };
+  }
+  // 스킬 대표 그림 (13차 60장): 그림 한 장을 코드로 키우기·늘이기·돌리기·사라지기. 판정·조준 표시는 그대로
+  // 흔들림 설정과 움직임 줄이기 설정에 따라 추가 효과를 적용해요.
+  const layerFx = () => settings.shake && !reduceMotion;
+  function skillArt(sk, n, m, tx, ty, ang, x0, y0) {
+    const h = G.hero, k = m.k, img = 'skill/u/' + G.country.key + '-' + n;
+    const b = { img, ang, black: k === 'vortex', playback: sk.type }, dist = Math.hypot(tx - x0, ty - y0);
+    if (k === 'lob') return;
+    if (layerFx()) G.skillFlash = .06;
+    if (k === 'orbit') return sfx('art', h.x, h.y, 2, { ...b, mode: 'orbit' });   // 튀르키예 1
+    if (sk.type === 'zone') { const z = G.zones[G.zones.length - 1]; if (z) sfx('art', z.x, z.y, (z.life || SKB.ZONE_TIME) - z.t + .3, Object.assign(b, { mode: 'zone', z })); return; }
+    if (sk.type === 'dash') {
+      const d = h.dash;
+      if (k === 'leap') return sfx('art', tx, ty, (d ? d.dur : .5) + .5, Object.assign(b, { mode: 'drop', delay: Math.max(0, (d ? d.dur : .5) - .08), seqDelay: 0, seqDash: d, S: 190 }));   // 멕시코 1: 착지 순간 독수리
+      if (k === 'blink') {
+        commonSkillFx('line', x0, y0, 90, ang, n);
+        commonSkillFx('line', tx, ty, 90, ang, n);
+        for (const [x, y] of [[x0, y0], [tx, ty]]) sfx('art', x, y, .12, { ...b, mode: 'burst', S: 45 });
+        return;
+      }
+      if (k === 'dashInv') { const w = d && d.wait || 0; return sfx('art', x0, y0, (d ? d.dur : .35) + .25 + w, Object.assign(b, { mode: 'front', S: 110, delay: w, tipped: feelOn(), dash: d })); }   // 룩셈부르크 1: 앞에 붙어 함께
+      return sfx('art', x0, y0, (d ? d.dur * (k === 'returnDash' ? 2 : 1) : .35) + (feelOn() ? AFTER.TRAIL_TAIL : .35), Object.assign(b, { mode: 'trail', H: 86, lite: feelOn(), dash: d }));   // 지나간 길을 따라 늘어나요
+    }
+    if (sk.type === 'area') {
+      if (k === 'fear' || k === 'phalanx' || k === 'crack') return sfx('art', h.x, h.y, .6, Object.assign(b, { mode: 'beam', len: k === 'phalanx' ? 200 : k === 'fear' ? SKB.AREA_R * 1.3 : Math.max(240, dist), H: k === 'phalanx' ? 130 : k === 'fear' ? 200 : 90, floor: k !== 'fear' }));
+      if (k === 'cone') {
+        const [x, y] = coneOrigin(h.heroSkill.x, h.heroSkill.y, tx, ty, m.back);
+        return sfx('art', x, y, .3, { ...b, mode: 'beam', len: SKB.AREA_R * 2, H: 72, floor: true });
+      }
+      const rot = k === 'gust';
+      if (k === 'pull') return sfx('art', tx, ty, .6, Object.assign(b, { mode: 'burst', flat: true, S: SKB.AREA_R * 2 / 1.1 }));   // 아일랜드 1 회오리: 바닥에 눕혀 범위 지름 안으로 (가장 클 때 1.1배 = 지름) · 디자인 요청
+      return sfx('art', k === 'arcs8' ? h.x : tx, k === 'arcs8' ? h.y : ty, .6, Object.assign(b, { mode: 'burst', rot, S: (k === 'widen' ? 300 : k === 'chain3' ? 220 : SKB.AREA_R * 2.1) }));
+    }
+    // 일반 연사는 발사마다 연속 그림을 재생해요. 기존 대표 그림은 대체 그림으로 남겨요.
+    if (k !== 'javelin3' && skillSequence(img)) return;
+    if (k === 'javelin3') { [1 / 3, 2 / 3, 1].forEach((q, i) => sfx('art', x0 + (tx - x0) * q, y0 + (ty - y0) * q, .3 + i * .22 + .35, Object.assign({}, b, { mode: 'drop', delay: .1 + i * .22, seqDelay: .12 + i * .22, S: 130 }))); return; }   // 리투아니아 2: 같은 그림 3번
+    if (k === 'arcs8') return sfx('art', h.x, h.y, .85, Object.assign(b, { mode: 'burst', S: 200 }));   // 헝가리 1: 사방 8번
+    return sfx('art', x0, y0, .6, Object.assign(b, { mode: 'beam', len: Math.min(340, dist + 60), H: 100 }));   // 그 자리를 향해 뻗어요
+  }
+  const skillCasting = h => !!(h.cast || h.dash || h.barrage || h.skillDebit != null);
+  function useQueuedSkill(h) {
+    const queued = h.queuedSkill;
+    if (!queued) return;
+    if (performance.now() >= queued.expires || sLeft(queued.n) <= 0) {
+      h.queuedSkill = null;
+    } else if (!skillCasting(h)) {
+      useSkill(queued.n, queued.target);
+    }
+  }
+  function useSkill(n = 1, target) {
+    const r = G.run, h = G.hero, f = FIELD.floor;
+    if (G.scene !== 'play' || G.paused || !r || sLeft(n) <= 0 || h.dead) return;
+    const tg = target || autoTarget();
+    if (skillCasting(h)) {
+      h.queuedSkill = { n, target: { x: tg.x, y: tg.y, pc: tg.pc }, expires: performance.now() + 600 };
+      return;
+    }
+    h.queuedSkill = null;
+    if (h.throwM && !h.throwM.released && h.throwM.t / h.throwM.k <= .3) { h.throwM = null; h.handEmpty = false; }
+    if (h.bowM && !h.bowM.rel && !h.bowM.skill && h.bowM.t <= .3) h.bowM = null;
+    if (h.swing && !h.swing.hit && h.swing.t < .1) h.swing = null;
+    lockNormalAttacks(0);
+    const slot = BAL.SKILL_SHARED ? 1 : n;
+    r.skillsLeft[slot]--;
+    h.skillDebit = slot;
+    const sk = skillOf(G.country, n), dmg = SKB.DMG * r.st.F, m = sk.mod || {};
+    const tx = clamp(tg.x, f.x0 + 12, f.x1 - 12), ty = clamp(tg.y, f.y0 + 22, f.y1);   // 전장 밖이면 가장자리에 붙여요
+    let ang = Math.atan2(ty - h.y, tx - h.x); if (Math.hypot(tx - h.x, ty - h.y) < (m.k === 'cone' ? .001 : 4)) ang = Math.atan2(h.dir.y, h.dir.x);
+    if (m.k !== 'orbit') h.dir = { x: Math.cos(ang), y: Math.sin(ang) };   // 고른 쪽을 바라봐요 (튀르키예 1은 예외)
+    const hx0 = h.x, hy0 = h.y, oo = { sk, n, dmg, ang, x0: hx0, y0: hy0, dx: Math.cos(ang), dy: Math.sin(ang), tx, ty, mod: m };
+    const id = G.country.key + '-' + n;
+    const areaProp = () => {
+      if (sk.type !== 'area' || ['cannon', 'orbit', 'spinMove', 'chain3', 'pole'].includes(m.k)) return;
+      const tip = skillTip(h), fromHero = AREA_AT_HERO.includes(m.k);
+      const x = fromHero ? h.x + oo.dx * 50 : tx, y = fromHero ? h.y + oo.dy * 50 : ty;
+      const fly = flyT(tip.x, h.y, x, y);
+      sfx('prop', tip.x, tip.y, fly + .6, { prop: id, gy: h.y, x1: x, y1: y, a: ang, fly });
+    };
+    const activate = () => {
+      finishCast(h);
+      const x0 = h.x, y0 = h.y;
+      if (SKILL_FN[sk.type](oo) !== false) skillArt(sk, n, m, tx, ty, ang, x0, y0);
+    };
+    if (m.k === 'cannon' && layerFx()) G.skillFlash = .06;
+    h.heroSkill = { n, a: ang, x: hx0, y: hy0, start: G.combatT };
+    const previousCast = h.cast;
+    if (m.k !== 'cannon' && feelOn() && (sk.type === 'area' || sk.type === 'barrage')) {   // 연결체는 도착하는 프레임에 판정과 그림을 발동해요
+      const area = sk.type === 'area', link = area && !AREA_AT_HERO.includes(m.k), strike = area ? FEEL_T.AREA_PREP + FEEL_T.AREA_HIT : FEEL_T.AIM_PREP, fly = link ? flyT(h.x, h.y, tx, ty) : 0;
+      castStart(area ? 'area' : 'aim', area ? strike + FEEL_T.AREA_BACK : FEEL_T.AIM_PREP, ang, { pending: true });
+      after(strike, () => {
+        if (!link) { areaProp(); activate(); return; }
+        const style = AREA_LINK[m.k] || 'orb', origin = skillTip(h), tip = style === 'orb' && origin;
+        const linkDmg = m.k === 'javelin3' || m.k === 'lob' ? 0 : dmg * LINK_DMG;
+        sfx('link', tip ? tip.x : h.x, tip ? tip.y : h.y - (style === 'ground' ? 0 : 30), fly,
+          { x1: tx, y1: ty, style, prop: id, origin, gy: h.y, linkDmg, arrive() {
+            sfx('prop', origin.x, origin.y, fly + .6, { prop: id, gy: this.gy, x1: tx, y1: ty, a: ang, fly, t: fly });
+            activate();
+          } });
+      }, h.cast);
+    } else {
+      areaProp();
+      const fired = SKILL_FN[sk.type](oo);
+      if (fired !== false && !(feelOn() && m.k === 'blink')) skillArt(sk, n, m, tx, ty, ang, hx0, hy0);
+      if (!h.cast?.pending) h.skillDebit = null;
+    }
+    if (h.cast && h.cast !== previousCast) h.cast.type = sk.type;
+    if (tg.pc && m.k !== 'orbit' && m.k !== 'cone' && m.k !== 'cannon') sfx('aimFlash', tx, ty, .35, { r: aimR(sk) });   // PC: 쓰는 순간만 커서 자리에 목표 원
+    // 외침: 그 나라에서 유명한 말 (번역 안 함) + 스킬 이름(설정 언어)
+    G.msgs = G.msgs.filter(m => !m.shout);
+    const nameKey = (n === 2 ? 'skill2.name.' : 'skill.name.') + String(G.country.rank).padStart(2, '0');
+    const name = t_(nameKey);
+    G.msgs.push({ text: sk.shout, sub: name, t: n === 2 ? 1.6 : 1.2, life0: n === 2 ? 1.6 : 1.2, shout: true, rtl: G.country.lang === 'he' });   // 2번 외침은 길어서 1.6초
+    if (settings.shake && sk.type !== 'area' && m.k !== 'turtle') G.shake = Math.max(G.shake, 2);
+    AUDIO.play('skill');
+    AUDIO.voice(`assets/sound/shout/${String(G.country.rank).padStart(2, '0')}-${G.country.key}-${n}.mp3`);   // 외침 목소리 (사용자 "만들어" 2026-11-26): 파일이 아직 없으면 조용히 넘어가요 · 나면 배경음 덕킹
+  }
+  // 스킬 진행 (updatePlay에서 매 프레임)
+  function updateSkills(dt) {
+    const h = G.hero, f = FIELD.floor;
+    for (const tm of G.timers) { tm.t -= dt; if (tm.t <= 0 && !tm.done) { tm.done = true; tm.fn(); } }
+    G.timers = G.timers.filter(tm => !tm.done);
+    const cast = h.cast;
+    if (cast) cast.t += dt;
+    if (h.poseFollow && (h.poseFollow.t += dt) >= h.poseFollow.life) h.poseFollow = null;
+    if (h.wpop > 0) h.wpop = Math.max(0, h.wpop - dt);
+    const turtleWait = h.dash?.k === 'turtle' ? Math.max(0, h.dash.wait) : 0;
+    if (h.dash?.k === 'turtle' && cast.t + 1e-9 >= TURTLE.PREP && !h.dash.braced) {
+      h.dash.braced = true;
+      h.skillDebit = null;
+      AUDIO.play('impSlash');
+    }
+    if (h.dash && h.dash.wait > 0 && (h.dash.k !== 'turtle' || dt + 1e-9 < turtleWait)) { h.dash.wait -= dt; h.moving = false; }   // 웅크리는 동안은 제자리 (GDD 0-20)
+    else if (h.dash) {   // 돌진: 0.35초에 260 · 길 위 외계인 1번씩
+      const d = h.dash, m = d.mod;
+      if (h.cast?.pending) finishCast(h);
+      if (d.k === 'turtle' && !d.started) {
+        d.started = true;
+        d.wait = 0;
+        AUDIO.play('impSmash');
+        if (layerFx()) G.kick = { x: d.dx, y: d.dy, t: 0, amount: 1 };
+      }
+      const travel = dt - turtleWait;
+      d.t += travel > 1e-9 ? travel : 0;
+      d.gT -= dt;
+      // 시작 → 끝 사이를 시간 비율로 (끝은 언제나 그 자리). 지그재그·곡선은 옆으로 비껴 가다 끝에서 만나요
+      const q = Math.min(1, d.t / d.dur);
+      const sq = d.k === 'accel' ? .5 * q + .5 * q * q : q;   // 폴란드 1: 달릴수록 빨라져요 (평균 1)
+      const ux = (d.ex - d.sx) / (d.L || 1), uy = (d.ey - d.sy) / (d.L || 1);
+      const off = d.k === 'zigzag' ? 46 * (q < 1 / 3 ? q * 3 : q < 2 / 3 ? 1 - (q - 1 / 3) * 6 : -1 + (q - 2 / 3) * 3)   // 아일랜드 2: 두 번 꺾기
+        : d.k === 'curve' ? Math.sin(Math.PI * q) * Math.min(160, d.L * .3) : 0;   // 튀르키예 2: 둥글게 휘어지며
+      const px = h.x, py = h.y;
+      h.x = clamp(d.sx + (d.ex - d.sx) * sq - uy * off, f.x0 + 12, f.x1 - 12); h.y = clamp(d.sy + (d.ey - d.sy) * sq + ux * off * .8, f.y0 + 22, f.y1);
+      let dx = h.x - px, dy = h.y - py; { const l = Math.hypot(dx, dy); if (l > .01) { dx /= l; dy /= l; } else { dx = ux; dy = uy; } }
+      d.dx = dx; d.dy = dy;
+      h.moving = true; h.walkT += dt; d.path.push([h.x, h.y]);
+      const offs = d.k === 'clones' ? [0, 30, -30] : [0];   // 스웨덴 1: 은빛 분신 2명이 양옆에서
+      if (d.gT <= 0) { const lite = feelOn(); d.gT = NO_AFTER ? .03 : lite ? AFTER.GHOST_GAP : .045; const g = heroLookNow(); for (const o of offs) if (!NO_AFTER || (o && AFTER_EXC.clones)) G.fx.push({ kind: 'ghost', x: h.x - dy * o, y: h.y + dx * o * .8, cell: g.cell, flip: g.flip, folder: g.folder, t: 0, life: NO_AFTER ? .035 : o ? .5 : lite ? AFTER.GHOST_LIFE : .4, clone: !!o, dash: NO_AFTER ? d : null, lite: lite && !o }); }   // 잔상 줄이기: 0.075초마다 0.15초 → 동시에 최대 2개
+      let turtleHit = false;
+      for (const o of (d.k === 'leap' || (d.k === 'turtle' && d.t === 0) ? [] : offs)) for (const a of G.aliens) if (!a.dead && !a.entering && !d.hit.has(a) && Math.hypot(a.x - (h.x - dy * o), a.y - (h.y + dx * o * .8)) < a.r + 24) {
+        d.hit.add(a); let dmg = d.dmg;
+        if (d.k === 'turtle') turtleHit = true;
+        if (d.k === 'focus') { if (!d.first) { d.first = a; dmg = d.base * m.first; } else dmg = d.base * m.rest; }   // 스페인 1: 첫 마리에 몰아서
+        if (d.k === 'accel') dmg = d.base * (m.from + (m.to - m.from) * Math.min(1, d.t / d.dur));   // 뒤에 맞을수록 세게
+        damage(a, dmg, dx, dy, true, { finisher: true, skill: true, marking: d.k === 'mark' });
+        if (d.k === 'mark') { a.mark = m.t; a.markX = m.x; }   // 덴마크 1: 표식 2초
+        if (d.k === 'invHit' && d.inv < m.max - 1e-6) { d.inv += m.per; }   // 헝가리 2: 맞힐 때마다 무적 +0.2초
+        if (d.k === 'seal') control(a, 'seal', 1);            // 핀란드 1: 눈에 덮여 1초 공격 못 함 (보스 0.3초 멈춤)
+        if (d.k === 'wallSlam' && a.type !== 'boss') d.carry.push(a);   // 프랑스 2: 앞으로 밀고 가요
+      }
+      if (turtleHit && layerFx()) {
+        sfx('skillShake', h.x, h.y, .08, { amount: 2 });
+        G.hitstop = Math.max(G.hitstop || 0, .03);
+      }
+      for (const [i, a] of d.carry.entries()) if (!a.dead) { a.x = h.x + dx * (30 + i * 10); a.y = h.y + dy * (30 + i * 10) * .8; a.stun = .2; a.kb = { x: 0, y: 0 }; }
+      if (d.k === 'seeds' && d.seeds < 3 && d.t >= d.dur * (.2 + d.seeds * .3)) { d.seeds++; seedEnt(h.x, h.y, d.base * m.seed); }   // 뉴질랜드 2: 씨앗 3개
+      if (d.k === 'prints') { d.pT += Math.hypot(h.x - px, h.y - py); if (d.pT > 22) { d.pT = 0; G.marks.push({ x: h.x, y: h.y, a: Math.atan2(dy, dx), t: 0, life: 2, tick: .5, dmg: d.base / m.div }); } }   // 오스트리아 1: 말발굽 자국
+      if (d.t >= d.dur && d.k === 'returnDash' && !d.back) { d.back = true; d.t = 0; d.sx = h.x; d.sy = h.y; d.ex = d.x0; d.ey = d.y0; d.L = Math.hypot(d.ex - d.sx, d.ey - d.sy); d.hit = new Set(); }   // 이스라엘 2: 원래 자리로   // 이스라엘 2: 베고 원래 자리로
+      else if (d.t >= d.dur) {
+        if (d.k === 'wallSlam') for (const a of d.carry) {   // 벽에 부딪히면 더 아파요
+          if (a.dead) continue;
+          const nearWall = a.x < f.x0 + a.r + 6 || a.x > f.x1 - a.r - 6 || a.y < f.y0 + 16 || a.y > f.y1 - 6;
+          a.kb = { x: dx * 200, y: dy * 200 };
+          if (nearWall) { damage(a, d.base * m.slam, dx, dy, true, { skill: true }); AUDIO.play('impact'); }
+        }
+        if (d.k === 'iai') { const x0 = d.x0, y0 = d.y0, x1 = h.x, y1 = h.y; after(.4, () => { hitSeg(x0, y0, x1, y1, 26, d.base * m.cut); commonSkillFx('line', (x0 + x1) / 2, (y0 + y1) / 2, Math.max(80, Math.hypot(x1 - x0, y1 - y0)), Math.atan2(y1 - y0, x1 - x0)); sfx('art', x0, y0, .35, { img: 'skill/u/' + G.country.key + '-1', mode: 'beam', ang: Math.atan2(y1 - y0, x1 - x0), len: Math.max(80, Math.hypot(x1 - x0, y1 - y0)), H: 130, bright: true }); AUDIO.play('impSlash'); }); }   // 일본 1: 칼을 넣는 순간 지나간 줄 전체
+        if (d.k === 'focus') commonSkillFx('line', (d.x0 + h.x) / 2, (d.y0 + h.y) / 2,
+          Math.max(80, Math.hypot(h.x - d.x0, h.y - d.y0)), d.a0, 1);
+        if (d.k === 'invHit' && d.inv) h.skillT = Math.max(h.skillT, d.inv);
+        if (d.k === 'spearEnd') G.shots.push(fromTip({ kind: 'lance', x: h.x + dx * 16, y: h.y + dy * 16, vx: dx * TEMP.SHOT_SPEED * 1.3, vy: dy * TEMP.SHOT_SPEED * 1.3, dmg: d.base * m.spear, heroShot: 'spearEnd', life: .7, age: 0, skill: true, skillN: 2, hits: new Set() }, weaponTip(Math.atan2(dy, dx))));   // 그리스 2: 끝에서 창 던지기
+        if (d.k === 'leap') { hitCircle(h.x, h.y, 70, d.base * m.mul); if (settings.shake) G.shake = Math.max(G.shake, 5); AUDIO.play('impSmash'); }   // 착지
+        if (d.k === 'echo') { const path = d.path.slice(), look = d.look, dm = d.base * m.clone; after(1, () => echoEnt(path, look, dm)); }   // 콜롬비아 2
+        if (d.k === 'endSmash') {
+          sfx('prop', h.x, h.y, .18, { prop: 'germany-2', move: 'fall', a: Math.atan2(dy, dx), gy: h.y });
+          hitCircle(h.x, h.y, 60, d.base * m.smash); commonSkillFx('impact', h.x, h.y, 120, 0, 2); if (settings.shake) G.shake = Math.max(G.shake, 4); AUDIO.play('impSmash'); }   // 독일 2: 끝에서 내려찍기
+        if (d.k === 'turtle') endTurtle(h, d);
+        else if (cast?.k === 'dash') {
+          const recovery = d.k === 'iai' ? .4 : FEEL_T.DASH_BACK;
+          cast.run = cast.t - FEEL_T.DASH_PREP;
+          cast.dur = cast.t + recovery;
+          h.attackLock = Math.max(h.attackLock, recovery + ATTACK_BACK);
+        }
+        h.dash = null;
+        G.fx = G.fx.filter(e => e.dash !== d);
+      }
+    }
+    for (const mk of G.marks) {   // 바닥 자국: 밟는 외계인 0.5초마다
+      mk.t += dt; mk.tick -= dt;
+      if (mk.tick <= 0) { mk.tick += .5; hitCircle(mk.x, mk.y, 16, mk.dmg, { heavy: false, main: false, test: al => G.combatT - (al.printT == null ? -9 : al.printT) >= .49, each: al => { al.printT = G.combatT; } }); }   // 같은 외계인은 자국 여러 개에 같이 밟혀도 0.5초에 한 번 (QA M2)
+    }
+    G.marks = G.marks.filter(mk => mk.t < mk.life);
+    G.ents = G.ents.filter(e => e.update(dt) !== false);
+    if (cast && !h.dash && cast.t + 1e-9 >= cast.dur && (!cast.pending || cast.k === 'area')) {
+      if (cast.k === 'throw' && cast.hide) h.wpop = .08;
+      h.cast = null;
+    }
+    if (h.barrage) {   // 연사: 1.5초 동안 N발, 보는 방향으로
+      const b = h.barrage, m = b.mod; b.t += dt;
+      const BT = m.time || SKB.BARRAGE_TIME;
+      while (b.n < b.N && b.t >= b.n * BT / b.N) {
+        const a = b.ang + (b.N > 1 ? ((b.n % 3) - 1) * .06 : 0), dx = Math.cos(a), dy = Math.sin(a);
+        if (m.k === 'arcs8') {   // 헝가리 1: 둘레 사방으로 빠르게 여덟 번 베기
+          const q = b.ang + b.n * Math.PI / 4;
+          hitCircle(h.x, h.y, 78, b.base * m.mul, { test: (al, ex, ey) => { const u = Math.atan2(ey, ex) - q; return Math.abs(Math.atan2(Math.sin(u), Math.cos(u))) < Math.PI / 6; } });
+          barrageArt(b.skillN, h.x, h.y, q);
+          commonSkillFx('slash', h.x, h.y, 120, q); h.atkT = .1; if (feelOn()) followPose(q, .1, 1); b.n++; AUDIO.play('swing'); continue;
+        }
+        let kind = BARRAGE_SHOT[G.country.ranged] || 'streak', dmg = b.dmg, sp = TEMP.SHOT_SPEED * 1.25;
+        const extra = {};
+        if (m.k === 'pierce') { kind = 'lance'; extra.hits = new Set(); }                                      // 스위스 2: 꿰뚫기
+        else if (m.k === 'bounce') { kind = 'beam'; extra.bounce = 1; }                                        // 미국 1: 벽에 한 번 튕김
+        else if (m.k === 'lastHit') { const last = b.n === b.N - 1; kind = last ? 'star' : 'streak'; dmg = b.base * (last ? m.last : m.mul); }   // 네덜란드 1: 마지막 3배
+        else if (m.k === 'boomer') { kind = 'boomerang'; extra.hits = new Set(); extra.big = 1.1; dmg = b.base * m.out; extra.dmgBack = b.base * m.back; sp = TEMP.SHOT_SPEED; }   // 호주 1: 부메랑 5개 부채꼴 (기획 2026-11-25), 하나당 가고 오며
+        else if (m.k === 'stick') { kind = 'axe'; dmg = b.base * m.mul; extra.stick = b.base / m.div; extra.life = .45; sp = TEMP.SHOT_SPEED * .9; }   // 캐나다 1: 바닥에 박혀 2초
+        else if (m.k === 'lob') { kind = 'sling'; extra.lob = b.base * m.mul; dmg = 0; sp = 300; extra.life = clamp(Math.hypot(b.tx - h.x, b.ty - h.y) / sp, .12, 2.5); extra.noHit = true; }   // 이스라엘 1: 포물선으로 떨어진 자리
+        else if (m.k === 'splash') { kind = 'streak'; extra.onHit = a2 => { hitCircle(a2.x, a2.y, 46, b.base / m.sdiv, { skip: new Set([a2]), heavy: false, main: false }); }; }   // 포르투갈 2: 옆으로 튀는 물방울
+        else if (m.k === 'ricochet') { kind = 'axe'; dmg = b.base * m.mul; extra.bounces = m.n; extra.chain = new Set(); extra.onHit = ricochet; sp = TEMP.SHOT_SPEED; }   // 슬로바키아 2
+        else if (kind === 'boomerang') extra.hits = new Set();
+        if (m.k === 'stepThrust') {   // QA 고침 2026-11-27: 목표까지만 전진하고 그 자리에서 찔러요.
+          const ex = b.tx - h.x, ey = b.ty - h.y;
+          const step = 1 / Math.max(1, Math.hypot(ex / 12, ey / 10));
+          h.x += ex * step;
+          h.y += ey * step;
+          kind = 'streak';
+        }
+        const angs = m.k === 'boomer' ? [-2, -1, 0, 1, 2].map(i => a + i * m.fan) : [a];   // 호주 1: 다섯 갈래
+        if (m.k === 'boomer') extra.hits = null;   // 부메랑마다 따로 (아래에서 새로)
+        const volley = angs.length > 1 ? new Set() : null;
+        if (m.k === 'pierce') extra.heroShot = m.k;
+        if (m.k === 'lastHit' && b.n === b.N - 1) extra.big = 1.6;
+        for (const q of angs) {
+          const sh = fromTip(Object.assign({ volley, kind, x: h.x + Math.cos(q) * 16, y: h.y + Math.sin(q) * 16, vx: Math.cos(q) * sp, vy: Math.sin(q) * sp, dmg, life: 1.4, age: 0, skill: true, skillN: b.skillN }, extra, m.k === 'boomer' ? { hits: new Set() } : null), weaponTip(q));
+          if (sh.lob != null) {
+            sh.lobR = m.r;
+            sh.landX = clamp(sh.x + sh.vx * sh.life, f.x0, f.x1);
+            sh.landY = clamp(sh.y + sh.vy * sh.life, f.y0, f.y1);
+            sh.vx = (sh.landX - sh.x) / sh.life; sh.vy = (sh.landY - sh.y) / sh.life;
+          }
+          G.shots.push(sh);
+          sh.art = barrageArt(b.skillN, sh.tx ?? sh.x, sh.y, q, { lift: sh.y - (sh.ty ?? sh.y) });
+        }
+        h.rangedT = .2; h.aimShot = a; h.atkT = .12; h.shotT = G.combatT; b.n++;
+        AUDIO.play('attack');
+      }
+      if (b.t >= BT) h.barrage = null;
+    }
+    for (const z of G.zones) {   // 설치: 지름 180 구역 3초
+      z.t += dt;
+      updateZoneLink(z, dt);
+      if (z.t >= 0 && z.t - dt <= 0 && !z.impact) {
+        z.impact = true;
+        if (z.k === 'ring6') {   // QA 고침 2026-11-27: 도착 안쪽 피해는 경계 횟수와 별도예요.
+          for (const a of G.aliens) {
+            if (a.dead || a.entering) continue;
+            const inside = Math.hypot(a.x - z.x, (a.y - z.y) / .8) < SKB.ZONE_D / 2;
+            z.inside.set(a, inside);
+            if (inside) damage(a, z.base * z.mod.inner, 0, 0, false, { skill: true });
+          }
+        }
+      }
+      if (z.k === 'rings') {   // 미국 2: 1초마다 퍼지는 고리가 지나가며 맞혀요
+        if (z.t >= z.nextRing && z.nextRing < SKB.ZONE_TIME - .5) { z.rings.push({ t0: z.t, hit: new Set() }); z.nextRing += 1; commonSkillFx('ring', z.x, z.y, SKB.ZONE_D, 0, z.skillN); }   // 0 / 0.22 / 0.44초 작은 고리
+        for (const rg of z.rings) { const r = (z.t - rg.t0) / .6 * SKB.ZONE_D / 2; if (r > SKB.ZONE_D / 2 + 10) continue;
+          hitCircle(z.x, z.y, r + 8, z.base / z.mod.div, { skip: rg.hit, heavy: false, main: false, test: (a, ex, ey, d) => d > r - 14 }); }
+        continue;
+      }
+      const R2 = SKB.ZONE_D / 2;
+      if (z.k === 'trap') {   // 스위스 1: 처음 들어온 외계인에게 창이 한 번 크게 → 구역 사라짐
+        if (z.t <= .2) continue;
+        const a = G.aliens.find(alien => !alien.dead && !alien.entering &&
+          Math.abs(alien.x - z.x) / R2 + Math.abs(alien.y - z.y) / (R2 * .7) < 1);
+        if (!a) continue;
+        damage(a, z.base * z.mod.mul, 0, 1, true, { finisher: true, skill: true });
+        // QA 고침 2026-11-27: 발동시킨 적 주위 50px에 추가 피해.
+        hitCircle(a.x, a.y, 50, z.base * .5, { skip: new Set([a]), test: (other, ex, ey) => Math.hypot(ex, ey) <= 50 });
+        commonSkillFx('impact', a.x, a.y, 120, 0, 1);
+        AUDIO.play('impSmash');
+        z.t = 99;
+        continue;
+      }
+      if (z.k === 'ring6') {   // 스웨덴 2: 활성 원진의 경계 피해 (한 마리 최대 3번)
+        if (z.t < 0) continue;
+        for (const a of G.aliens) { if (a.dead || a.entering) continue; const inn = Math.hypot(a.x - z.x, (a.y - z.y) / .8) < R2, was = z.inside.get(a);
+          if (was != null && was !== inn && (z.cnt.get(a) || 0) < z.mod.max) { z.cnt.set(a, (z.cnt.get(a) || 0) + 1); damage(a, z.base * z.mod.mul, 0, 0, false, { skill: true }); AUDIO.play('impSlash'); }
+          z.inside.set(a, inn); }
+        continue;
+      }
+      if (z.k === 'gather') {   // 캐나다 2: 도착 후 1초 동안 가운데로 모았다가 한 번에 터져요
+        if (z.t < 0 || z.boom) continue;
+        const gatherDt = Math.max(0, Math.min(z.t, z.life) - Math.max(0, z.t - dt));
+        for (const a of G.aliens) { if (a.dead || a.entering || a.type === 'boss') continue; const ex = z.x - a.x, ey = z.y - a.y, d = Math.hypot(ex, ey); if (d > 8 && d < R2 * 1.4) { a.x += ex / d * Math.min(d, 140 * gatherDt); a.y += ey / d * Math.min(d, 140 * gatherDt); a.stun = .1; } }
+        if (z.t >= z.life && !z.boom) { z.boom = true; hitCircle(z.x, z.y, R2, z.base * z.mod.mul); if (settings.shake) G.shake = Math.max(G.shake, 4); AUDIO.play('impSmash'); }
+        continue;
+      }
+      if (z.k === 'corners') {   // 이탈리아 1: 네 모서리에서 짧은 창이 가운데로 동시에
+        if (z.t >= .35 && !z.boom) { z.boom = true; const sk = new Set(); hitCircle(z.x, z.y, 34, z.base * z.mod.mul, { skip: sk }); hitCircle(z.x, z.y, R2 * 1.1, z.base * z.mod.edge, { skip: sk, test: (a, ex, ey) => Math.abs(ex) < R2 && Math.abs(ey) < R2 * .7 }); AUDIO.play('impact'); }
+        continue;
+      }
+      z.tick -= dt;
+      if (z.tick <= 0 && z.t <= SKB.ZONE_TIME) {
+        z.tick += SKB.ZONE_TICK;
+        hitCircle(z.x, z.y, SKB.ZONE_D / 2 - 2, z.dmg, { heavy: false, main: false });
+        if (z.slow) commonSkillFx('ring', z.x, z.y, SKB.ZONE_D, 0, z.skillN);
+      }
+    }
+    G.zones = G.zones.filter(z => {
+      if (z.t < (z.life || SKB.ZONE_TIME) + (z.k === 'gather' ? .05 : 0)) return true;
+      for (const e of G.fx) if (e.type === 'art' && e.z === z && skillSequence(e.img)) {
+        z.artEnd = e.t;
+        e.life = e.t + SKILL_FADE;
+      }
+      sfx('prop', z.x, z.y, .3, { prop: G.country.key + '-' + z.skillN, move: 'zoneFade', zone: z });
+      return false;
+    });
+  }
+  // 지금 몸 그림 칸 (돌진 잔상용)
+  function heroLookNow() {
+    const h = G.hero, aim = Math.atan2(h.dir.y, h.dir.x), [cell, flip] = heroDir(aim), bf = bodyFrame(h, cell);
+    return { cell: bf.cell, folder: bf.folder, flip };
+  }
+  // 스킬 그림 (2D·3D 같이): at(x, 바닥y, fn) 은 3D에서 원근 자리로 옮겨요
+  const GK = () => (use3d ? .62 : .35);   // 바닥 원의 납작한 정도 (3D는 카메라가 더 위에서 봐요)
+  // 탄 그리기 (s.big = 크게: 호주 1 큰 부메랑)
+  function drawShotS(s, lift) {
+    if (s.skill) {
+      const tk = Math.max(0, 1 - s.age / .12);
+      const spear = s.heroShot === 'spearEnd';
+      if (spear) skillShadow(s.x, s.y, 8, .2);
+      const z = spear ? Math.sin(Math.PI * clamp(s.age / .7, 0, 1)) * 25 : 0;
+      const x = s.x + (s.ox ?? 0) * tk, y = s.y - 22 - lift - z + (s.oy ?? 0) * tk;
+      const id = G.country.key + '-' + s.skillN, mode = SKILL_PROP[id]?.[1];
+      const a = Math.atan2(s.vy, s.vx) + (mode === 'spinShot' ? s.age * 22 : 0);
+      if (mode === 'battery') drawSkillStamp('skill/u/' + id, null, x, y, a, 12 * (s.big || 1), 1);
+      else drawProp(id, x, s.y, s.y - y, a, 1, false, true);
+      return;
+    }
+    const tk = s.ox != null ? Math.max(0, 1 - s.age / .12) : 0;
+    if (tk > 0 || (s.tx != null && s.age < .25 && s.kind !== 'boomerang')) {
+      ctx.save();
+      if (s.tx != null && s.age < .25 && s.kind !== 'boomerang') { ctx.translate(s.tx, s.ty); ctx.rotate(Math.atan2(s.vy, s.vx)); ctx.beginPath(); ctx.rect(-2, -400, 2000, 800); ctx.clip(); ctx.rotate(-Math.atan2(s.vy, s.vx)); ctx.translate(-s.tx, -s.ty); }   // 무기 끝 뒤로는 안 그려요 (빛줄기 꼬리가 몸을 뚫지 않게)
+      ctx.translate(s.ox * tk, s.oy * tk); drawShotS1(s, lift); ctx.restore(); return;
+    }
+    drawShotS1(s, lift);
+  }
+  function shotKind(kind, x, y, a, age, spin0) {
+    if (spin0 != null) age += spin0 / 22;   // 도끼: 놓을 때 손에 든 각도에서 돌기 시작 (FX SPIN.axe 22)
+    const bi = (kind === 'beam' || kind === 'bullet') && bulletImg(G.country.key);
+    if (bi) return FX.cell(bi, 4, 1 + Math.floor(age / .05) % 2, x - Math.cos(a) * 19.8, y - Math.sin(a) * 19.8, a, 64);   // 탄 A·B 0.05초마다 번갈아, 64px
+    FX.drawShot(kind, x, y, a, age, G.country.key);
+  }
+  function drawShotS1(s, lift) {
+    const y = s.y - 22 - lift, a = Math.atan2(s.vy, s.vx);
+    if (s.big) { ctx.save(); ctx.translate(s.x, y); ctx.scale(s.big, s.big); ctx.translate(-s.x, -y); shotKind(s.kind, s.x, y, a, s.age, s.spin0); ctx.restore(); }
+    else shotKind(s.kind, s.x, y, a, s.age, s.spin0);
+    if (s.boost && !reduceMotion) for (const [dt, al] of [[.04, .4], [.08, .2]]) { ctx.save(); ctx.globalAlpha *= al; shotKind(s.kind, s.x - s.vx * dt, y - s.vy * dt, a, s.age, s.spin0); ctx.restore(); }   // 무적 중 쏜 탄: 흰 잔상 2개 (0.04초 간격)
+  }
+  // ---- 스킬 그림과 조준 UI ----
+  const SKW = '#FFFFFF', SKS = '#C9CED6', SKG = '#E8D9A8';
+  const skillFloorRatio = () => use3d ? GK() : .45;
+  const gEll = (x, y, r, a0 = 0, a1 = Math.PI * 2) => {
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * skillFloorRatio(), 0, a0, a1);
+  };
+
+  function coneShape(x, y, r, angle, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.arc(x, y, r, angle - Math.PI / 3, angle + Math.PI / 3);
+    ctx.closePath();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function floorRing(x, y, r, col, alpha = ctx.globalAlpha) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = alpha * .55;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    gEll(x, y, r, Math.PI, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = SKW;
+    ctx.lineWidth = 3.5;
+    gEll(x, y, r, 0, Math.PI);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // 목표 원 크기 = 실제 범위 (style-guide "조준 표시")
+  function aimR(sk) {
+    const k = (sk.mod || {}).k;
+    if (sk.type === 'zone') return k === 'corners' ? SKB.ZONE_D / 2 * 1.1 : SKB.ZONE_D / 2;
+    if (sk.type === 'area') return k === 'cone' ? SKB.AREA_R * 2 : k === 'wings' ? SKB.AREA_R * 1.1 : k === 'roar' ? SKB.AREA_R * 1.1 : k === 'widen' ? 140 : k === 'chain3' ? 30 : SKB.AREA_R;
+    if (k === 'javelin3') return 26;
+    if (k === 'lob') return sk.mod.r;
+    return 20;
+  }
+  // 폰 끌기 조준 표시 (바닥 층, 캐릭터 아래)
+  function drawAim(at) {
+    if (!aim || !aim.drag || !aim.t || G.scene !== 'play') return;
+    const h = G.hero, sk = skillOf(G.country, aim.n), k = (sk.mod || {}).k, f = FIELD.floor;
+    const tx = clamp(aim.t.x, f.x0 + 12, f.x1 - 12), ty = clamp(aim.t.y, f.y0 + 22, f.y1), R = aimR(sk), ang = Math.atan2(ty - h.y, tx - h.x);
+    if (k === 'cone') {
+      const [x, y] = coneOrigin(h.x, h.y, tx, ty, sk.mod.back);
+      lookAt(at, x, y, () => {
+        ctx.globalAlpha = aim.cancel ? .35 : 1;
+        coneShape(0, 0, R, ang, SKW);
+      });
+    }
+    const rings = [];
+    const dash = (a, b, off) => { ctx.setLineDash([a, b]); ctx.lineDashOffset = off; };
+    at(h.x, h.y, () => {
+      ctx.save(); ctx.globalAlpha = aim.cancel ? .35 : 1; ctx.lineCap = 'round';
+      const link = () => { ctx.strokeStyle = 'rgba(201,206,214,.85)'; ctx.lineWidth = 2; dash(4, 8, -G.t * 60); ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]); };
+      const ring = (x, y, r, solid, col = solid ? SKW : SKS) => {
+        rings.push({ x, y, r, solid, col, alpha: ctx.globalAlpha });
+      };
+      if (k === 'orbit') { ring(h.x, h.y, 62, true); ctx.restore(); return; }   // 튀르키예 1: 자리 지정 없음
+      if (sk.type === 'zone') { link(); ring(tx, ty, R, false); ring(tx, ty, R * .7, true, SKG); }
+      else if (sk.type === 'area' && k === 'fear') { link(); ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, R * 1.2, R * 1.2 * skillFloorRatio(), 0, ang - Math.PI / 2, ang + Math.PI / 2); ctx.lineTo(h.x, h.y); ctx.closePath(); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'phalanx') { const L = 180, W = 46, c = Math.cos(ang), s2 = Math.sin(ang), P = [[0, -W], [L, -W], [L, W], [0, W]].map(([u, v]) => [h.x + c * u - s2 * v, h.y + s2 * u + c * v]);   // 판정과 같은 바닥 좌표
+        ctx.strokeStyle = SKW; ctx.lineWidth = 2; ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke(); }
+      else if (sk.type === 'area' && k === 'crack') { link(); ring(tx, ty, 20, true); }
+      else if (sk.type === 'area' && k === 'cone') link();
+      else if (sk.type === 'area') { link(); ring(tx, ty, R, true); ring(tx, ty, R + 8, false); }
+      else if (sk.type === 'dash') {   // 몸 폭 30 띠 + 흐르는 › 3개 + 도착 원
+        let ex = tx, ey = ty; if (k === 'long') { ex = clamp(h.x + (tx - h.x) * 2, f.x0 + 12, f.x1 - 12); ey = clamp(h.y + (ty - h.y) * 2, f.y0 + 22, f.y1); }
+        const band = (x1, y1, a) => { const L = Math.hypot(x1 - h.x, y1 - h.y), c = Math.cos(ang), s2 = Math.sin(ang), g = GK() / .35 * .35, P = [[0, -15], [L, -15], [L, 15], [0, 15]].map(([u, v]) => [h.x + c * u - s2 * v * g, h.y + s2 * u + c * v * g]);   // 길이는 바닥 좌표 그대로(끝 = 도착 원), 폭만 납작하게
+          ctx.globalAlpha = (aim.cancel ? .35 : 1) * a;
+          ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40); for (const [i, j] of [[0, 1], [3, 2]]) { ctx.beginPath(); ctx.moveTo(P[i][0], P[i][1]); ctx.lineTo(P[j][0], P[j][1]); ctx.stroke(); } ctx.setLineDash([]); return L; };
+        if (k === 'long') band(ex, ey, .4);   // 리투아니아 1: 목표 너머까지 옅게 (40%, 디자인 463e6b5)
+        const L = band(tx, ty, 1);
+        ctx.strokeStyle = SKW; ctx.lineWidth = 2.5; for (let i = 0; i < 3; i++) { const u = ((G.t * 120 + i * L / 3) % Math.max(1, L)), x = h.x + Math.cos(ang) * u, y = h.y + Math.sin(ang) * u;
+          ctx.beginPath(); ctx.moveTo(x - Math.cos(ang - .6) * 7, y - Math.sin(ang - .6) * 7 * .6); ctx.lineTo(x, y); ctx.lineTo(x - Math.cos(ang + .6) * 7, y - Math.sin(ang + .6) * 7 * .6); ctx.stroke(); }
+        ring(tx, ty, 20, true);
+      }
+      else if (k === 'javelin3') { link(); [1 / 3, 2 / 3, 1].forEach((q, i) => { const on = Math.floor(G.t * 3) % 3 === i; ctx.globalAlpha = (aim.cancel ? .35 : 1) * (on || i === 2 ? 1 : .5); ring(h.x + (tx - h.x) * q, h.y + (ty - h.y) * q, 26, i === 2); }); }
+      else if (k === 'lob') { link(); ring(tx, ty, R, true); }
+      else {   // 연사(쏘기): ±12° 부채꼴 + 목표 십자 원
+        const L = Math.hypot(tx - h.x, ty - h.y) + 30, sp = 12 * Math.PI / 180; ctx.strokeStyle = SKS; ctx.lineWidth = 1.5; dash(6, 6, -G.t * 40);
+        ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(h.x + Math.cos(ang - sp) * L, h.y + Math.sin(ang - sp) * L); ctx.lineTo(h.x + Math.cos(ang + sp) * L, h.y + Math.sin(ang + sp) * L); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+        ring(tx, ty, 20, true); ctx.strokeStyle = SKW; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 26, ty); ctx.lineTo(tx + 26, ty); ctx.moveTo(tx, ty - 26 * GK()); ctx.lineTo(tx, ty + 26 * GK()); ctx.stroke();
+      }
+      ctx.restore();
+    });
+    for (const { x, y, r, solid, col, alpha } of rings) at(x, y, () => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.lineCap = 'round';
+      if (!solid) dash(10, 6, -G.t * Math.PI * r * .5);
+      floorRing(x, y, r, col);
+      ctx.restore();
+    });
+  }
+  const SKILL_FRAME = .06, SKILL_FADE = .30, SMOKE_FRAME = .17;
+
+  function skillSequence(name) {
+    const seq = name.replace('skill/u/', 'skill/seq/'), im = UI.img[seq];
+    if (!im?.naturalHeight || im.naturalHeight !== 256) return null;
+    const count = im.naturalWidth / im.naturalHeight;
+    return count === 6 || (count === 5 && seq === 'skill/seq/korea-1') ? [seq, count] : null;
+  }
+
+  function skillFrame(type, age, ending = false) {
+    const tick = Math.max(0, Math.floor((age + 1e-9) / SKILL_FRAME));
+    if (type === 'zone') {
+      if (ending) return 5;
+      if (tick < 2) return tick;
+      const phase = (tick - 2) % 4;
+      return 2 + Math.min(phase, 4 - phase);
+    }
+    if (type === 'dash') return 2 + tick % 2;
+    return Math.min(5, tick);
+  }
+
+  function drawSkillCell(name, count, frame, x, y, angle, size, alpha, opts = {}) {
+    const { ground = y, add = true, color, flat = false, facing = false, height = size } = opts;
+    const im = UI.img[name], cell = im.naturalWidth / count;
+    const flip = facing && Math.cos(angle) < 0;
+    const rot = facing ? 0 : angle;
+    if (use3d) {
+      const tex = R3D.cellTex(name, null, count, frame);
+      if (flat) R3D.decal(tex, x, ground, size, height, { alpha, add, angle: rot, order: 95 });
+      else {
+        const mo = { alpha, rot, flip, oy: y - ground, color };
+        const options = { aspect: size / height, below: height / 2, shadow: false, add, effect: true };
+        R3D.sprite(tex, x, ground, height, mo, options);
+        if (color) R3D.sprite(tex, x, ground, height, { ...mo, color: null, alpha: alpha * .35 }, options);
+      }
+      return;
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = add ? 'lighter' : 'source-over';
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    if (flip) ctx.scale(-1, 1);
+    const dx = -size / 2, dy = -height / 2;
+    if (color) {
+      ctx.drawImage(tintedSkillCell(im, cell, frame, color), dx, dy, size, height);
+      ctx.globalAlpha = alpha * .35;
+    }
+    ctx.drawImage(im, frame * cell, 0, cell, im.naturalHeight, dx, dy, size, height);
+    ctx.restore();
+  }
+
+  function drawSkillStamp(name, frame, x, y, angle, size, alpha, ground = y) {
+    const seq = frame == null ? null : skillSequence(name);
+    if (seq) return drawSkillCell(...seq, Math.min(seq[1] - 1, frame), x, y, angle, size, alpha, { ground });
+    const im = UI.img[name];
+    if (!im?.naturalWidth) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.drawImage(im, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+
+  function drawCannonShell(pos) {
+    skillShadow(pos.x, pos.y, 4, .22);
+    drawSkillStamp('skill/u/korea-2', null, pos.x, pos.y - pos.z, 0, 14.4, 1);
+  }
+
+  function barrageArt(n, x, y, angle, { lift = 0, frame = 0 } = {}) {
+    const id = G.country.key + '-' + n, img = 'skill/u/' + id;
+    if (!skillSequence(img)) return;
+    return sfx('art', x, y, (6 - frame) * SKILL_FRAME, {
+      img, ang: angle, rot: true, S: SKILL_PROP[id][0] * 2, playback: 'barrage', lift, frame,
+    });
+  }
+
+  function barrageImpact(shot, x, y) {
+    if (!shot.art) return;
+    shot.art.life = 0;
+    shot.art = null;
+    barrageArt(shot.skillN, x, y, Math.atan2(shot.vy, shot.vx), { frame: 3 });
+  }
+
+  // 크기는 192px 칸의 긴 변(최대 176px)을 기준으로 환산해요.
+  const SKILL_PROP = {
+    'luxembourg-1': [36, 'sides', 2], 'luxembourg-2': [48, 'arc', 1, 'flag'],
+    'ireland-1': [36, 'slide', 1, 'spin'], 'ireland-2': [48, 'front'],
+    'switzerland-1': [48, 'arc', 5, 'bundle'], 'switzerland-2': [24, 'shot'],
+    'usa-1': [30, 'handShot'], 'usa-2': [42, 'arc', 1, 'float'],
+    'netherlands-1': [30, 'battery', 5], 'netherlands-2': [42, 'front'],
+    'denmark-1': [54, 'behindRise'], 'denmark-2': [24, 'roll', 6, 'ring'],
+    'austria-1': [20, 'feet'], 'austria-2': [24, 'slide', 8, 'ring'],
+    'australia-1': [24, 'shot'], 'australia-2': [30, 'curve', 1, 'spin'],
+    'germany-1': [30, 'slide', 1, 'spin'], 'germany-2': [36, 'front'],
+    'sweden-1': [36, 'clone', 2], 'sweden-2': [30, 'arc', 6, 'ring'],
+    'canada-1': [30, 'spinShot'], 'canada-2': [18, 'scatter', 12, 'spiral'],
+    'finland-1': [42, 'feet'], 'finland-2': [36, 'lowArc', 1, 'float'],
+    'france-1': [48, 'slide'], 'france-2': [48, 'front'],
+    'italy-1': [36, 'arc', 4, 'corners'], 'italy-2': [36, 'front'],
+    'korea-1': [72, 'front'], 'korea-2': [36, 'cannon'],
+    'spain-1': [42, 'front'], 'spain-2': [42, 'frontSpin'],
+    'czechia-1': [36, 'roll', 6, 'ring'], 'czechia-2': [36, 'straight', 1, 'tripleSpin'],
+    'israel-1': [14, 'shot'], 'israel-2': [36, 'front'],
+    'lithuania-1': [36, 'front'], 'lithuania-2': [42, 'drop', 3],
+    'newzealand-1': [30, 'arc', 6, 'ring'], 'newzealand-2': [16, 'seed', 3],
+    'japan-1': [42, 'front'], 'japan-2': [42, 'front'],
+    'portugal-1': [42, 'slide'], 'portugal-2': [42, 'shot'],
+    'poland-1': [48, 'behind'], 'poland-2': [60, 'spinArc'],
+    'hungary-1': [36, 'frontSpin'], 'hungary-2': [36, 'frontRoll'],
+    'slovakia-1': [42, 'drop'], 'slovakia-2': [36, 'spinShot'],
+    'greece-1': [36, 'slide', 5, 'line'], 'greece-2': [48, 'front'],
+    'turkiye-1': [30, 'orbit', 3], 'turkiye-2': [36, 'front'],
+    'chile-1': [24, 'slide', 1, 'rise'], 'chile-2': [36, 'arc', 1, 'spin'],
+    'mexico-1': [36, 'head'], 'mexico-2': [42, 'slide', 1, 'wings'],
+    'colombia-1': [30, 'scatter', 1, 'spin'], 'colombia-2': [30, 'clone'],
+  };
+
+  function drawProp(id, x, y, height, angle, alpha = 1, shadow = true, rotate = false) {
+    const spec = SKILL_PROP[id];
+    if (!spec) return;
+    const [size] = spec;
+    const prop = UI.img['skill/prop/' + id];
+    const hasProp = prop?.naturalWidth > 0;
+    const im = hasProp ? prop : UI.img['skill/u/' + id];
+    if (!im?.naturalWidth || alpha <= 0) return;
+    const width = hasProp ? size * 192 / 176 : size * .4;
+    const h = width * im.naturalHeight / im.naturalWidth;
+    if (shadow) skillShadow(x, y, size * .23 / (1 + height / 140), alpha * .25);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y - height);
+    if (rotate) ctx.rotate(angle);
+    else if (Math.cos(angle) < 0) ctx.scale(-1, 1);
+    ctx.drawImage(im, -width / 2, -h * (hasProp && !rotate ? 184 / 192 : .5), width, h);
+    ctx.restore();
+  }
+
+  function drawPropGroup(id, sx, sy, tx, ty, height, q, angle, age, alpha, at) {
+    const [size, mode, count = 1, layout] = SKILL_PROP[id];
+    const spread = layout === 'bundle' ? size * .4 : layout === 'line' ? size * 1.5 : SKB.ZONE_D * .42;
+    for (let i = 0; i < count; i++) {
+      const a = i * Math.PI * 2 / count + (layout === 'corners' ? Math.PI / 4 : 0) + (layout === 'spiral' ? age * 4 : 0);
+      const off = i - (count - 1) / 2;
+      const line = layout === 'bundle' || layout === 'line';
+      const dx = line ? -Math.sin(angle) * off * spread / count : count > 1 ? Math.cos(a) * spread : 0;
+      const dy = line ? Math.cos(angle) * off * spread / count : count > 1 ? Math.sin(a) * spread * .6 : 0;
+      const wave = Math.sin(Math.PI * q);
+      const curve = mode === 'curve' || mode === 'scatter' ? wave * (20 + i % 3 * 7) : 0;
+      const x = sx + (tx - sx + dx) * q - Math.sin(angle) * curve;
+      const y = sy + (ty - sy + dy) * q + Math.cos(angle) * curve;
+      let z = height * (1 - q);
+      if (['arc', 'lowArc', 'curve', 'scatter', 'spinArc', 'drop'].includes(mode)) {
+        const peak = mode === 'drop' ? 105 : mode === 'lowArc' ? 16 : clamp(Math.hypot(tx - sx, ty - sy) * .25, 28, 80);
+        z += 4 * peak * q * (1 - q);
+      }
+      if (layout === 'float') z += q * (15 + Math.sin(age * 7) * 3);
+      if (layout === 'rise') z += 28 * clamp(age / .25, 0, 1);
+      const spin = mode === 'roll' && q < 1 ? Math.hypot(tx - sx, ty - sy) * q / (size / 2)
+        : mode === 'spinArc' || layout === 'spin' || layout === 'spiral' ? age * 8
+        : layout === 'tripleSpin' ? clamp(age / .6, 0, 1) * Math.PI * 6
+        : layout === 'flag' || layout === 'float' ? Math.sin(age * 8) * .14
+        : layout === 'wings' ? Math.sin(age * 18) * .7 : 0;
+      at(x, y, () => drawProp(id, x, y, z, angle + spin, alpha, true, spin !== 0 || mode === 'straight'));
+    }
+  }
+
+  function drawZoneProp(z, at) {
+    const id = G.country.key + '-' + z.skillN;
+    const fly = z.fly || .35;
+    if (z.t < -fly || (z.t < 0 && z.launch && z.rx == null)) return;
+    const q = clamp(1 + z.t / fly, 0, 1);
+    const x = z.rx ?? z.x0 ?? z.x, y = z.gy ?? z.y0 ?? z.y;
+    drawPropGroup(id, x, y, z.x, z.y, Math.max(0, y - (z.ry ?? y)), q, z.ang || 0, z.t, 1, at);
+  }
+
+  function drawAreaLink(e, q, at) {
+    drawPropGroup(e.prop, e.origin.x, e.gy, e.x1, e.y1, e.gy - e.origin.y, q,
+      Math.atan2(e.y1 - e.gy, e.x1 - e.x), e.t - e.life, 1, at);
+  }
+
+  function drawMovingProp(e, q, at) {
+    const mode = e.move;
+    if (mode === 'zoneFade') {
+      const z = e.zone, age = Math.min(z.t, z.life || SKB.ZONE_TIME) + e.t;
+      drawPropGroup(e.prop, z.x, z.y, z.x, z.y, 0, 1, z.ang || 0, age, 1 - q, at);
+      return;
+    }
+    if (!mode) {
+      drawPropGroup(e.prop, e.x, e.gy, e.x1, e.y1, e.gy - e.y, Math.min(1, e.t / e.fly), e.a,
+        e.t - e.fly, clamp((e.life - e.t) / .3, 0, 1), at);
+      return;
+    }
+    const z = mode === 'rise' ? e.gy - e.y + q * 88 : mode === 'fall' ? 95 * (1 - q * q) : 82 * (1 - q * q);
+    at(e.x, e.gy, () => drawProp(e.prop, e.x, e.gy, z, e.a, 1, true, true));
+  }
+
+  function drawHeroProp(h, at) {
+    if (!h.heroSkill || h.dead) return;
+    const id = G.country.key + '-' + h.heroSkill.n, [size, mode, count = 1] = SKILL_PROP[id];
+    const d = h.dash, c = h.cast, age = G.combatT - h.heroSkill.start;
+    const attached = d || c?.k === 'dash' || h.poseFollow || (mode === 'front' && h.barrage) || id === 'japan-2' && age < .45;
+    const held = (id === 'france-1' || id === 'germany-1') &&
+      c?.k === 'area' && c.t < FEEL_T.AREA_PREP + FEEL_T.AREA_HIT;
+    const prepared = ['handShot', 'battery'].includes(mode) && (h.barrage || c?.k === 'aim');
+    if (!attached && !prepared && !held && c?.k !== 'turtle' && !(mode === 'orbit' && age < .18)) return;
+    if (['seed', 'clone'].includes(mode)) return;
+    const a = h.poseFollow?.ang ?? (d ? Math.atan2(d.dy, d.dx) : h.heroSkill.a);
+    const front = mode.startsWith('behind') ? -15 : mode === 'feet' || mode === 'head' || mode === 'orbit' || mode === 'sides' ? 0 : 17;
+    const z = mode === 'head' || mode === 'orbit' ? 55 : mode === 'feet' || mode === 'battery' ? 0 : mode === 'behindRise' ? 18 * clamp(age / .16, 0, 1) : 20;
+    for (let i = 0; i < (mode === 'orbit' ? 1 : count); i++) {
+      const side = (i - (count - 1) / 2) * (mode === 'battery' ? 16 : size);
+      const hand = held || mode === 'handShot' ? skillTip(h) : null;
+      const x = hand?.x ?? ((c?.end?.x ?? h.x) + Math.cos(a) * front - Math.sin(a) * side);
+      const y = (c?.end?.y ?? h.y) + Math.sin(a) * front + Math.cos(a) * side * .6;
+      const spin = mode === 'frontRoll' && d ? d.t * 20 : 0;
+      const alpha = c?.end ? clamp(1 - (c.t - c.end.t) / .3, 0, 1) : 1;
+      if (c?.k === 'turtle' && c.t >= TURTLE.PREP) {
+        const seq = skillSequence('skill/u/korea-1');
+        if (seq) {
+          const age = c.end ? c.t - c.end.t : c.t - TURTLE.PREP;
+          const frame = c.end ? (seq[1] === 5 ? 3 + Math.floor(age / SKILL_FRAME) : age < SKILL_FRAME ? 4 : 5)
+            : c.t < TURTLE.START ? Math.min(1, Math.floor(age / SKILL_FRAME)) : skillFrame('dash', c.t - TURTLE.START);
+          at(x, y, () => drawSkillStamp('skill/u/korea-1', frame, x, y - 12, a, size, alpha, y));
+        }
+      }
+      at(x, y, () => drawProp(id, x, y, hand ? Math.max(0, y - hand.y + 6) : z, a + spin, alpha, true, spin !== 0));
+    }
+  }
+
+  const COMMON_SKILL_ART = ['slash', 'impact', 'line', 'ring', 'smoke'];
+  const SMOKE_IMPACT_SKILLS = new Set(['korea-2', 'netherlands-1', 'germany-2', 'slovakia-1', 'israel-1', 'lithuania-2']);
+  const skillTints = new WeakMap();
+
+  function tintedSkillCell(im, size, frame, color) {
+    if (!skillTints.has(im)) skillTints.set(im, new Map());
+    const cache = skillTints.get(im), key = color + ':' + frame;
+    if (cache.has(key)) return cache.get(key);
+    const tile = mkCv(size, size), g = tile.getContext('2d');
+    const draw = () => g.drawImage(im, frame * size, 0, size, size, 0, 0, size, size);
+    draw();
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = color;
+    g.fillRect(0, 0, size, size);
+    g.globalCompositeOperation = 'destination-in';
+    draw();
+    cache.set(key, tile);
+    return tile;
+  }
+
+  function commonSkillFx(kind, x, y, size, angle, n = G.hero.heroSkill?.n || 1) {
+    const key = G.country.key, id = key + '-' + n;
+    if (kind === 'impact' && SMOKE_IMPACT_SKILLS.has(id)) {
+      commonSkillFx('smoke', x, y, SKILL_PROP[id][0] * 2, angle, n);
+    }
+    const name = 'skill/seq/common-' + kind, im = UI.img[name];
+    if (im?.naturalWidth !== 6 * 256 || im.naturalHeight !== 256) return false;
+    const smoke = kind === 'smoke';
+    const color = smoke ? null : SKILL_COL[key]?.[n - 1]?.[1] || (id === 'korea-2' ? '#FF8A2E' : SKW);
+    sfx('common', x, y, smoke ? 5 * SMOKE_FRAME + 1.5 : 6 * SKILL_FRAME + SKILL_FADE,
+      { name, size, angle, color, smoke });
+    return true;
+  }
+
+  function drawCommonSkillFx(e) {
+    const sootAge = e.t - 5 * SMOKE_FRAME;
+    if (e.smoke) {
+      if (sootAge < -1e-9) {
+        drawSkillCell(e.name, 6, Math.min(4, Math.floor((e.t + 1e-9) / SMOKE_FRAME)), e.x, e.y - 10, 0, e.size, 1,
+          { ground: e.y, add: false });
+      } else {
+        drawSkillCell(e.name, 6, 5, e.x, e.y, e.angle, e.size, .6 * clamp(1 - sootAge / 1.5, 0, 1),
+          { ground: e.y, add: false, flat: true, height: e.size * .45 });
+      }
+      return;
+    }
+    drawSkillCell(e.name, 6, skillFrame('area', e.t), e.x, e.y - 10, e.angle, e.size,
+      clamp((e.life - e.t) / SKILL_FADE, 0, 1), { ground: e.y, color: e.color });
+  }
+
+  function drawRepresentative(e) {
+    const seq = skillSequence(e.img), im = UI.img[e.img];
+    const t = e.t - ((seq ? e.seqDelay ?? e.delay : e.delay) || 0);
+    if (t < 0 || e.t >= e.life || (e.z && e.z.t < (e.z.artAt || 0))) return;
+    if (!seq && !im?.naturalWidth) return;
+    const h = G.hero, z = e.z, mode = e.mode;
+    const pop = reduceMotion ? 1 : .85 + .15 * clamp((z ? z.t : t) / .08, 0, 1);
+    const alpha = clamp((e.life - e.t) / .3, 0, 1);
+    const attached = (seq && e.seqDash) || mode === 'orbit' || mode === 'front' || mode === 'trail';
+    const beam = mode === 'beam';
+    const angle = beam || attached || e.rot ? e.ang : 0;
+    const x = attached ? h.x : beam ? e.x + Math.cos(angle) * e.len / 2 : e.x;
+    const y = attached ? h.y - 24 : beam ? e.y + Math.sin(angle) * e.len / 2 - 20 : e.y - 6 - (e.lift || 0);
+    const size = (mode === 'zone' ? SKB.ZONE_D * 2 * (.7 + (reduceMotion ? 0 : .08 * Math.sin(t * 5)))
+      : e.S || e.len || e.H || 150) * pop;
+    if (seq) {
+      const dash = e.seqDash || e.dash;
+      if (dash && (dash.wait > 0 || h.dash !== dash)) return;
+      const age = z ? z.t - (z.artAt || 0) : dash ? dash.t : t;
+      const type = e.playback || 'area';
+      const zoneEnd = z ? z.life || SKB.ZONE_TIME : 0;
+      const ending = !!z && (e.zoneGone || z.artEnd != null || age >= zoneEnd);
+      const frame = Math.min(seq[1] - 1, skillFrame(type, age + (e.frame || 0) * SKILL_FRAME, ending));
+      let opacity = alpha;
+      if (z) {
+        const breathing = reduceMotion ? .7 : .7 + .08 * Math.sin(Math.min(age, zoneEnd) * 5);
+        opacity = breathing * alpha;
+      } else if (type === 'barrage') opacity = 1;
+      const height = (beam ? e.H * pop : size) * (e.flat ? GK() : 1);
+      drawSkillCell(...seq, frame, x, y, angle, size, opacity,
+        { ground: attached ? h.y : e.y, height });
+      return;
+    }
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.globalCompositeOperation = e.black ? 'source-over' : 'lighter';
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    const height = (beam ? e.H * pop : size) * (e.flat ? GK() : 1);
+    ctx.drawImage(im, -size / 2, -height / 2, size, height);
+    ctx.restore();
+  }
+
+  function drawSkills(at) {
+    const h = G.hero;
+    if (!h) return;
+    drawAim(at);
+    if (moveTo) {   // 톡 이동 목적지 (디자인 47d5870): 톡한 순간 은색 실선 고리 지름 32 → 12, 0.4초 · 가운데 흰 점 · 걷는 동안 흰 점(0.6)만 · 움직임 줄이기면 지름 20 고리 0.3초 깜빡
+      const mt = moveTo, age = G.t - mt.t0, T = reduceMotion ? .3 : .4;
+      at(mt.x, mt.y, () => {
+        ctx.save(); const k = Math.min(1, age / T);
+        if (age < T) { const rad = reduceMotion ? 10 : 16 - 10 * k; ctx.globalAlpha = reduceMotion ? (Math.floor(age * 13) % 2 ? .2 : .9) : .9 * (1 - k); ctx.strokeStyle = '#C9CED6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(mt.x, mt.y, rad, rad * .6, 0, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.globalAlpha = age < T ? 1 : .6; ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(mt.x, mt.y, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      });
+    }
+    for (const mk of G.marks) at(mk.x, mk.y, () => drawProp('austria-1', mk.x, mk.y, 0, mk.a, Math.min(.55, (mk.life - mk.t) / .3), false));
+    for (const e of G.ents) e.draw?.(at);
+    for (const z of G.zones) drawZoneProp(z, at);
+    drawHeroProp(h, at);
+  }
+
+  function drawJumps(at) {
+    for (const a of G.aliens) {
+      if (!a.jump || a.jump.ph === 'land') continue;
+      const J = a.jump, C = a.jumpCfg, k = J.ph === 'crouch' ? J.t / C.crouch : 1, fill = J.ph === 'air' ? Math.min(1, J.t / C.air) : 0;
+      at(J.tx, J.ty, () => {
+        ctx.save(); ctx.globalAlpha = .25 + .45 * k;
+        ctx.fillStyle = 'rgba(10,6,16,.45)'; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r, C.r * GK(), 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(202,87,229,.35)'; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r * fill, C.r * fill * GK(), 0, 0, Math.PI * 2); ctx.fill();   // 떨어질 때까지 차오름
+        ctx.strokeStyle = '#CA57E5'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(J.tx, J.ty, C.r, C.r * GK(), 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      });
+    }
+  }
+  let landGreen = null;   // 사격 외계인용 초록 (hue-rotate −150°, 한 번만 만들어요)
+  function drawJumpLand(e, k) {
+    let name = 'alien/fx-land';
+    if (e.green) { const im = UI.img[name]; if (im && im.naturalWidth && !landGreen) { landGreen = UI.hueRotate(im, -150); UI.img['alien/fx-land-green'] = landGreen; } name = 'alien/fx-land-green'; }
+    if (FX.cell(name, 6, k * 6, e.x, e.y, 0, e.r * 2.4, .9)) return;
+    ctx.save(); ctx.globalAlpha = (1 - k) * .8; ctx.strokeStyle = '#E2B6F0'; ctx.lineWidth = 5 * (1 - k) + 1;
+    const R = e.r * (.6 + .6 * k); ctx.beginPath(); ctx.ellipse(e.x, e.y, R, R * GK(), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+  function drawSkillFx(e, k) {
+    if (e.type === 'art') return drawRepresentative(e);
+    if (e.type === 'common') return drawCommonSkillFx(e);
+    if (e.type !== 'aimFlash') return;
+    ctx.save();
+    const sc = reduceMotion ? 1 : 1.25 - .25 * Math.min(1, k * 2);
+    ctx.globalAlpha = reduceMotion ? (Math.floor(k * 4) % 2 ? 0 : .9) : 1 - k;
+    floorRing(e.x, e.y, e.r * sc, SKW);
+    ctx.setLineDash([10, 6]);
+    floorRing(e.x, e.y, (e.r + 8) * sc, SKS);
+    ctx.restore();
+  }
+
+  function drawBasicFx(e, k) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+    const done = () => ctx.restore();
+    if (e.type === 'bayonet') {   // 총검 끝 흰 짧은 찌르기 섬광 14px
+      ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3 * (1 - k) + 1; ctx.beginPath(); ctx.moveTo(e.x - Math.cos(e.a) * 4, e.y - Math.sin(e.a) * 4); ctx.lineTo(e.x + Math.cos(e.a) * 10, e.y + Math.sin(e.a) * 10); ctx.stroke(); return done();
+    }
+    if (e.type === 'boostSlash') { ctx.globalAlpha = e.al * (1 - k); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(e.x, e.y - 24, 44, 44 * .7, 0, e.a - 1.1, e.a + 1.1); ctx.stroke(); return done(); }   // 무적 중 치기 잔상
+    if (e.type === 'casing') {   // 핀란드 탄피: 금색 3×1.6, 옆으로 튀어 0.4초에 바닥으로
+      ctx.globalCompositeOperation = 'source-over'; const t = e.t, x = e.x + e.side * 40 * t, y = e.y - 30 * t + 220 * t * t; ctx.translate(x, Math.min(y, e.y + e.h0)); ctx.rotate(t * 25); ctx.fillStyle = '#D9AE4F'; ctx.fillRect(-1.5, -.8, 3, 1.6); return done();
+    }
+    ctx.restore();
+  }
+
+  const LINK_PATH = { rings: 'orb', cross: 'boomer3', ring6: 'sword', gather: 'leaves', slow: 'snow', corners: 'lines4', half: 'ground', speedZone: 'seed' };
+  const AREA_LINK = { gust: 'ground', lift: 'ground', roar: 'shout' };   // 포르투갈 1·칠레 1 발밑 · 콜롬비아 1 머리(함성) · 나머지는 무기 끝 빛 덩이
+  const LINK_WIDTH = { orb: 24, ground: 40, shout: 48, trap: 20, sword: 20, boomer3: 20, leaves: 30, lines4: 14, vortex: 36, snow: 16, seed: 16 };
+  const LINK_CORNERS = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const linkLine = (x0, y0, x1, y1) => q => [x0 + (x1 - x0) * q, y0 + (y1 - y0) * q];
+  function sweepLink(owner, style, path, t0, t1, life, dmg) {
+    const q0 = clamp(t0 / life, 0, 1), q1 = clamp(t1 / life, 0, 1);
+    if (q0 >= q1) return;
+    const [x0, y0] = path(q0), [x1, y1] = path(q1);
+    hitSeg(x0, y0, x1, y1, LINK_WIDTH[style] / 2, dmg, owner.linkHits ||= new Set(), true);   // 여러 줄이나 화살이 겹쳐도 스킬마다 한 번만
+  }
+  function updateZoneLink(z, dt) {
+    if (z.k !== 'vortex' && (!z.launch || z.launch === 'sky')) return;
+    if ((z.launch && z.rx == null) || z.t - dt >= 0) return;
+    const fly = z.fly || .35, t = z.t + fly;
+    if (t <= 0) return;
+    const style = z.k === 'vortex' || z.launch === 'trap' ? z.k : LINK_PATH[z.launch] || 'orb';
+    const shadow = style === 'trap' || style === 'snow' || style === 'seed';
+    const x = shadow || style === 'vortex' ? z.x0 : z.rx;
+    const dmg = z.base * LINK_DMG, R = SKB.ZONE_D / 2, floor = linkLine(x, z.gy, z.x, z.y);
+    if (style === 'lines4') {
+      for (const [sx, sy] of LINK_CORNERS) sweepLink(z, style, linkLine(x, z.gy, z.x + sx * R, z.y + sy * R * .7 * GK()), t - dt, t, fly, dmg);
+    } else if (style === 'boomer3') {
+      const art = boomerSweepArtPath(z.rx, z.ry, z.x, z.y);
+      for (const i of [-1, 0, 1]) sweepLink(z, style, q => boomerLinkPoint(floor, art, q, i), t - dt, t, fly, dmg);
+    } else sweepLink(z, style, floor, t - dt, t, fly, dmg);
+  }
+  function boomerSweepArtPath(x0, y0, x1, y1) {
+    const gy = y1 - 14;
+    const arc = Math.hypot(x1 - x0, y1 - y0) * .12;
+    return q => [x0 + (x1 - x0) * q, y0 + (gy - y0) * q - Math.sin(Math.PI * q) * arc];
+  }
+  function boomerLinkPoint(path, art, q, i) {
+    const [x, y] = path(q), [ax, ay] = art(q), [px, py] = art(Math.max(0, q - .06));
+    const a = Math.atan2(ay - py, ax - px || .001), off = Math.sin(Math.PI * q) * 30 * i;
+    return [x - Math.sin(a) * off, y + Math.cos(a) * off];
+  }
+  const LINK_START_Z = 18;
+
+  function linkArtPath(x0, y0, x1, y1, heightScale = .25, minPeak = 30, maxPeak = 80, startZ = LINK_START_Z) {
+    const floor = linkLine(x0, y0, x1, y1);
+    const peak = clamp(Math.hypot(x1 - x0, y1 - y0) * heightScale, minPeak, maxPeak);
+    // Distances from the vertex to the two ends give the exact peak and endpoint heights.
+    const start = Math.sqrt(peak - startZ), end = Math.sqrt(peak);
+    return q => {
+      const [x, y] = floor(q);
+      const z = q <= 0 ? startZ : q >= 1 ? 0 : peak - ((start + end) * q - start) ** 2;
+      return { x, y, z };
+    };
+  }
+
+  function skillShadow(x, y, radius, alpha) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(x, y, radius, radius * .4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const at2d = (x, y, fn) => fn();
+
+  function drawGhost(e, k) {
+    if (e.clone && (G.country.key === 'sweden' || G.country.key === 'colombia')) {
+      cloneCanvas ||= mkCv(96, 82);
+      const g = cloneCanvas.getContext('2d');
+      const swedish = G.country.key === 'sweden';
+      g.clearRect(0, 0, 96, 82);
+      paintTo(g, () => UI.dirBody(G.country.key, e.cell, 48, 75, 60, { flip: e.flip }, e.folder));
+      g.save();
+      g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = swedish ? 'rgba(0,106,167,.4)' : 'rgba(252,209,22,.6)';
+      g.fillRect(0, 0, 96, 82);
+      g.restore();
+      ctx.save();
+      ctx.globalAlpha = .72;
+      ctx.drawImage(cloneCanvas, e.x - 48, e.y - 75);
+      ctx.restore();
+      drawProp(swedish ? 'sweden-1' : 'colombia-2', e.x + (e.flip ? -12 : 12), e.y, 22, e.flip ? Math.PI : 0, .72, false);
+      return;
+    }
+    UI.dirBody(G.country.key, e.cell, e.x, e.y, 60, { flip: e.flip, white: true, alpha: NO_AFTER ? .5 : e.lite ? AFTER.GHOST_AL * (1 - k) : (e.clone ? .5 : .22) * (1 - k) + .05 }, e.folder);   // 스웨덴 분신은 진하게 · lite = 시전감 잔상 줄이기
+  }
+  const alienCol = a => a.type === 'shooter' ? '#B8D727' : '#CA57E5';   // 그 외계인 몸 색 한 가지: 보라 외계인·보스 = 보라, 사격 외계인 = 초록 (style-guide d2c56fb)
+  function damage(a, dmg, nx, ny, heavy, o = {}) {
+    const main = o.main !== false;
+    if (a.weak > 0) dmg *= 1 + BAL_WEAK;                                          // 그리스 1: 약화 +30%
+    if (a.mark > 0 && !o.marking) { dmg *= a.markX || 2; a.mark = 0; }   // 덴마크 1: 표식 → 다음 한 번 2배
+    a.hp -= dmg;
+    if (o.skill && dmg > 0) a.skillLiftT = SKILL_HIT_LIFT_TIME;
+    // 피격 실루엣 (리뷰 4): 흰 0.025초 → 몸 색 외곽선 0.07초 · 공격축으로 눌렸다 복원 0.1초
+    a.flash = 0.025; a.edgeT = 0.095; a.hitT = 0.1; a.hitAx = Math.abs(nx) >= Math.abs(ny) ? 'x' : 'y';
+    // 넉백 (리뷰 2): 처음 0.04초는 쫓아오기를 15%로 눌러 실제로 밀려나요 → 35ms에 약 5px, 이후 3~4px 더
+    const kb = a.type === 'boss' ? 60 : heavy ? 200 : o.gun ? 50 : 120;   // 총알은 2px만 밀렸다 돌아와요
+    a.kb = { x: nx * kb, y: ny * kb }; a.stun = a.type === 'boss' ? 0.02 : 0.04;
+    if (!o.link && !heavy) AUDIO.play('hit');
+    if (!o.link && !o.skill) {
+      // 접촉점 (리뷰 3): 몸 가운데에서 공격이 들어온 쪽으로 6~10px
+      const cy = a.y - (a.type === 'boss' ? 50 : 20), off = Math.min(10, a.r * .5 + 2);
+      const cx = a.x - nx * off, cyy = cy - ny * off * .6;
+      const h0 = a.y - cyy;   // 3D: 바닥에서 높이
+      if (main) G.fx.push({ kind: 'core', x: cx, y: cyy, h0, t: 0, life: .1 });   // 흰 코어 0.025초 + 옅은 금 꼬리
+      if (o.gun) G.fx.push({ kind: 'gunHit', key: o.gun, x: cx, y: cyy, h0, dir: Math.atan2(ny, nx), t: 0, life: .12 });   // 총알: 하늘색(미국)·금빛(핀란드) 튀김
+      else G.fx.push({ kind: 'hit', x: cx, y: cyy, h0, dir: Math.atan2(ny, nx), big: !!heavy, green: a.type === 'shooter', col: alienCol(a), alpha: main ? 1 : .5, t: 0, life: heavy ? 0.14 : 0.12 });
+      // 방향성 파편 (리뷰 8): 몸 색 2~4개, 공격 방향 ±35°
+      shardBurst(cx, cyy, Math.atan2(ny, nx), alienCol(a), main ? 3 : 2, o.finisher ? 1.2 : 1, 0, h0);
+    }
+    if (a.hp <= 0 && !a.dead) {
+      a.dead = true; G.run.kills++; G.run.killsRound++;
+      // 처치 (리뷰 10): 몸이 0.08초 동안 0.65배로 접히며 사라진 뒤 파편 6개 + 처치 잔광
+      const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
+      { const L = alienLook(a); G.fx.push({ kind: 'corpse', img: L.name, cell: L.cell ? L.cell.i : null, x: a.x, y: a.y, hgt: L.hgt, flip: L.mo.flip, t: 0, life: .08 }); }
+      if (!o.skill) shardBurst(a.x, a.y - 20, Math.atan2(ny, nx), alienCol(a), 6, o.finisher ? 1.3 : 1.1, .07, 20);
+      G.fx.push({ kind: 'death', x: a.x, y: a.y - (a.type === 'boss' ? 60 : 22), h0: a.type === 'boss' ? 60 : 22, size: a.type === 'boss' ? 140 : 60, green: a.type === 'shooter', t: -.07, life: 0.2 });
+      later(() => AUDIO.play('kill'), 30);
+    }
+  }
+  // 공격 방향으로 튀는 파편 (delay초 뒤 시작)
+  function shardBurst(x, y, dir, color, n, speedMul = 1, delay = 0, h0 = 20) {
+    for (let i = 0; i < n && G.parts.length < 150; i++) {
+      const a = dir + (Math.random() - .5) * 1.2, v = (90 + Math.random() * 70) * speedMul;
+      G.parts.push({ x, y, h0, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .08 + Math.random() * .06, t: -delay, color, s: 1.5 + Math.random() });
+    }
+  }
+  function hurt(dmg, fromX, fromY) {
+    const h = G.hero;
+    if (h.dead || G.scene === 'ad' || h.inv > 0 || h.skillT > 0 || castInvulnerable(h)) return;
+    dmg *= heroDmgMul();
+    h.hp -= dmg; h.inv = TEMP.HURT_INVULN; h.hitT = 0.15;
+    const dx = h.x - fromX, dy = h.y - fromY, d = Math.hypot(dx, dy) || 1;
+    h.x += dx / d * 5; h.y += dy / d * 5;
+    G.hurtFlash = 0.15; if (settings.shake) G.shake = Math.max(G.shake, 4);
+    AUDIO.play('hurt');
+    if (h.hp <= 0) {
+      h.hp = 0; h.dead = true; h.deadT = 0;
+      if (h.skillDebit != null) G.run.skillsLeft[h.skillDebit]++;
+      const cast = h.cast, flying = new Set(G.zones.filter(z => z.t < 0));
+      G.timers = G.timers.filter(tm => !((cast && tm.owner === cast) || (h.swing && tm.owner === h.swing) || flying.has(tm.owner)));
+      G.zones = G.zones.filter(z => !flying.has(z));
+      G.fx = G.fx.filter(e => e.type !== 'link' && !flying.has(e.z) && !e.dash);
+      G.ents = G.ents.filter(e => !e.owner || e.owner.k !== 'cannon');
+      h.skillDebit = null; h.queuedSkill = h.cast = h.poseFollow = h.dash = h.barrage = h.swing = h.throwM = h.bowM = null;
+      h.handEmpty = false;
+      clearInput();
+      AUDIO.play('fail'); Platform.gameplayStop();
+    }
+  }
+  function burst(x, y, color, n, sp) {
+    for (let i = 0; i < n && G.parts.length < 150; i++) {
+      const a = Math.random() * Math.PI * 2, v = sp * (.4 + Math.random() * .8);
+      G.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .25 + Math.random() * .1, t: 0, color, s: 1.5 + Math.random() * 1.2 });
+    }
+  }
+  const inFloor = a => { const f = FIELD.floor; return a.x > f.x0 + 4 && a.x < f.x1 - 4 && a.y > f.y0 + 4 && a.y < f.y1 - 4; };
+
+  // ---------- 업데이트 ----------
+  function updatePlay(dt) {
+    const r = G.run, h = G.hero, f = FIELD.floor;
+    if (h.dead) {
+      h.deadT += dt;
+      if (h.deadT > 0.9) showResult('fail');
+      return;
+    }
+    r.roundT += dt;
+    // 장수
+    if (h.buff && G.parts.length < 150 && Math.random() < .15) G.parts.push({ x: h.x + (Math.random() - .5) * 30, y: h.y - Math.random() * 10, vx: 0, vy: -50, life: .35, t: 0, color: '#FFD166', s: 2 });
+    readMove();
+    h.moving = !!(input.mx || input.my);
+    if (h.moving && !h.dash && h.cast?.k !== 'turtle' && h.cast?.k !== 'cannon') {
+      const spd = r.st.speed * heroSpd(), hx0 = h.x, hy0 = h.y; h.x += input.mx * spd * dt; h.y += input.my * spd * dt; h.walkT += dt;
+      const d = Math.hypot(input.mx, input.my); h.dir = { x: input.mx / d, y: input.my / d };
+      h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
+      if (moveTo) { if (Math.hypot(h.x - hx0, h.y - hy0) < spd * dt * .2) { if ((moveTo.stuck += dt) > .15) moveTo = null; } else moveTo.stuck = 0; }   // 벽에 막히면 멈춰요
+    }
+    h.x = clamp(h.x, f.x0 + 12, f.x1 - 12); h.y = clamp(h.y, f.y0 + 22, f.y1);
+    if (rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3) { const l = Math.hypot(rstick.x, rstick.y); h.dir = { x: rstick.x / l, y: rstick.y / l }; }   // 오른쪽 손잡이를 밀면 조준 쪽을 봐요
+    if (h.rangedT > 0) h.rangedT -= dt;
+    updateThrow(h, dt); updateBow(h, dt); if (h.handEmpty && !h.throwM && (h.rangedCd <= 0 || h.swing)) h.handEmpty = false;   // 쿨타임이 끝나면 무기가 다시 손에
+    // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
+    if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
+    h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.boostT = Math.max(0, (h.boostT || 0) - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
+    h.meleeCd -= dt; h.rangedCd -= dt;
+    if (h.swing) {
+      h.swing.t += dt;
+      if (!h.swing.hit && h.swing.t >= SWING.wind + SWING.strike * wp().hitK) { h.swing.hit = true; meleeStrike(); }
+      if (h.swing.t >= SWING.wind + SWING.strike + SWING.follow) h.swing = null;
+    }
+    if (aim && !aim.drag && performance.now() / 1000 - aim.t0 >= AIM_HOLD) { aim.drag = true; aim.t = aimPoint(aim); }   // 0.2초 꾹 누르면 조준 모드
+    const stickOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3 && !arrowHeld();   // 손잡이를 밀면 계속 쏘기, 화살표를 누르는 동안은 멈춤 (GDD 0-18)
+    const mel = input.melee || input.mMelee || keys.has('KeyJ') || buf.melee > 0, rng = input.ranged || input.mRanged || keys.has('KeyK') || buf.ranged > 0 || stickOn;
+    if (!normalAttackLocked()) {
+      if (mel && h.meleeCd <= 0) { melee(); buf.melee = 0; } else if (rng && h.rangedCd <= 0) { ranged(); buf.ranged = 0; }
+    } else h.attackLock = Math.max(0, h.attackLock - dt);
+    if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
+    updateSkills(dt);
+    useQueuedSkill(h);
+
+    if (r.clearT < 0) updateSpawns(dt);
+
+    // 외계인
+    for (const a of G.aliens) {
+      if (a.dead) continue;
+      a.flash = Math.max(0, a.flash - dt); a.recoil = Math.max(0, a.recoil - dt);
+      if (a.skillLiftT > 0) a.skillLiftT = Math.max(0, a.skillLiftT - dt);
+      a.edgeT = Math.max(0, (a.edgeT || 0) - dt); a.hitT = Math.max(0, (a.hitT || 0) - dt); a.stun = Math.max(0, (a.stun || 0) - dt);
+      const dx = h.x - a.x, dy = h.y - a.y, d = Math.hypot(dx, dy) || 1;
+      // 점프: 웅크림(바닥 원 예고) → 공중(포물선) → 착지 충격 (원 안이면 피해, 무적이면 안 맞음)
+      if (a.jump) {
+        const J = a.jump, C = a.jumpCfg; J.t += dt;
+        if (J.ph === 'crouch') { if (J.t >= C.crouch) { J.ph = 'air'; J.t = 0; J.sx = a.x; J.sy = a.y; } }
+        else if (J.ph === 'land') { if (J.t >= .15) a.jump = null; }
+        else {
+          const q = Math.min(1, J.t / C.air), e = q * q * (3 - 2 * q);
+          a.x = J.sx + (J.tx - J.sx) * e; a.y = J.sy + (J.ty - J.sy) * e; a.lift = Math.sin(Math.PI * q) * C.lift;
+          if (q >= 1) {
+            a.lift = 0; a.jump = { ph: 'land', t: 0, tx: J.tx, ty: J.ty }; a.jumpT = a.type === 'boss' ? C.gap : C.gap[G.run.round - 1];   // 착지 칸 0.15초 뒤 서기
+            if (Math.hypot(h.x - J.tx, h.y - J.ty) < C.r + h.r * .5) hurt(C.dmg, J.tx, J.ty);
+            G.fx.push({ kind: 'jumpLand', x: J.tx, y: J.ty, r: C.r, green: a.type === 'shooter', t: 0, life: .35 });
+            for (let i = 0; i < 8 && G.parts.length < 150; i++) { const an = i / 8 * Math.PI * 2; G.parts.push({ x: J.tx, y: J.ty, h0: 2, vx: Math.cos(an) * 90, vy: Math.sin(an) * 40, life: .3, t: 0, color: '#8E8679', s: 2.5 }); }
+            if (settings.shake) G.shake = Math.max(G.shake, a.type === 'boss' ? 3 : 1);   // 흔들림 1px, 보스 3px (디자인팀 12차)
+            AUDIO.play('impact');
+          }
+        }
+        continue;   // 점프 중엔 쫓기·쏘기·닿기 없음
+      }
+      // 스킬 제어 상태: freeze 멈춤(아무것도 못 함) · seal 공격 봉인 · root 묶기 · lift 띄우기
+      for (const k of ['freeze', 'seal', 'root', 'air', 'fear', 'mark', 'weak']) if (a[k] > 0) a[k] = Math.max(0, a[k] - dt);
+      if (a.fear > 0) {   // 룩셈부르크 2: 공포 — 장수 반대쪽으로 도망, 공격 못 함
+        const ex = a.x - h.x, ey = a.y - h.y, d = Math.hypot(ex, ey) || 1; a.x += ex / d * 120 * dt; a.y += ey / d * 120 * dt; a.vx = ex / d;
+        a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); continue;
+      }
+      if (a.airH) { a.lift = a.air > 0 ? Math.sin(Math.PI * Math.min(1, (a.airH - a.air) / a.airH)) * 34 : 0; if (!(a.air > 0)) a.airH = 0; }   // 칠레 1: 공중에 떠요
+      if (a.freeze > 0 || a.air > 0) {
+        if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-18 * dt); a.kb.x *= k; a.kb.y *= k; }
+        a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1);
+        continue;
+      }
+      if (a.jumpCfg && !a.entering && !(a.stun > 0)) {
+        a.jumpT -= dt;
+        if (a.jumpT <= 0) { a.jump = { ph: 'crouch', t: 0, tx: clamp(h.x, f.x0 + 20, f.x1 - 20), ty: clamp(h.y, f.y0 + 20, f.y1) }; continue; }   // 그 순간 장수가 있는 곳으로
+      }
+      let mx = 0, my = 0;
+      if (a.entering) { mx = a.dx; my = a.dy; if (inFloor(a)) a.entering = false; }
+      else if (a.type === 'shooter') {
+        if (d > 170) { mx = dx / d; my = dy / d; } else if (d < 120) { mx = -dx / d; my = -dy / d; } else { mx = -dy / d * .6; my = dx / d * .6; }
+        if (!(a.seal > 0)) a.shootT -= dt;   // 봉인되면 못 쏴요
+        if (a.shootT <= 0) { a.shootT = TEMP.SHOOTER_GAP; a.recoil = .12; G.eshots.push({ x: a.x, y: a.y, vx: dx / d * TEMP.ENEMY_SHOT_SPEED, vy: dy / d * TEMP.ENEMY_SHOT_SPEED, dmg: TEMP.ENEMY_SHOT_DMG, life: 3, col: '#B8D727' }); }
+      } else {
+        mx = dx / d; my = dy / d;
+        if (a.type === 'boss') {
+          if (!(a.seal > 0)) a.shootT -= dt;
+          if (a.shootT <= 0) {
+            a.shootT = TEMP.BOSS_RING_GAP;
+            for (let i = 0; i < TEMP.BOSS_RING_N; i++) { const an = i / TEMP.BOSS_RING_N * Math.PI * 2 + a.seed; G.eshots.push({ x: a.x, y: a.y - 30, vx: Math.cos(an) * TEMP.ENEMY_SHOT_SPEED * .8, vy: Math.sin(an) * TEMP.ENEMY_SHOT_SPEED * .8, dmg: TEMP.BOSS_SHOT_DMG, life: 3.5, col: '#CA57E5' }); }
+          }
+        }
+      }
+      // 서로 겹치지 않게
+      for (const b of G.aliens) { if (b === a) continue; const ex = a.x - b.x, ey = a.y - b.y, ed = Math.hypot(ex, ey); const mn = a.r + b.r; if (ed > 0 && ed < mn) { mx += ex / ed * .8; my += ey / ed * .8; } }
+      let chase = a.stun > 0 ? .15 : 1;   // 넉백 첫 0.04초는 쫓아오기 15%
+      if (a.root > 0) chase = 0;          // 리투아니아 2: 그 자리에 묶임
+      for (const z of G.zones) if (z.t >= 0 && z.slow && Math.hypot(a.x - z.x, a.y - z.y) < SKB.ZONE_D / 2) chase *= a.type === 'boss' ? .8 : .5;   // 핀란드 눈 함정: 느리게 (보스는 80%)
+      a.x += mx * a.speed * dt * chase; a.y += my * a.speed * dt * chase; if (chase > .2) a.vx = mx;
+      { const ml = Math.hypot(mx, my) || 1, kk = Math.min(1, dt * 8); a.fx = (a.fx || 0) + (mx / ml - (a.fx || 0)) * kk; a.fy = (a.fy || 0) + (my / ml - (a.fy || 0)) * kk; a.step = (a.step || 0) + dt * a.speed / 9; if (chase > .2 && (mx || my)) a.walkT = (a.walkT || 0) + dt; }   // 보는 방향(부드럽게)·걸음
+      if (a.kb) { a.x += a.kb.x * dt; a.y += a.kb.y * dt; const k = Math.exp(-18 * dt); a.kb.x *= k; a.kb.y *= k; }
+      if (!a.entering) { a.x = clamp(a.x, f.x0 + a.r * .6, f.x1 - a.r * .6); a.y = clamp(a.y, f.y0 + 10, f.y1); }
+      if (d < a.r + h.r && !(a.seal > 0)) hurt(a.type === 'boss' ? BAL.BOSS_CONTACT_DMG : BAL.CONTACT_DMG, a.x, a.y);   // 봉인되면 닿아도 안 아파요
+      if (h.dead) break;
+    }
+    G.aliens = G.aliens.filter(a => !a.dead);
+    if (h.dead) return;   // 쓰러짐이 클리어보다 먼저예요
+
+    // 우리 탄
+    if (G.shots.length > 120) G.shots.splice(0, G.shots.length - 120);
+    for (const s of G.shots) {
+      const step = s.lob != null ? Math.min(dt, s.life) : dt;
+      s.x += s.vx * step; s.y += s.vy * step; s.life -= dt; s.age += step;
+      if (s.lob != null && s.life <= 0) {
+        s.x = s.landX; s.y = s.landY;
+        hitCircle(s.landX, s.landY, s.lobR, s.lob, { heavy: false });
+        const n = s.skillN;
+        commonSkillFx('impact', s.landX, s.landY, s.lobR * 2, Math.atan2(s.vy, s.vx), n);
+        if (!skillSequence('skill/u/' + G.country.key + '-' + n)) {
+          sfx('art', s.landX, s.landY, 1.6, { img: 'skill/u/' + G.country.key + '-' + n, mode: 'drop', S: 150 });
+        } else barrageImpact(s, s.landX, s.landY);
+      }
+      if (s.kind === 'boomerang') {   // 호주 (사용자 확정): 던지고 돌아와요 — 갈 때·올 때 모두 맞히고 같은 외계인은 왕복에서 최대 2번
+        const out = s.x < f.x0 || s.x > f.x1 || s.y < f.y0 || s.y > f.y1;
+        if (!s.back && (s.age > .42 || out)) { s.back = true; s.hits = new Set(); if (s.dmgBack != null) s.dmg = s.dmgBack; }
+        if (s.back) {
+          const ex = h.x - s.x, ey = h.y - s.y, d = Math.hypot(ex, ey) || 1, sp = TEMP.SHOT_SPEED * 1.05;
+          s.vx += (ex / d * sp - s.vx) * Math.min(1, dt * 9); s.vy += (ey / d * sp - s.vy) * Math.min(1, dt * 9);
+          if (d < 20 || s.age > 3) s.life = 0; else s.life = Math.max(s.life, .1);
+        }
+        s.x = clamp(s.x, f.x0 - 10, f.x1 + 10); s.y = clamp(s.y, f.y0 - 10, f.y1 + 10);
+      }
+      else if (s.x < f.x0 - 10 || s.x > f.x1 + 10 || s.y < f.y0 - 10 || s.y > f.y1 + 10) {
+        if (s.bounce > 0) {   // 미국 1: 방 벽에 한 번 튕겨요
+          s.bounce--; if (s.x < f.x0 - 10 || s.x > f.x1 + 10) s.vx = -s.vx; if (s.y < f.y0 - 10 || s.y > f.y1 + 10) s.vy = -s.vy;
+          s.x = clamp(s.x, f.x0 - 9, f.x1 + 9); s.y = clamp(s.y, f.y0 - 9, f.y1 + 9);
+        } else s.life = 0;
+      }
+      if (s.stick != null && (s.life <= 0) && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); }
+      if (s.noHit) continue;
+      if (s.hits) {   // 꿰뚫는 탄(부메랑·충격파): 지나가며 맞히고, 한 번 지날 때 같은 외계인은 한 번만
+        for (const a of G.aliens) if (s.life > 0 && !a.dead && !s.hits.has(a) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + (s.kind === 'quake' ? 16 : 8)) ** 2) {
+          barrageImpact(s, a.x, a.y);
+          s.hits.add(a); const v = Math.hypot(s.vx, s.vy) || 1; damage(a, s.dmg, s.vx / v, s.vy / v, s.kind === 'quake', { skill: s.skill });
+        }
+        continue;
+      }
+      if (s.life <= 0 && !s.skill && s.kind === 'water') G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 });
+      const gunK = (s.kind === 'beam' || s.kind === 'bullet') && FX.GUN[G.country.key] ? G.country.key : null;
+      for (const a of G.aliens) if (s.life > 0 && !a.dead && !(s.chain && s.chain.has(a)) && !(s.volley && s.volley.has(a)) && (s.x - a.x) ** 2 + (s.y - a.y) ** 2 < (a.r + 6) ** 2) { damage(a, s.dmg, s.vx / TEMP.SHOT_SPEED, s.vy / TEMP.SHOT_SPEED, false, { gun: gunK, skill: s.skill }); s.life = 0; barrageImpact(s, a.x, a.y); if (s.chain) s.chain.add(a); if (s.volley) s.volley.add(a); if (s.onHit) s.onHit(a, s); if (s.stick != null && !s.stuck) { s.stuck = true; axeEnt(s.x, s.y, s.stick); } if (s.kind === 'water' && !s.skill) G.fx.push({ kind: 'splash', x: s.x, y: s.y - 22, t: 0, life: 0.4 }); }
+    }
+    G.shots = G.shots.filter(s => s.life > 0);
+    if (G.shots.length > 120) G.shots.splice(0, G.shots.length - 120);
+    G.aliens = G.aliens.filter(a => !a.dead);
+    // 외계인 탄
+    for (const s of G.eshots) {
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      if (!h.dead && (s.x - h.x) ** 2 + (s.y - h.y) ** 2 < (h.r + 5) ** 2) { hurt(s.dmg, s.x, s.y); s.life = 0; }
+    }
+    if (h.dead) return;
+    G.eshots = G.eshots.filter(s => s.life > 0 && s.x > -20 && s.x < FIELD.W + 20 && s.y > -20 && s.y < FIELD.H + 20);
+    // 화폐
+    for (const it of G.items) {
+      it.life -= dt;
+      if (dist2(it, h) < 26 * 26) {
+        it.life = 0; h.buff = { cur: it.cur, mul: CURRENCY_MUL[it.cur], t: BAL.ITEM_TIME, max: BAL.ITEM_TIME };
+        AUDIO.play('pickup'); burst(h.x, h.y - 20, COL.glow, 6, 80);
+      }
+    }
+    G.items = G.items.filter(it => it.life > 0);
+
+    // 라운드 클리어
+    if (r.clearT < 0 && remaining() <= 0) r.clearT = 0;
+    if (r.clearT >= 0 && (r.clearT += dt) > 0.7) roundCleared();
+  }
+
+  function roundCleared() {
+    const r = G.run;
+    Platform.gameplayStop();
+    r.maxRound = Math.max(r.maxRound, r.round);
+    if (r.round >= BAL.ROUNDS) {
+      // 파산 이어하기로 온 판은 6라운드를 깨도 또 파산이에요 ("다음 라운드를 깨면 또 파산") [개발팀 해석 · 기획팀 확인 필요]
+      if (r.bankrupts > 0) return bankrupt(true);
+      return startEnding();
+    }
+    const old = r.money; r.money = +(r.money - BAL.D).toFixed(2);
+    if (r.money <= 0) return bankrupt(false);
+    G.scene = 'roundPanel';
+    G.panel = { t: 0, old, now: r.money, line: t_(rnd(['round.clear.1', 'round.clear.2'])), round: r.round };
+    AUDIO.play('roundClear'); later(() => AUDIO.coins(4), 450);
+  }
+  function bankrupt(final) {
+    const r = G.run;
+    r.bankrupts++;
+    const line = r.bankrupts === 1 ? t_('bankrupt.first.' + String(1 + Math.floor(Math.random() * 10)).padStart(2, '0'))
+      : t_('bankrupt.again.0' + (1 + Math.floor(Math.random() * 3)));
+    AUDIO.coins(3);
+    showResult('bankrupt', { line, final });
+  }
+  function startEnding() {
+    G.scene = 'ending';
+    const top = G.country.rank === 1;   // 끝 화면 (GDD 0-4 "1위만 클리어", 사용자 2026-11-26): 1위 = 진짜 클리어 · 2~15위 = "여기까지"
+    G.ending = { t: 0, top, line: top ? t_(rnd(['round.clear.1', 'round.clear.2'])) : t_('end.far.a'), fell: false };
+    AUDIO.play('gameClear');
+  }
+  function updateEnding(dt) {
+    const e = G.ending; e.t += dt;
+    if (e.t < 2.2 && Math.random() < .5) burst(FIELD.W / 2 + (Math.random() - .5) * 300, FIELD.H * .2 + Math.random() * 200, COL.glow, 1, 40);
+    if (e.top) { if (e.t > 4.2) showResult('clear', { line: t_('end.after.' + String(1 + Math.floor(Math.random() * 10)).padStart(2, '0')) }); return; }   // 1위: 쓰러지지 않고 클리어 + 죽은 뒤 문구 10개 중 하나
+    if (e.t > 4.6) showResult('far', { line: t_('end.far.01') });   // 2~15위: 서 있고 "여기까지" (클리어·실패 아닌 따로 결과)
+  }
+  function showResult(kind, o = {}) {
+    const r = G.run, c = G.country;
+    Platform.gameplayStop();
+    const rounds = kind === 'clear' || kind === 'far' ? 6 : kind === 'bankrupt' ? r.round : r.round - 1;
+    if (kind === 'far') { const fr = store.get('far', {}); fr[c.key] = { kills: Math.max(r.kills, (fr[c.key] || {}).kills || 0), n: ((fr[c.key] || {}).n || 0) + 1 }; store.set('far', fr); }   // "여기까지" 기록은 클리어·실패와 따로
+    const prev = best[c.key], isNew = !prev || rounds > prev.rounds || (rounds === prev.rounds && r.kills > prev.kills);
+    if (isNew) { best[c.key] = { rounds, kills: r.kills, far: kind === 'far' || undefined }; store.set('best', best); later(() => AUDIO.play('best'), 700); }
+    G.result = { kind, rounds, kills: r.kills, isNew, line: o.line || '', final: !!o.final, t: 0, time: kind === 'clear' || kind === 'far' ? r.playT || 0 : null };
+    G.scene = 'result';
+  }
+
+  let wasPortrait = false;
+  // 배경음악 고르기 (sound.md): 시작·나라 고르기 = 메뉴 · 전투 = 세 층 (3라운드~ 타악, 5라운드~ 금관) · 보스가 살아 있으면 보스 곡 · 결말 = 승리/패배 (반복 없음)
+  const BOSS_MUSIC_DELAY = .9;   // 천둥(1.6초)이 울리기 시작하고 0.9초 뒤 보스 곡 [제안]
+  let musicLast = [null, 1];
+  function musicWant() {
+    const s = G.scene, r = G.run;
+    if (s === 'title' || s === 'select' || s === 'loading') return ['menu', 1];
+    if ((s === 'play' || s === 'roundPanel') && r) {
+      if (s === 'play' && r.bossSpawned && r.roundT - (r.bossAt || 0) > BOSS_MUSIC_DELAY && G.aliens.some(a => a.type === 'boss' && !a.dead)) return ['boss', 1];
+      return ['battle', r.round >= 5 ? 3 : r.round >= 3 ? 2 : 1];
+    }
+    if (s === 'ending') return ['win', 1];   // 1위 클리어·2~15위 "여기까지" 둘 다 승리 곡 [제안]
+    if (s === 'result' && G.result) return [G.result.kind === 'clear' || G.result.kind === 'far' ? 'win' : 'lose', 1];
+    return musicLast;   // 광고 중 등: 그대로 (광고 중엔 전체 음소거)
+  }
+  function updateEffects(dt, combat) {
+    G.shake = Math.max(0, G.shake - dt * 20); G.hurtFlash = Math.max(0, G.hurtFlash - dt); G.skillFlash = Math.max(0, (G.skillFlash || 0) - dt);
+    for (const p of G.parts) { p.t += dt; if (p.t > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .92; p.vy *= .92; } } G.parts = G.parts.filter(p => p.t < p.life);
+    if (G.kick) { G.kick.t += dt; if (G.kick.t > .1) G.kick = null; }
+    for (const e of G.fx.slice()) {
+      if (combat && e.linkDmg) sweepLink(e, e.style, linkLine(e.x, e.gy, e.x1, e.y1), e.t, e.t + dt, e.life, e.linkDmg);
+      e.t += dt;
+      if (e.z && !G.zones.includes(e.z) && !e.zoneGone) {
+        e.zoneGone = true;
+        e.life = Math.min(e.life, e.t + .3);
+      }
+      if (combat && e.arrive && e.t >= e.life) e.arrive();
+    }
+    G.fx = G.fx.filter(e => e.t < e.life);
+  }
+  function update(dt) {
+    syncLang(); musicLast = musicWant(); AUDIO.music(musicLast[0], musicLast[1]);
+    const pt = portrait();
+    if (pt !== wasPortrait) { wasPortrait = pt; clearInput(); if (pt && G.scene === 'play' && !G.paused) setPause(true); }
+    for (const m of G.msgs) m.t -= dt; G.msgs = G.msgs.filter(m => m.t > 0);
+    if (pt || G.scene === 'ad') return;
+    if (G.scene === 'play') {
+      if (G.paused) return;
+      if (G.hero.dead) { updatePlay(dt); return; }
+      buf.melee = Math.max(0, buf.melee - dt); buf.ranged = Math.max(0, buf.ranged - dt);
+      mousePending();
+      if (G.hitstop > 0) { G.hitstop -= dt; return; }
+      if (G.run && !G.hold && G.run.clearT < 0) G.run.playT = (G.run.playT || 0) + dt;   // 실제 전투 시간만 세요
+      const gdt = G.slow > 0 ? dt * .7 : dt;
+      if (G.slow > 0) G.slow -= dt;
+      G.t += gdt; G.combatT += gdt;
+      updateEffects(gdt, true);
+      updatePlay(gdt);
+      return;
+    }
+    G.t += dt;
+    if (G.scene === 'ending') updateEffects(dt, false);
+    if (G.scene === 'roundPanel') { G.panel.t += dt; if (G.panel.t > 2.8) { G.run.round++; startRound(); } }
+    else if (G.scene === 'ending') updateEnding(dt);
+    else if (G.scene === 'result') G.result.t += dt;
+  }
+
+  // ---------- 그리기 ----------
+  const FIELD_SCENES = new Set(['play', 'roundPanel', 'ending', 'ad']);
+  const BACK3D = new Set(['select', 'result']);
+  function draw() {
+    FX.flat = use3d ? .62 : .35;
+    ctx.setTransform(DPR * U, 0, 0, DPR * U, 0, 0);
+    UI.hits = [];
+    if (use3d && R3D.lost) { use3d = false; R3D.show(false); }   // 3D가 죽으면(메모리 등) 그 자리에서 2D로
+    const f3 = use3d && FIELD_SCENES.has(G.scene) && !portrait();
+    // 나라 고르기·결과 화면: 3D 빈 방을 천천히 도는 배경 (2.5D 맞춤) · 시작 화면은 디자인 배경 그림 그대로
+    const bg3 = use3d && !f3 && BACK3D.has(G.scene) && !portrait() && R3D.backdrop(G.t, W, H, reduceMotion);
+    if (use3d) R3D.show(f3 || !!bg3);
+    if (f3) ctx.clearRect(0, 0, VW, VH);
+    else if (bg3) { ctx.clearRect(0, 0, VW, VH); ctx.fillStyle = 'rgba(15,17,22,.78)'; ctx.fillRect(0, 0, VW, VH); }
+    else { ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, VW, VH); }
+    if (portrait()) return drawRotate();
+    switch (G.scene) {
+      case 'loading': return drawLoading();
+      case 'title': return drawTitle();
+      case 'select': return drawSelect();
+      case 'play': drawField(); drawHUD(); if (G.touchUI) drawControls(); drawMsgs(); drawInvTimer(); if (G.paused && !G.hold) drawPause(); return;
+      case 'roundPanel': drawField(); drawHUD(); drawRoundPanel(); return;
+      case 'ending': drawField(); drawEnding(); return;
+      case 'result': return drawResult();
+      case 'ad': drawField(); ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(0, 0, VW, VH); return;
+    }
+  }
+
+  function drawLoading() {
+    UI.stars(G.t);
+    UI.bar(VW / 2 - 120, VH * .6, 240, 10, G.load, COL.gold);
+    UI.txt(t_('x.loading'), VW / 2, VH * .5, 14, COL.muted, 'center', 600);
+  }
+  function drawRotate() {
+    ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, VW, VH);
+    UI.I.phone(VW / 2, VH / 2, Math.min(VW, VH) * .5, COL.fg, reduceMotion ? 0.95 : G.t);
+  }
+
+  // 시작 화면 돈더미 (ui.md · 시안 코드). 동전이 수천 개라 한 번만 그려 두고 다시 써요
+  const hash = i => { const v = Math.sin(i * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+  function coinShape(x, cx, cy, r, tilt = .45, shade = 0) {
+    const g = x.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+    g.addColorStop(0, shade ? '#B8862E' : '#FFE08A'); g.addColorStop(.5, shade ? '#9A6A1E' : '#E0A93A'); g.addColorStop(1, '#7A4E14');
+    x.fillStyle = '#6B4410'; x.beginPath(); x.ellipse(cx, cy + r * tilt * .35, r, r * tilt, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, r, r * tilt, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = 'rgba(255,240,190,.55)'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, cy, r * .72, r * tilt * .72, 0, 0, Math.PI * 2); x.stroke();
+  }
+  const pileTop = (u, base, hgt) => base - hgt * Math.pow(1 - Math.abs(u), 1.6);
+  function drawPile(x, cx, base, wid, hgt, seed) {
+    const n = Math.floor(wid * hgt / 30), items = [], curs = Object.keys(CURRENCY_MUL);
+    for (let i = 0; i < n; i++) { const u = hash(seed + i) * 2 - 1, v = hash(seed + i * 7.3), top = pileTop(u, base, hgt); items.push([cx + u * wid / 2, top + v * (base - top), i]); }
+    items.sort((a, b) => a[1] - b[1]);
+    for (const [px, py, i] of items) {
+      const k = hash(seed + i * 3.1), im = UI.img['item/' + curs[i % curs.length]];
+      if (k < .045 && im && im.naturalWidth) { x.save(); x.translate(px, py); x.rotate((hash(i) - .5) * 1.2); const w = 34, h = w * im.naturalHeight / im.naturalWidth; x.drawImage(im, -w / 2, -h / 2, w, h); x.restore(); }
+      else coinShape(x, px, py, 8 + k * 8, .42 + hash(i * 5) * .2, py > base - hgt * .25 ? 1 : 0);
+    }
+  }
+  let pileCache = null;
+  function titlePiles() {
+    const key = `${W}x${H}x${DPR}`;
+    if (pileCache && pileCache.key === key) return pileCache.cv;
+    const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+    const x = c.getContext('2d'); x.setTransform(DPR * U, 0, 0, DPR * U, 0, 0);
+    drawPile(x, VW * .17, VH * 1.02, 380, 230, 1); drawPile(x, VW * .83, VH * 1.02, 380, 230, 500); drawPile(x, VW / 2, VH * 1.1, 520, 70, 900);
+    pileCache = { key, cv: c }; return c;
+  }
+  const TITLE_CURS = [['USD', .1, .2, 0], ['EUR', .27, .12, 1.3], ['GBP', .36, .42, 2.1], ['JPY', .64, .42, .7], ['KRW', .73, .12, 1.9], ['CNY', .9, .2, 2.6]];
+
+  function drawTitle() {
+    const t = G.t;
+    const bg = UI.img['title-bg'], hasBg = !!(bg && bg.naturalWidth);
+    if (hasBg) { // 최종 배경 그림 (디자인팀 6차) — 화면을 꽉 채우게(cover)
+      const k = VW / bg.naturalWidth, h = bg.naturalHeight * k;   // 폭에 맞추고 아래 정렬 (위쪽 벽은 잘려요)
+      ctx.drawImage(bg, 0, VH - h, VW, h);
+    } else {
+    ctx.globalAlpha = .55; UI.draw('room', 0, 0, VW, VH); ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(10,8,6,.45)'; ctx.fillRect(0, 0, VW, VH);
+    const gl = ctx.createRadialGradient(VW / 2, VH * 1.05, 40, VW / 2, VH * 1.05, 520); gl.addColorStop(0, 'rgba(255,190,80,.45)'); gl.addColorStop(1, 'rgba(255,190,80,0)'); ctx.fillStyle = gl; ctx.fillRect(0, 0, VW, VH);
+    // 떨어지는 동전
+    if (!reduceMotion) for (let i = 0; i < 22; i++) { const sp = 40 + hash(i) * 50, y = ((t * sp + hash(i * 3) * VH * 1.4) % (VH * 1.4)) - 40; coinShape(ctx, hash(i * 9) * VW, y, 4 + hash(i * 2) * 4, .25 + .2 * Math.abs(Math.sin(t * 4 + i))); }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(titlePiles(), 0, 0); ctx.restore();
+    if (!reduceMotion) for (const [cx, seed] of [[VW * .17, 1], [VW * .83, 500]]) for (let i = 0; i < 6; i++) {
+      const ph = (t * .8 + hash(seed + i * 11)) % 1, u = hash(seed + i * 13) * 2 - 1;
+      ctx.globalAlpha = Math.sin(ph * Math.PI); UI.I.star(cx + u * 190 * .8, pileTop(u, VH * 1.02, 230 * (.6 + hash(i) * .4)), 12, '#FFF6D6'); ctx.globalAlpha = 1;
+    }
+    }
+    // 떠 있는 화폐 6개 (사용자 승인)
+    for (const [c, u, v, ph] of TITLE_CURS) {
+      const im = UI.img['item/' + c]; if (!im || !im.naturalWidth) continue;
+      const bob = reduceMotion ? 0 : Math.sin(t * 1.6 + ph) * 6, rot = reduceMotion ? 0 : Math.sin(t * 1.1 + ph) * .08, w = 64, h = w * im.naturalHeight / im.naturalWidth, cx = VW * u, cy = VH * v + bob;
+      const g = ctx.createRadialGradient(cx, cy, 4, cx, cy, 52); g.addColorStop(0, 'rgba(255,209,102,.35)'); g.addColorStop(1, 'rgba(255,209,102,0)'); ctx.fillStyle = g; ctx.fillRect(cx - 56, cy - 56, 112, 112);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 10; ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore();
+      if (!reduceMotion) { const q = (t * .7 + ph) % 1; ctx.globalAlpha = Math.sin(q * Math.PI); UI.I.star(cx + w * .35, cy - h * .4, 12, '#FFF6D6'); ctx.globalAlpha = 1; }
+    }
+    const sh = ctx.createRadialGradient(VW / 2, VH * .26, 20, VW / 2, VH * .26, 300); sh.addColorStop(0, 'rgba(10,8,6,.55)'); sh.addColorStop(1, 'rgba(10,8,6,0)'); ctx.fillStyle = sh; ctx.fillRect(0, 0, VW, VH * .6);
+    // 장수 4명: 더미 위에 서요 (판마다 무작위)
+    if (!G.titleHeroes.length) { const pool = COUNTRIES.map(c => c.key).sort(() => Math.random() - .5); G.titleHeroes = pool.slice(0, 4); }
+    (hasBg ? [[.09, .86], [.23, .80], [.77, .80], [.91, .86]] : [[.1, .93], [.24, .86], [.76, .86], [.9, .93]]).forEach(([u, f], i) => UI.hero(G.titleHeroes[i], VW * u, VH * f, 150, { flip: i >= 2, sy: reduceMotion ? 1 : 1 + Math.sin(t * 2.2 + i * 1.7) * .015 }));
+    // 제목: 나라를 고르기 전엔 영어
+    const title = lastCountry == null ? I18N.t.call({ lang: 'en' }, 'title') : t_('title');
+    ctx.save(); ctx.shadowColor = 'rgba(217,174,79,.7)'; ctx.shadowBlur = 14;
+    UI.para(title, VW / 2, VH * .25, 30, COL.fg, Math.min(420, VW * .45), 36, 800); ctx.restore();
+    const pr = 44 * (1 + (reduceMotion ? 0 : Math.sin(G.t * 3) * .03));
+    UI.btnMain('start', VW / 2, VH * .66, pr, 'play');
+    if (lastCountry != null && best[COUNTRIES[lastCountry].key]) {
+      const b = best[COUNTRIES[lastCountry].key];
+      if (b.far) UI.I.flag(VW / 2 - 40, VH * .88, 18, COL.glow); else UI.I.trophy(VW / 2 - 40, VH * .88, 18, COL.gold); UI.flag(COUNTRIES[lastCountry].iso, VW / 2 - 24, VH * .88 - 6, 17, 12);
+      UI.txt(`${b.rounds}/6 · ${b.kills}`, VW / 2 + 22, VH * .88, 14, COL.muted, 'center', 700);
+    }
+    UI.btnSub('sound', VW * .93, VH * .1, 44, 'speaker', !settings.sound);
+  }
+
+  // 나라 고르기
+  const CARD = { w: 76, h: 64, gap: 14, cols: 5 };
+  const selArea = () => ({ x: VW * .06, y: VH * .2, w: VW * .54, h: VH * .75 });
+  const selMaxScroll = () => Math.max(0, Math.ceil(COUNTRIES.length / CARD.cols) * (CARD.h + CARD.gap) - CARD.gap - selArea().h + 6);
+  function scrollToSel() {
+    const row = Math.floor(G.sel / CARD.cols), top = row * (CARD.h + CARD.gap), a = selArea();
+    if (top < G.selScroll) G.selScroll = top;
+    if (top + CARD.h > G.selScroll + a.h) G.selScroll = top + CARD.h - a.h + 4;
+    G.selScroll = clamp(G.selScroll, 0, selMaxScroll());
+  }
+  function drawSelect() {
+    if (!use3d) UI.stars(G.t * .3);
+    UI.btnSub('back', VW * .08, VH * .11, 44, 'back');
+    UI.txt(t_('ui.02'), VW * .14, VH * .11, 18, COL.fg, 'left', 800);
+    const a = selArea(), gx = (a.w - CARD.cols * CARD.w) / (CARD.cols - 1);
+    ctx.save(); ctx.beginPath(); ctx.rect(a.x - 4, a.y - 4, a.w + 8, a.h + 8); ctx.clip();
+    COUNTRIES.forEach((c, i) => {
+      const col = i % CARD.cols, row = Math.floor(i / CARD.cols);
+      const x = a.x + col * (CARD.w + gx), y = a.y + row * (CARD.h + CARD.gap) - G.selScroll;
+      if (y > a.y + a.h || y + CARD.h < a.y) return;
+      UI.rr(x, y, CARD.w, CARD.h, 8, '#1E1C1F', i === G.sel ? COL.glow : COL.frame, i === G.sel ? 3 : 1.5);
+      // 장수 위쪽 절반(투구·상체)을 같은 비율로 잘라 넣어요
+      const im = UI.img['hero/' + c.key];
+      if (im && im.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.roundRect(x + 2, y + 2, CARD.w - 4, CARD.h - 4, 6); ctx.clip(); const s = (CARD.w - 4) / (im.naturalWidth * .62); ctx.drawImage(im, im.naturalWidth * .19, 0, im.naturalWidth * .62, im.naturalHeight * .52, x + 2, y + 2, CARD.w - 4, im.naturalHeight * .52 * s); ctx.restore(); }
+      UI.flag(c.iso, x + 5, y + CARD.h - 15, 14, 10);
+      UI.rr(x + CARD.w - 30, y + CARD.h - 17, 26, 13, 4, 'rgba(15,17,22,.8)');
+      UI.txt('#' + c.rank, x + CARD.w - 17, y + CARD.h - 10.5, 9.5, COL.fg, 'center', 700);
+      if (y + CARD.h > a.y && y < a.y + a.h) UI.hit('card:' + i, x, Math.max(y, a.y), CARD.w, Math.min(y + CARD.h, a.y + a.h) - Math.max(y, a.y));
+    });
+    ctx.restore();
+    // 스크롤 막대
+    const ms = selMaxScroll(); if (ms > 0) { const th = a.h * a.h / (a.h + ms); UI.rr(a.x + a.w + 8, a.y + (a.h - th) * G.selScroll / ms, 4, th, 2, 'rgba(242,227,198,.3)'); }
+
+    // 정보 패널
+    const c = COUNTRIES[G.sel], st = stats(c.money), px = VW * .63, pw = VW * .31, cx = px + pw / 2;
+    UI.panel(px, VH * .05, pw, VH * .9);
+    ctx.save(); ctx.globalAlpha = .9; ctx.fillStyle = 'rgba(255,209,102,.4)'; ctx.beginPath(); ctx.ellipse(cx, VH * .05 + 118, 34, 8, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    UI.hero(c.key, cx, VH * .05 + 118, 108, { sy: reduceMotion ? 1 : 1 + Math.sin(G.t * 2.2) * .015 });
+    UI.flag(c.iso, cx - 70, VH * .05 + 130, 22, 15);
+    UI.txt(c.native, cx + 12, VH * .05 + 138, 20, COL.fg, 'center', 800, pw - 70);
+    UI.txt(`??? · #${c.rank}`, cx, VH * .05 + 162, 17, COL.gold, 'center', 800);   // 시작 돈 가림 (GDD 0-13)
+    // 능력치는 숫자·막대 모두 "???" (GDD 0-13 사용자 "그냥??? 이렇게 해버려") · 스킬 횟수는 모든 나라 같은 규칙이라 그대로
+    const bars = [['heart', '???', 0, COL.red], ['sword', '???', 0, COL.fg], ['speed', '???', 0, COL.fg], ['bolt', BAL.SKILL_PER_RUN, 1, COL.glow]];
+    bars.forEach(([ic, v, f, icc], i) => {
+      const y = VH * .05 + 186 + i * 17;
+      UI.I[ic](px + 22, y, 14, icc); UI.bar(px + 36, y - 4, pw - 84, 8, f, COL.glow); UI.txt(String(v), px + pw - 14, y, 11, COL.fg, 'right', 700);
+    });
+    UI.txt('???', cx, VH * .05 + 260, 10.5, COL.muted, 'center', 600, pw - 16);   // 출처 가림 (GDD 0-13)
+    UI.btnWide('confirm', cx, VH * .95 - 32, Math.min(160, pw - 20), 44, 'play', t_('ui.01'), 'main');
+  }
+
+  // 전장
+  function drawField() {
+    if (use3d) return drawField3D();
+    const fb = fieldBox;
+    ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH);
+    ctx.save();
+    const [sx, sy] = shakeOffset();
+    ctx.translate(fb.x + sx, fb.y + sy); ctx.scale(fb.s, fb.s);
+    UI.draw('room', 0, 0, FIELD.W, FIELD.H);
+    drawRoomLight();
+    const h = G.hero, r = G.run, t = G.t;
+    // 바닥 화폐
+    for (const it of G.items) {
+      const blink = it.life < 3 && Math.floor(it.life * 6) % 2 === 0;
+      ctx.save(); ctx.globalAlpha = blink ? .35 : 1;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(it.x, it.y + 2, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = COL.glow; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(it.x, it.y, 22, 8, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * it.life / BAL.ITEM_LIFE); ctx.stroke();
+      UI.sprite('item/' + it.cur, it.x, it.y + 4, 34);
+      ctx.restore();
+    }
+    // 그림자·깊이 순서
+    const ents = [...G.aliens.map(a => ({ y: a.y, x: a.x, a })), { y: h.y, x: h.x, h }].sort((p, q) => p.y - q.y);
+    const drawEnt = e => {
+      // 원근: 위(먼 쪽)는 0.92배, 아래(가까운 쪽)는 1.08배 — 발을 기준으로 키워요
+      const ps = perspective(e.y);
+      ctx.save(); ctx.translate(e.x, e.y); ctx.scale(ps, ps); ctx.translate(-e.x, -e.y);
+      if (e.h) drawHero(); else drawAlien(e.a);
+      ctx.restore();
+    };
+    const fl = FIELD.floor;
+    // 캐릭터 모양 그림자: 모든 캐릭터 그림자를 먼저 바닥에 깔아요 (다른 캐릭터 위로 그림자가 올라가지 않게)
+    ents.filter(e => e.y >= fl.y0 - 4).forEach(e => {
+      const ps = perspective(e.y); ctx.save(); ctx.translate(e.x, e.y); ctx.scale(ps, ps); ctx.translate(-e.x, -e.y);
+      if (e.h) castHero(); else castAlien(e.a);
+      ctx.restore();
+    });
+    ents.filter(e => e.y < fl.y0 - 4).forEach(drawEnt);    // 위쪽 벽 너머(들어오는 중)
+    drawWallStrip('top');                                   // 위쪽 벽이 그 앞을 가려요
+    ents.filter(e => e.y >= fl.y0 - 4).forEach(drawEnt);
+    drawWallStrip('sides');                                 // 양옆·아래 벽은 문으로 들어오는 외계인 앞에
+    // 효과
+    for (const e of G.fx) {
+      const k = e.t / e.life;
+      if (e.t < 0 || hidesBasicEffect(e)) continue;   // 늦게 시작하는 효과와 시전 중 겹친 평타
+      if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
+      else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }   // 번쩍임 끄면 처치 잔광 없이 파편만
+      else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
+      else if (e.kind === 'corpse') { const q = Math.min(1, k), mo = { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }; if (e.cell != null) UI.cellSprite(e.img, 15, e.cell, e.x, e.y + 2, e.hgt, mo); else UI.sprite(e.img, e.x, e.y + 2, e.hgt, mo); }
+      else if (e.kind === 'groundRing') { ctx.save(); ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      else if (e.kind === 'muzzle') { const bi = bulletImg(e.key); if (bi && e.t < .05) FX.cell(bi, 4, 0, e.x, e.y, e.a, 48); FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key, !!bi); }   // 총구 섬광 그림 48px (핀란드 연기는 코드)
+      else if (e.kind === 'gunHit') { if (settings.flash) { const bi = bulletImg(e.key); if (bi) FX.cell(bi, 4, 3, e.x, e.y, e.dir, 56 * (1 + .3 * k), 1 - k); else FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); } }   // 튀김 56px, 1→1.3배로 커지며 사라짐
+      else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }   // 번쩍임 끄면 외곽선·파편으로만
+      else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
+      else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); ctx.globalAlpha = 1; }
+      else if (e.type === 'link') drawAreaLink(e, k, at2d);
+      else if (e.type === 'prop') drawMovingProp(e, k, at2d);
+      else if (e.kind === 'skill') drawSkillFx(e, k);
+      else if (e.kind === 'basic') drawBasicFx(e, k);
+      else if (e.kind === 'ghost') drawGhost(e, k);
+      else if (e.kind === 'jumpLand') drawJumpLand(e, k);
+    }
+    drawSkills(at2d); drawJumps(at2d);
+    for (const s of G.shots) {
+      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / (s.lob != null ? s.age + s.life : .5)) * Math.PI) * 22 : s.kind === 'quake' ? -22 : 0;   // 충격파는 바닥에   // 투석은 포물선
+      softShadow(s.x, s.y, 7, 2.5, .28);   // 날아가는 것 아래 바닥 그림자 (높이가 보여요)
+      drawShotS(s, lift);
+    }
+    for (const s of G.eshots) { softShadow(s.x, s.y, 5, 2, .25); ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); ctx.restore(); }
+    for (const p of G.parts) { if (p.t < 0) continue; ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); } ctx.globalAlpha = 1;
+    ctx.restore();
+    // 맞음: 화면 테두리 빨강 (번쩍임 끄면 장수 테두리만)
+    if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
+  }
+
+  // ---- 2.5D (B안, 사용자 "b안"): 바닥·벽·문은 3D, 장수·외계인·화폐는 판(빌보드), 효과·HUD는 2D를 원근에 맞춰 위에 겹쳐요 ----
+  const HERO_BOX = { l: 80, t: 104, w: 160, h: 144, k: 2 };          // 장수 판: 발 기준 왼쪽 80 · 위 104 (무기 포함) · 2배 해상도
+  const GROUND_BOX = { w: 76, h: 30, k: 2, stretch: 2.1 };           // 발밑 빛·화폐 고리 (2D 납작 타원을 바닥에 맞게 세로로 늘려요)
+  const FX_H0 = { gunHit: 20, melee: 26, death: 22, core: 20, hit: 20, muzzle: 24, splash: 24, ring: 20, groundRing: 0, ghost: 0, skill: 0, jumpLand: 0 };   // 효과가 뜨는 높이 (바닥에서)
+  let heroCv = null, heroTex = null, groundCv = null, groundTex = null;
+  const itemCv = [], itemTex = [], jumpCv = [], jumpTex = [];
+  const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  // 캔버스를 비우고 (cx, cy) 가 가운데 오게 해서 그려요
+  function paintBox(cv2, k, ox, oy, cx, cy, fn) {
+    const c = cv2.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv2.width, cv2.height);
+    c.setTransform(k, 0, 0, k, ox * k, oy * k); c.translate(-cx, -cy);
+    paintTo(c, fn);
+  }
+  function shakeOffset() {
+    let sx = 0, sy = 0;
+    if (settings.shake) {
+      const shake = reduceMotion ? G.shake / 2 : G.fx.reduce((amount, e) => e.type === 'skillShake' ? Math.max(amount, e.amount) : amount, G.shake / 2);
+      if (shake > 0) { sx = (Math.random() * 2 - 1) * shake; sy = (Math.random() * 2 - 1) * shake; }
+      if (G.kick && (!reduceMotion || G.kick.amount == null)) {
+        const { x, y, t, amount } = G.kick;
+        const k = amount != null ? Math.max(0, 1 - t / .10)
+          : t < .018 ? t / .018 : Math.max(0, 1 - (t - .018) / .08);
+        sx += x * (amount ?? 2) * k; sy += y * (amount ?? 2) * k;
+      }
+    }
+    return [sx, sy];
+  }
+  function drawField3D() {
+    const fb = fieldBox, h = G.hero, [sx, sy] = shakeOffset();
+    if (!R3D.begin()) { ctx.fillStyle = COL.side; ctx.fillRect(0, 0, VW, VH); return; }
+    const GB = GROUND_BOX;
+    // 바닥 화폐: 시간 고리는 바닥에, 화폐는 서 있는 판
+    G.items.forEach((it, i) => {
+      const al = it.life < 3 && Math.floor(it.life * 6) % 2 === 0 ? .35 : 1;
+      if (!itemCv[i]) { itemCv[i] = mkCv(GB.w * GB.k, GB.h * GB.k); itemTex[i] = R3D.canvasTex(itemCv[i]); }
+      paintBox(itemCv[i], GB.k, GB.w / 2, GB.h / 2, it.x, it.y, () => {
+        ctx.strokeStyle = COL.glow; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(it.x, it.y, 22, 8, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * it.life / BAL.ITEM_LIFE); ctx.stroke();
+      });
+      itemTex[i].needsUpdate = true;
+      R3D.decal(itemTex[i], it.x, it.y, GB.w, GB.h * GB.stretch, { alpha: al });
+      R3D.blob(it.x, it.y, 15, .45 * al);
+      R3D.sprite(R3D.tex('item/' + it.cur), it.x, it.y + 4, 34, { alpha: al });
+    });
+    // 장수: 발밑 빛은 바닥에, 몸·무기는 판 하나 (기존 2D 그리기를 그대로 판에 그려요)
+    if (h) {
+      if (!heroCv) { heroCv = mkCv(HERO_BOX.w * HERO_BOX.k, HERO_BOX.h * HERO_BOX.k); heroTex = R3D.canvasTex(heroCv); groundCv = mkCv(GB.w * GB.k, GB.h * GB.k); groundTex = R3D.canvasTex(groundCv); }
+      paintBox(groundCv, GB.k, GB.w / 2, GB.h / 2, h.x, h.y, () => heroGround(false));
+      groundTex.needsUpdate = true;
+      R3D.decal(groundTex, h.x, h.y, GB.w, GB.h * GB.stretch, { order: 45 });
+      R3D.blob(h.x, h.y, 17, .6);
+      paintBox(heroCv, HERO_BOX.k, HERO_BOX.l, HERO_BOX.t, h.x, h.y, heroBody);
+      heroTex.needsUpdate = true;
+      R3D.sprite(heroTex, h.x, h.y, HERO_BOX.h, {}, { aspect: HERO_BOX.w / HERO_BOX.h, below: HERO_BOX.h - HERO_BOX.t, shadow: !(h.dead && G.scene !== 'ending') });
+    }
+    // 외계인
+    for (const a of G.aliens) {
+      const L = alienLook(a), mo = Object.assign({}, L.mo), v = mo.white ? 'white' : mo.edge || 'lit';
+      delete mo.white; delete mo.edge;
+      R3D.sprite(L.cell ? R3D.cellTex(L.name, v, 15, L.cell.i) : R3D.tex(L.name, v), a.x, a.y + 2, L.hgt * 1.04, mo, { upright: 40 });   // 카메라를 똑바로 보는 판(56° 기움)보다 16° 덜 눕혀 원근이 판에 걸리게 — 키는 1.04배로 보정
+      const lk = 1 - Math.min(.55, L.lift / 160); R3D.blob(a.x, a.y, a.r * 1.3 * (1 - L.hop * .03) * lk, .78 * lk);   // 뛰면 그림자가 작고 옅어져요
+    }
+    // 처치 직후 접히는 몸
+    for (const e of G.fx) if (e.kind === 'corpse' && e.t >= 0) { const q = Math.min(1, e.t / e.life); R3D.sprite(e.cell != null ? R3D.cellTex(e.img, 'lit', 15, e.cell) : R3D.tex(e.img), e.x, e.y + 2, e.hgt, { flip: e.flip, sx: 1 - .35 * q, sy: 1 - .35 * q, alpha: 1 - q }, { shadow: false }); }
+    // 점프 예고 원: 3D에선 진짜 바닥 무늬로 (공중의 외계인을 덮지 않게)
+    let ji = 0;
+    for (const a of G.aliens) {
+      if (!a.jump || a.jump.ph === 'land') continue;
+      const J = a.jump, C = a.jumpCfg, k = J.ph === 'crouch' ? J.t / C.crouch : 1, fill = J.ph === 'air' ? Math.min(1, J.t / C.air) : 0;
+      if (!jumpCv[ji]) { jumpCv[ji] = mkCv(128, 128); jumpTex[ji] = R3D.canvasTex(jumpCv[ji]); }
+      const x = jumpCv[ji].getContext('2d'); x.clearRect(0, 0, 128, 128);
+      x.globalAlpha = .3 + .5 * k; x.fillStyle = 'rgba(10,6,16,.5)'; x.beginPath(); x.arc(64, 64, 60, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'rgba(202,87,229,.45)'; x.beginPath(); x.arc(64, 64, 60 * fill, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = '#CA57E5'; x.lineWidth = 4; x.beginPath(); x.arc(64, 64, 60, 0, Math.PI * 2); x.stroke(); x.globalAlpha = 1;
+      jumpTex[ji].needsUpdate = true;
+      R3D.decal(jumpTex[ji], J.tx, J.ty, C.r * 2 * 64 / 60, C.r * 2 * 64 / 60, { order: 44 }); ji++;
+    }
+    for (const s of G.shots) R3D.blob(s.x, s.y, 7, .3);
+    for (const s of G.eshots) R3D.blob(s.x, s.y, 5, .28);
+    // 2D 겹치기: 바닥 점(x, fy)의 원근 자리·크기에 맞춰 기존 2D 그리기를 그대로 써요
+    ctx.save(); ctx.translate(fb.x + sx, fb.y + sy); ctx.scale(fb.s, fb.s);
+    const at = (x, fy, fn) => { const p = R3D.proj(x, fy); ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.s, p.s); ctx.translate(-x, -fy); fn(); ctx.restore(); };
+    for (const a of G.aliens) if (a.type === 'boss') at(a.x, a.y, () => bossBar(a, 140));
+    for (const e of G.fx) {
+      const k = e.t / e.life;
+      if (e.t < 0 || e.kind === 'corpse' || e.type === 'skillShake' || hidesBasicEffect(e)) continue;
+      if (e.type === 'link') { drawAreaLink(e, k, at); continue; }
+      if (e.type === 'prop') { drawMovingProp(e, k, at); continue; }
+      if (e.type === 'art' && (['front', 'orbit', 'trail'].includes(e.mode) || (e.seqDash && skillSequence(e.img)))) { at(G.hero.x, G.hero.y, () => drawRepresentative(e)); continue; }
+      const h0 = e.h0 != null ? e.h0 : (FX_H0[e.kind] || 0);
+      at(e.anchorX ?? e.x, e.y + h0, () => {
+        if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
+        else if (e.kind === 'death') { if (settings.flash) FX.sheet('death', k, e.x, e.y, 0, e.size, .8, e.green); }
+        else if (e.kind === 'core') { if (settings.flash) drawCore(e); }
+        else if (e.kind === 'groundRing') { ctx.globalAlpha = .25 * (1 - k); ctx.strokeStyle = '#E8D9A8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(e.x, e.y, 8 + 16 * k, (8 + 16 * k) * .35, 0, 0, Math.PI * 2); ctx.stroke(); }
+        else if (e.kind === 'muzzle') { const bi = bulletImg(e.key); if (bi && e.t < .05) FX.cell(bi, 4, 0, e.x, e.y, e.a, 48); FX.muzzle(ctx, e.x, e.y, e.a, e.t, e.key, !!bi); }   // 총구 섬광 그림 48px (핀란드 연기는 코드)
+      else if (e.kind === 'gunHit') { if (settings.flash) { const bi = bulletImg(e.key); if (bi) FX.cell(bi, 4, 3, e.x, e.y, e.dir, 56 * (1 + .3 * k), 1 - k); else FX.gunHit(ctx, e.x, e.y, k, e.key, e.dir); } }   // 튀김 56px, 1→1.3배로 커지며 사라짐
+        else if (e.kind === 'hit') { if (settings.flash) FX.drawHitAny(e.x, e.y, k, e.col, e.dir || 0, e.big, e.green, e.alpha); }
+        else if (e.kind === 'splash') FX.splash(ctx, e.x, e.y, k);
+        else if (e.kind === 'ring') { ctx.globalAlpha = 1 - k; UI.circ(e.x, e.y, 14 + k * 60, null, COL.glow, 4); }
+        else if (e.kind === 'skill') drawSkillFx(e, k);
+        else if (e.kind === 'basic') drawBasicFx(e, k);
+        else if (e.kind === 'ghost') drawGhost(e, k);
+        else if (e.kind === 'jumpLand') drawJumpLand(e, k);
+      });
+    }
+    drawSkills(at);
+    for (const s of G.shots) {
+      const lift = s.kind === 'sling' ? Math.sin(Math.min(1, s.age / (s.lob != null ? s.age + s.life : .5)) * Math.PI) * 22 : s.kind === 'quake' ? -22 : 0;   // 충격파는 바닥에
+      at(s.x, s.y, () => drawShotS(s, lift));
+    }
+    for (const s of G.eshots) at(s.x, s.y, () => { ctx.translate(s.x, s.y - 18); ctx.rotate(G.t * 8); ctx.fillStyle = s.col || '#CA57E5'; ctx.fillRect(-4, -4, 8, 8); ctx.strokeStyle = 'rgba(15,17,22,.7)'; ctx.lineWidth = 1.5; ctx.strokeRect(-4, -4, 8, 8); });
+    for (const p of G.parts) { if (p.t < 0) continue; const h0 = p.h0 != null ? p.h0 : 14; at(p.x, p.y + h0, () => { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }); }
+    R3D.render((fb.x + sx) * U, (fb.y + sy) * U, FIELD.W * fb.s * U, FIELD.H * fb.s * U);
+    ctx.restore();
+    if (G.hurtFlash > 0 && settings.flash) { ctx.strokeStyle = `rgba(255,90,95,${G.hurtFlash / .15 * .8})`; ctx.lineWidth = 10; ctx.strokeRect(fb.x + 5, fb.y + 5, FIELD.W * fb.s - 10, FIELD.H * fb.s - 10); }
+  }
+
+  // ---- 입체감 (사용자 "입체감이 전혀없어" → A안: 2D에 그림자·조명·원근·높이) ----
+  const perspective = y => { const f = FIELD.floor; return .86 + .26 * clamp((y - f.y0) / (f.y1 - f.y0), 0, 1); };   // 먼 쪽 0.86배 ~ 가까운 쪽 1.12배
+  function castAlien(a) {
+    const hgt = a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
+    const L = alienLook(a), mo = { flip: L.mo.flip, shadow: a.entering ? .15 : .3 };
+    if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, mo);
+  }
+  function castHero() {
+    const h = G.hero, c = G.country; if (!h || (h.dead && G.scene !== 'ending')) return;
+    const im = UI.img['dir/' + c.key]; if (!im || !im.naturalWidth) return;
+    const pose = h.cast || h.poseFollow;
+    const aim = pose?.ang ?? (!skillPoseActive(h) && h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x));
+    const [cell, flip] = heroDir(aim, c.key);
+    const bf = bodyFrame(h, cell);
+    UI.dirBody(c.key, bf.cell, h.x, h.y, 60, { flip, shadow: .3 }, bf.folder);
+  }
+  // 부드러운 타원 그림자 (가운데 진하고 가장자리로 사라져요)
+  function softShadow(x, y, rx, ry, a) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(.6, `rgba(0,0,0,${a * .5})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  // 방 조명: 위 왼쪽 따뜻한 빛 + 가장자리·구석 어둠 (한 번 그려 두고 다시 써요)
+  let roomLight = null;
+  function drawRoomLight() {
+    if (!roomLight) {
+      const c = document.createElement('canvas'), k = 2; c.width = Math.ceil(FIELD.W * k); c.height = Math.ceil(FIELD.H * k);
+      const x = c.getContext('2d'); x.scale(k, k);
+      const v = x.createRadialGradient(FIELD.W * .45, FIELD.H * .42, 60, FIELD.W * .5, FIELD.H * .5, FIELD.W * .62);
+      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(.65, 'rgba(8,6,12,.22)'); v.addColorStop(1, 'rgba(8,6,12,.6)');
+      x.fillStyle = v; x.fillRect(0, 0, FIELD.W, FIELD.H);
+      const far = x.createLinearGradient(0, 0, 0, FIELD.H); far.addColorStop(0, 'rgba(10,8,16,.22)'); far.addColorStop(.55, 'rgba(10,8,16,0)');   // 먼 쪽(위)이 조금 어두워요
+      x.fillStyle = far; x.fillRect(0, 0, FIELD.W, FIELD.H);
+      const l = x.createRadialGradient(FIELD.W * .32, FIELD.H * .28, 10, FIELD.W * .32, FIELD.H * .28, FIELD.W * .45);
+      l.addColorStop(0, 'rgba(255,226,180,.10)'); l.addColorStop(1, 'rgba(255,226,180,0)');
+      x.globalCompositeOperation = 'lighter'; x.fillStyle = l; x.fillRect(0, 0, FIELD.W, FIELD.H);
+      // 벽 바로 아래 바닥에 벽 그림자 (위쪽 벽이 빛을 가려요)
+      x.globalCompositeOperation = 'source-over';
+      const w = x.createLinearGradient(0, FIELD.floor.y0 - 8, 0, FIELD.floor.y0 + 22); w.addColorStop(0, 'rgba(0,0,0,.35)'); w.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = w; x.fillRect(0, FIELD.floor.y0 - 8, FIELD.W, 30);
+      const lw = x.createLinearGradient(FIELD.floor.x0 - 6, 0, FIELD.floor.x0 + 18, 0); lw.addColorStop(0, 'rgba(0,0,0,.28)'); lw.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = lw; x.fillRect(FIELD.floor.x0 - 6, 0, 24, FIELD.H);
+      roomLight = c;
+    }
+    ctx.drawImage(roomLight, 0, 0, FIELD.W, FIELD.H);
+  }
+  // 벽 띠를 캐릭터 위에 다시 그려 앞뒤 겹침을 만들어요 (room 그림의 같은 부분)
+  const WALL = { top: 44, side: 40, bottom: 358 };
+  function drawWallStrip(which) {
+    const im = UI.img.room; if (!im || !im.naturalWidth) return;
+    const kx = im.naturalWidth / FIELD.W, ky = im.naturalHeight / FIELD.H;
+    const lk = roomLight ? roomLight.width / FIELD.W : 1;
+    const part = (x, y, w, h) => { ctx.drawImage(im, x * kx, y * ky, w * kx, h * ky, x, y, w, h); if (roomLight) ctx.drawImage(roomLight, x * lk, y * lk, w * lk, h * lk, x, y, w, h); };   // 같은 조명도 입혀요
+    if (which === 'top') part(0, 0, FIELD.W, WALL.top);
+    else { part(0, WALL.top, WALL.side, FIELD.H - WALL.top); part(FIELD.W - WALL.side, WALL.top, WALL.side, FIELD.H - WALL.top); part(WALL.side, WALL.bottom, FIELD.W - WALL.side * 2, FIELD.H - WALL.bottom); }
+  }
+
+  function drawHero() { if (!G.hero) return; heroGround(); heroBody(); }
+  function heroGround(blob = true) {
+    const h = G.hero, r = G.run;
+    const money = r ? Math.max(0, r.money) : 50;
+    // 발밑: 그림자 + 금빛(돈 비율, 0.25~0.9) + 보는 방향 금빛 호
+    if (blob) { softShadow(h.x + 3, h.y + 1, 22, 7.5, .55); softShadow(h.x, h.y, 10, 3.5, .45); }
+    if (h.boostT > 0) { const q = Math.min(1, h.boostT / BAL.SKILL_TIME), red = h.boostT <= .4; ctx.save(); ctx.lineCap = 'round';   // 무적 남은 시간 (style-guide C안): 발밑 고리가 12시부터 시계 방향으로 남은 만큼, 0.4초 남으면 빨강
+      ctx.strokeStyle = 'rgba(201,206,214,.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = red ? '#FF6B6B' : '#C9CED6'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.ellipse(h.x, h.y, 22, 22 * .35, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * q); ctx.stroke(); ctx.restore(); }
+    { const ga = .25 + .65 * Math.min(1, money / 100);   // 돈 비율만큼 발밑 금빛 (납작한 판 대신 퍼지는 빛)
+      ctx.save(); ctx.translate(h.x, h.y); ctx.scale(1, .32); ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 30); g.addColorStop(0, `rgba(255,209,102,${ga * .75})`); g.addColorStop(.55, `rgba(255,209,102,${ga * .35})`); g.addColorStop(1, 'rgba(255,209,102,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+    if (h.buff) { ctx.strokeStyle = 'rgba(255,209,102,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, 0, Math.PI * 2); ctx.stroke(); }
+    const da = Math.atan2(h.dir.y, h.dir.x);
+    ctx.strokeStyle = 'rgba(255,209,102,.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(h.x, h.y, 26, 9, 0, da - .35, da + .35); ctx.stroke();   // 보는 방향 호: 옅게·짧게 (디자인팀)
+  }
+  function heroBody() {
+    const skillPose = skillPoseActive(G.hero);
+    // 연결 스킬의 판정은 기존 무기 끝 좌표를 계속 사용해요.
+    if (skillPose) heroBodyPose(false, true);
+    heroBodyPose(skillPose, false);
+  }
+
+  function heroBodyPose(skillPose, tipOnly) {
+    const h = G.hero, c = G.country, t = G.t;
+    const castingInvuln = castInvulnerable(h);
+    if (!tipOnly && !castingInvuln && h.skillT > 0 && !(h.boostT > 0)) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);   // 시전 뒤에 남는 돌진 무적 등
+    // 몸
+    let mo = { flip: h.dir.x < -0.05 };
+    if (h.boostT > 0 && (h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 2초: 몸 은빛 테두리, 끝나기 0.4초 전부터 2번 깜빡
+    let frame = 0;
+    if (h.dead && G.scene !== 'ending') { const k = Math.min(1, h.deadT / .6); mo.alpha = 1 - k * .5; mo.sy = 1 - k * .35; }
+    else if (!skillPose && h.swing) {
+      const s = h.swing, t1 = SWING.wind, t2 = t1 + SWING.strike, ca = Math.cos(s.ang), sa = Math.sin(s.ang);
+      let lunge;
+      if (FX.GUN[c.key]) { frame = s.t < .06 ? 5 : 6; lunge = s.t < .06 ? -1 * s.t / .06 : s.t < .11 ? -1 + 4 * (s.t - .06) / .05 : s.t < .23 ? 3 * (1 - (s.t - .11) / .12) : 0; }   // 총검: 내지를 때 몸 3px 앞으로
+      else if (s.t < t1) { frame = 5; lunge = -3 * (s.t / t1); }
+      else if (s.t < t2) { frame = 6; const k = (s.t - t1) / SWING.strike; lunge = -3 + 9 * (1 - Math.pow(1 - k, 3)); }
+      else { frame = 6; lunge = 6 * (1 - (s.t - t2) / SWING.follow); }
+      if (!reduceMotion) {
+        mo.ox = ca * lunge; mo.oy = sa * lunge * .6;
+        const squash = s.t >= t1 && s.t < t2 ? 1 : 0;
+        mo.sx = 1 + .08 * squash; mo.sy = 1 - .06 * squash;
+        mo.rot = (mo.flip ? -1 : 1) * (s.t < t1 ? -.1 : .14 * Math.max(0, lunge) / 6);
+      }
+    }
+    else if (h.bowM && (!skillPose || h.bowM.skill) && !h.bowM.rel && !reduceMotion) { const k = Math.min(1, h.bowM.t / h.bowM.T); mo.ox = -Math.cos(h.bowM.ang) * k; frame = 5; }   // 활 당기는 동안 몸 1px 뒤로
+    else if (!skillPose && h.throwM) { const p = throwPose(h), ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); frame = p.ph === 'wind' ? 5 : 6; mo.ox = ca * p.lean; mo.oy = sa * p.lean * .6; mo.rot = p.rot; mo.sx = p.sx; mo.sy = p.sy; }   // 던지기: 몸 기울기·회전·늘였다 줄이기
+    else if (!skillPose && h.atkT > 0 && FX.GUN[c.key]) { frame = 6; const e = G.combatT - (h.shotT == null ? -9 : h.shotT); if (!reduceMotion && e < .06) mo.ox = -Math.cos(h.aimShot || 0) * (1 - e / .06); }   // 총: 반동은 몸 1px 뒤로만, 기울지 않아요
+    else if (!skillPose && h.atkT > 0) { frame = h.atkT > .14 ? 5 : 6; if (!reduceMotion) { mo.rot = (mo.flip ? -1 : 1) * .16 * Math.sin((1 - h.atkT / .22) * Math.PI); mo.sx = 1.04; mo.sy = 1.04; } }
+    else if (h.moving && !(h.cast && UI.img['pose/' + c.key]?.naturalWidth)) { frame = reduceMotion ? 0 : 1 + Math.floor(h.walkT * 8) % 4; if (!reduceMotion) { const p = Math.abs(Math.sin(h.walkT * 11)); mo.oy = -p * 2; mo.rot = clamp(h.dir.x * .1, -.12, .12); } }
+    else if (!reduceMotion) mo.sy = 1 + Math.sin(t * 2.2) * .015;
+    if (!reduceMotion && h.heroSkill && (h.cast || h.barrage || h.dash)) {
+      const age = G.combatT - h.heroSkill.start;
+      const key = c.key, n = h.heroSkill.n;
+      if (key === 'ireland' && n === 1) mo.ox = (mo.ox || 0) + Math.sin(age * Math.PI * 40) * 2;
+      if (key === 'switzerland' && n === 2 && h.barrage && h.shotT != null) mo.ox = (mo.ox || 0) - Math.cos(h.barrage.ang) * 3 * clamp(1 - (G.combatT - h.shotT) / .06, 0, 1);
+      if (h.dash && (h.dash.k === 'seal' || h.dash.k === 'prints' || h.dash.k === 'leap')) {
+        const degrees = { seal: 8, prints: 5, leap: 15 }[h.dash.k];
+        const weight = h.dash.k === 'leap' ? Math.sin(Math.PI * h.dash.t / h.dash.dur) ** 4 : 1;
+        mo.rot = (mo.rot || 0) + Math.cos(h.dash.a0) * degrees * D2R * weight;
+      }
+    }
+    if (h.dash && h.dash.k === 'leap') mo.oy = (mo.oy || 0) - Math.sin(Math.PI * Math.min(1, h.dash.t / h.dash.dur)) * 70;   // 멕시코 1: 높이 뛰어올라요
+    if (G.scene === 'ending' && G.ending.fell) { const k = Math.min(1, (G.ending.t - 3.6) / .18); mo.rot = (mo.flip ? -1 : 1) * k * Math.PI / 2; mo.oy = -k * 6; }
+    if (h.inv > 0 && !h.dead && Math.floor(h.inv * 12) % 2 === 0) mo.alpha = .45;
+    mo.castOutline = castingInvuln && !(h.boostT > 0);
+    if (h.hitT > 0 && settings.flash) mo.white = true;
+    const drewHero = drawHero8(h, c, mo, skillPose, tipOnly);
+    if (tipOnly) return;
+    if (!drewHero) drawCastOutline(mo, () => UI.frame(c.key, frame, h.x, h.y, 60, mo));   // 8방향 그림이 없으면 예전 동작 시트
+    if (h.hitT > 0 && !settings.flash) { ctx.strokeStyle = COL.red; ctx.lineWidth = 2; ctx.strokeRect(h.x - 16, h.y - 60, 32, 60); }
+  }
+
+  function drawCastOutline(mo, drawBody) {
+    if (!mo.castOutline) return drawBody();
+    ctx.save();
+    if (UI.FILTER_OK && !mo.white) ctx.filter = 'drop-shadow(0 0 1px #fff)';
+    else { ctx.shadowColor = '#fff'; ctx.shadowBlur = 1; }
+    drawBody();
+    ctx.restore();
+  }
+
+  // ---- 8방향 몸 + 무기 360도 (7차 그림, 사용자 결정 "8방향 그림 + 무기 360도") ----
+  // 몸: 조준 각도를 8방향으로 나눠 5칸 중 하나(왼쪽은 뒤집기). 무기: 손 위치에서 조준 각도대로 돌려요
+  const OCT = [[2, false], [1, false], [0, false], [1, true], [2, true], [3, true], [4, false], [3, false]]; // 오른쪽부터 시계 방향 (외계인용)
+  // 장수 16방향 (사용자 결정 2026-11-26): 서기 시트 칸 수로 나라마다 고르기 — 9칸이면 16방향, 5칸이면 8방향
+  // 칸 = 아래 0 → 오른쪽 → 위 (n−1), 왼쪽 반은 뒤집기. 그림이 나라별로 차례로 들어와도 안 깨져요
+  const heroCols = key => { const im = UI.img['dir/' + key]; return im && im.naturalWidth && Math.round(im.naturalWidth / im.naturalHeight) >= 9 ? 9 : 5; };
+  function heroDir(aim, key = G.country.key) {
+    const n = heroCols(key), N = 2 * (n - 1), st = 2 * Math.PI / N, o = ((Math.round(aim / st) % N) + N) % N, qa = o * st;   // 먼저 칸 각도로 맞춰요 (8방향은 예전 OCT와 똑같아요)
+    const flip = Math.cos(qa) < -1e-6, a = flip ? Math.PI - qa : qa, ra = Math.atan2(Math.sin(a), Math.cos(a));
+    return [Math.round((Math.PI / 2 - ra) / (Math.PI / (n - 1))), flip];
+  }
+  // 무기 길이 = 장수 키 × 0.68, 창류(창·할버드·기병창)만 × 0.85
+  const wLen = c => (c.ranged === 'polearm' ? 0.85 : 0.68);   // 사용자 "ㅇㅇ 줄여": 한손 무기 0.65~0.7, 창·할버드·장창 0.85
+  // 손 위치 (칸 128×128 좌표, 발 = (64,124)) · 칸마다 무기를 몸 앞/뒤 어디에 그릴지 (디자인팀 c8ed6d9)
+  const HAND = [[47, 86, false], [86, 85, false], [64, 86, false], [82, 86, true], [88, 84, true]];   // ①아래 ②오른쪽아래 ③오른쪽 ④오른쪽위(뒤) ⑤위(뒤)
+  // 16방향(9칸) 손 위치 · 디자인팀 192칸 측정(7b20357, style-guide "무기 붙이는 손 위치 — 16방향", 30개국 공통) → 128칸 좌표로 바꿔 써요
+  const HAND9 = [[70, 129, 0], [72, 128, 0], [129, 128, 0], [80, 128, 0], [96, 129, 0], [113, 128, 1], [123, 129, 1], [120, 126, 1], [132, 126, 1]].map(([x, y, b]) => [x / 1.5, y / 1.5, !!b]);
+  const handAt = (cell, key = G.country.key) => (heroCols(key) === 9 ? HAND9 : HAND)[cell];
+  const REST = 0.52;      // 쉴 때 무기 각도 = 보는 방향 + 아래로 30°
+  const GUN_REST = 0.175; // 총은 쉴 때 아래로 10°만 (style-guide "총 모션", 사용자 "총검술 몰라?")
+  const THROWN = k => FX.THROWN(k) || k === 'boomerang';
+  const GUN_UP = 16;   // 손 자리(발 위 약 20)에서 16 위 = 발 위 36, 장수 키 60의 0.6 (사용자 "총을 어깨 높이로", 2026-11-26)
+  const GUN_SC = 32 / 46;   // 코드 총 길이 46 → 32px (style-guide "미국 공격 고치기")
+  function weaponAngle(h, a, skillPose) {
+    // 치기: 예비동작(뒤로) → 스윙(반대쪽까지) → 마무리(돌아옴). 찌르기는 각도 대신 앞뒤로 밀어요
+    if (skillPose) return { a, push: 0 };
+    const s = h.swing;
+    if (FX.GUN[G.country.key]) {   // 미국·핀란드 총: 쏘기↔쉬기 각도를 0.15초 동안 부드럽게, 연사 중엔 쉬기로 안 돌아가요
+      const tgt = s || h.rangedT > 0 || h.barrage ? 0 : 1, dtd = Math.min(.1, Math.max(0, G.combatT - (h.gunLast == null ? G.combatT : h.gunLast))); h.gunLast = G.combatT;
+      h.gunK = h.gunK == null ? tgt : h.gunK + Math.sign(tgt - h.gunK) * Math.min(Math.abs(tgt - h.gunK), dtd / .15);
+      if (!s) { const e = G.combatT - (h.shotT == null ? -9 : h.shotT); return { a: a + (Math.cos(a) >= 0 ? GUN_REST : -GUN_REST) * h.gunK, push: e < .06 ? -4 * (1 - e / .06) : 0 }; }   // 반동: 총 축 뒤로 4px, 0.06초 (위로 안 들려요)
+      const p = s.t < .06 ? -4 * s.t / .06 : s.t < .11 ? -4 + 16 * (1 - Math.pow(1 - (s.t - .06) / .05, 3)) : s.t < .23 ? 12 * (1 - (s.t - .11) / .12) : 0;   // 총검: 0.06초 4px 당김 → 0.05초 12px 내지름 → 0.12초 복귀
+      return { a: s.ang, push: p };
+    }
+    if (!s) return { a: h.rangedT > 0 ? a : a + (Math.cos(a) >= 0 ? REST : -REST), push: 0 };   // 쉴 때는 30° 아래로
+    const mk = G.country.melee, side = Math.cos(s.ang) >= 0 ? 1 : -1, t1 = SWING.wind, t2 = t1 + SWING.strike;
+    const ease = k => 1 - Math.pow(1 - k, 3);
+    if (mk === 'thrust' || mk === 'rapid') {
+      const push = s.t < t1 ? -6 * s.t / t1 : s.t < t2 ? -6 + 20 * ease((s.t - t1) / SWING.strike) : 14 * (1 - (s.t - t2) / SWING.follow);
+      return { a: s.ang, push };
+    }
+    const from = mk === 'smash' ? -1.7 : -1.15, to = mk === 'bigslash' ? 1.4 : mk === 'smash' ? .7 : 1.2;
+    let off;
+    if (s.t < t1) off = from * (s.t / t1);
+    else if (s.t < t2) off = from + (to - from) * ease((s.t - t1) / SWING.strike);
+    else off = to * (1 - (s.t - t2) / SWING.follow);
+    if (mk === 'spin') off = s.t < t1 ? 0 : Math.min(1, (s.t - t1) / (SWING.strike + SWING.follow)) * Math.PI * 2;
+    return { a: s.ang + off * side, push: 0 };
+  }
+  function drawWeapon(h, c, px, py, a, alpha) {
+    const ranged = c.ranged, rangedImg = ranged === 'arrow' ? 'korea-ranged' : ranged === 'sling' ? 'israel-ranged' : null;
+    const skillPose = skillPoseActive(h);
+    const len = 60 * wLen(c);
+    ctx.save(); if (alpha != null) ctx.globalAlpha = alpha;
+    // 활·투석기: 쏜 직후 잠깐 그 장비를 들어요
+    if (ranged === 'arrow' && (skillPose ? h.bowM?.skill : h.rangedT > 0 || h.bowM)) { drawBow(h); ctx.restore(); return; }   // 한국: 몸 앞 14px 가슴 높이에 세워 들고 당겨요
+    if (rangedImg && !skillPose && h.rangedT > 0) {
+      const im = UI.img['weapon/' + rangedImg];
+      if (im && im.naturalWidth) {
+        const sc = (ranged === 'arrow' ? 56 : len) / 188;
+        ctx.translate(px + (ranged === 'arrow' ? Math.cos(h.aimShot) * 8 : 0), py + (ranged === 'arrow' ? Math.sin(h.aimShot) * 6 : 0));   // 활은 몸 앞으로 내밀어 들어요
+        if (ranged === 'arrow') { ctx.rotate(h.aimShot + Math.PI / 2); ctx.drawImage(im, -96 * sc, -80 * sc, 192 * sc, 160 * sc); }   // 활: 가운데가 중심, 시위가 장수 쪽
+        else { ctx.rotate(h.aimShot); if (Math.cos(h.aimShot) < 0) ctx.scale(1, -1); ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc); }
+        ctx.restore(); return;
+      }
+    }
+    // 던진 직후엔 손이 비어요 (무기가 날아가는 중)
+    if (!skillPose && (THROW_ANIM[ranged] ? (h.handEmpty && !h.swing) : (THROWN(ranged) && h.rangedT > 0.12))) { ctx.restore(); return; }   // 던진 뒤엔 손이 비어요
+    if (FX.GUN[c.key]) { FX.drawGun(c.key, px - Math.cos(a) * 4, py - GUN_UP, a, Math.cos(a) < 0, GUN_SC); ctx.restore(); return; }   // 어깨 높이(발 위 36) · 총검 포함 32px   // 미국·핀란드: 코드 총 (장수 키의 약 0.5배)
+    const im = UI.img['weapon/' + c.key];
+    if (im && im.naturalWidth) {
+      const sc = len / 192;   // 그림 폭 192 → len
+      ctx.translate(px, py); ctx.rotate(a); if (Math.cos(a) < 0) ctx.scale(1, -1);
+      ctx.drawImage(im, -4 * sc, -80 * sc, 192 * sc, 160 * sc);   // 회전 중심 = 손잡이 끝 = 폭×0.0208, 높이×0.5 (192×160 기준 (4,80), 288×240이면 (6,120)) · 그리는 크기는 그림 크기와 무관
+    }
+    ctx.restore();
+  }
+  // ---- 한국 활 당기기 (style-guide "한국 활 당기기", 사용자 "지금 활 당기는거 안보여") ----
+  // 활 그림(288×240 → 192 칸 기준): 활 등이 위(조준 쪽), 시위가 아래(장수 쪽). 양 끝 (±78, +24.7), 활 등 −25.3 (가운데 기준)
+  const BOW = { H: 64, tipU: 78, tipV: 24.7, back: -25.3 };
+  let bowNoStr = null;   // 그림에 그려진 곧은 시위를 지운 사본 (시위는 코드로 V자)
+  function bowImg() {
+    const im = UI.img['weapon/korea-ranged']; if (!im || !im.naturalWidth) return null;
+    if (!bowNoStr || bowNoStr.src !== im) { const c = mkCv(im.naturalWidth, im.naturalHeight), x = c.getContext('2d'), k = im.naturalWidth / 288; x.drawImage(im, 0, 0); x.clearRect(52 * k, 150 * k, 184 * k, 12 * k); bowNoStr = { c, src: im }; }
+    return bowNoStr.c;
+  }
+  function bowFrame(h) {   // 활 가운데 · 축 (u = 활 길이 방향, v = 장수 쪽) · 당김 · 크기
+    const m = h.bowM, ang = m ? m.ang : (h.aimShot != null ? h.aimShot : Math.atan2(h.dir.y, h.dir.x)), ca = Math.cos(ang), sa = Math.sin(ang), sc = BOW.H / 192;
+    let pull = 0, sx = 1, wob = 1, snapT = null;
+    if (m && !m.rel) { const k = Math.min(1, m.t / m.T); pull = 10 * (1 - Math.pow(1 - k, 2)); sx = 1 - .1 * k; }
+    else if (m && m.rel) { const e = m.t - m.T; pull = e < .03 ? 10 * (1 - e / .03) : 0; snapT = e; wob = e < .08 ? 1.08 - .08 * e / .08 : 1; }
+    const cx = h.x + ca * 20, cy = h.y - 32 + sa * 20 * .6;   // 몸 앞 20px (디자인 "시위가 몸·얼굴을 가로지르지 않게")
+    return { ang, ca, sa, sc, cx, cy, pull, sx, wob, snapT, u: { x: -sa, y: ca }, v: { x: -ca, y: -sa } };
+  }
+  const bowPt = (f, U, V) => ({ x: f.cx + f.u.x * U * f.wob + f.v.x * V, y: f.cy + f.u.y * U * f.wob + f.v.y * V });
+  function drawBow(h) {
+    const f = bowFrame(h), im = bowImg(), sc = f.sc;
+    ctx.save(); ctx.translate(f.cx, f.cy); ctx.rotate(f.ang + Math.PI / 2); ctx.scale(f.wob, f.wob * f.sx);   // 당기면 가로(조준 축) 0.9배 · 놓으면 1.08 → 1
+    if (im) ctx.drawImage(im, -96 * sc, -80 * sc, 192 * sc, 160 * sc); ctx.restore();
+    const tipV = BOW.tipV * sc * f.sx, nock = bowPt(f, 0, tipV + f.pull), t1 = bowPt(f, -BOW.tipU * sc, tipV), t2 = bowPt(f, BOW.tipU * sc, tipV);
+    ctx.save(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(t1.x, t1.y); ctx.lineTo(nock.x, nock.y); ctx.lineTo(t2.x, t2.y); ctx.stroke();   // 시위: 흰 1.5px 선 2개 (V자)
+    const m = h.bowM;
+    if (m?.skill && !m.rel) {
+      drawProp(G.country.key + '-1', nock.x + f.ca * 24, nock.y + f.sa * 24, 0, m.ang, 1, false, true);
+    } else if (m && !m.rel) {   // 시위에 걸린 화살 28px (촉이 활 앞으로)
+      const hx = nock.x + f.ca * 28, hy = nock.y + f.sa * 28;
+      ctx.strokeStyle = '#8A5A2B'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(nock.x, nock.y); ctx.lineTo(hx - f.ca * 5, hy - f.sa * 5); ctx.stroke();
+      ctx.fillStyle = '#D9D2C5'; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - f.ca * 7 - f.sa * 3.5, hy - f.sa * 7 + f.ca * 3.5); ctx.lineTo(hx - f.ca * 7 + f.sa * 3.5, hy - f.sa * 7 - f.ca * 3.5); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(nock.x - f.sa * 3, nock.y + f.ca * 3); ctx.lineTo(nock.x + f.ca * 6, nock.y + f.sa * 6); ctx.lineTo(nock.x + f.sa * 3, nock.y - f.ca * 3); ctx.stroke();
+    }
+    if (!m?.skill && f.snapT != null && f.snapT < .05) { ctx.globalAlpha = 1 - f.snapT / .05; UI.circ(nock.x, nock.y, 4, '#FFFFFF'); }   // 놓는 순간 시위 가운데 흰 섬광 지름 8
+    ctx.restore();
+  }
+  function updateBow(h, dt) {
+    const m = h.bowM; if (!m) return;
+    m.t += dt;
+    if (!m.rel && m.t >= m.T && m.skill) m.rel = true;   // 스킬(화살비)용 당기기: 탄은 스킬이 쏴요
+    if (!m.rel && m.t >= m.T) {
+      const f = bowFrame(h), nock = bowPt(f, 0, BOW.tipV * f.sc * f.sx + f.pull), sp = TEMP.SHOT_SPEED;
+      const sh = { boost: m.boost, kind: 'arrow', x: h.x + m.dx * 16, y: h.y + m.dy * 16, vx: m.dx * sp, vy: m.dy * sp, dmg: m.dmg, life: 1.6, age: 0, hits: null };
+      const px = nock.x + f.ca * 22, py = nock.y + f.sa * 22;   // 걸려 있던 화살 자리에서 (탄 그림 꼬리가 시위 쪽)
+      sh.ox = px - sh.x; sh.oy = py - (sh.y - 22); sh.tx = nock.x; sh.ty = nock.y;
+      G.shots.push(sh); m.rel = true; AUDIO.play('attack');
+    }
+    if (m.rel && m.t >= m.T + .1) h.bowM = null;
+  }
+  // ---- 창·도끼 던지기 (style-guide "원거리 공격 동작 — 손이 움직이는 느낌", 사용자 "창, 도끼만 바꿔") ----
+  // 젖히기 0.08초 → 휘두름·놓기 0.06초 → 따라가기 0.12초 (무적 중 공속 2.5배면 ÷2.5) · 창은 가장 앞에서, 도끼는 조준 각을 지날 때 놓아요
+  const THROW_ANIM = { polearm: 1, axe: 1 };
+  const TW = { wind: .08, swing: .06, follow: .12 }, AXE_FROM = -130 * Math.PI / 180, AXE_TO = 20 * Math.PI / 180;
+  const easeO = q => 1 - Math.pow(1 - q, 3);
+  const THROW_REL = { polearm: TW.wind + TW.swing, axe: TW.wind + TW.swing * (1 - Math.cbrt(1 - (-AXE_FROM) / (AXE_TO - AXE_FROM))) };
+  function throwPose(h) {   // 무기 각 a, 무기 축 밀기 push, 위로 oy, 손 이동 hand, 몸 lean/rot/sx/sy
+    const m = h.throwM; if (!m) return null;
+    const t = m.t, side = Math.cos(m.ang) >= 0 ? 1 : -1, rm = reduceMotion ? .5 : 1;
+    const ph = t < TW.wind ? 'wind' : t < TW.wind + TW.swing ? 'swing' : 'follow', q = ph === 'wind' ? t / TW.wind : ph === 'swing' ? (t - TW.wind) / TW.swing : Math.min(1, (t - TW.wind - TW.swing) / TW.follow), e = easeO(q);
+    let a = m.ang, push = 0, oy = 0;
+    if (m.kind === 'polearm') { push = ph === 'wind' ? -12 * q : ph === 'swing' ? -12 + 26 * e : 14; oy = ph === 'wind' ? -6 * q : ph === 'swing' ? -6 * (1 - q) : 0; }   // 뒤로 12·위로 6 당김 → 앞으로 14
+    else a = m.ang + side * (ph === 'wind' ? AXE_FROM * q : ph === 'swing' ? AXE_FROM + (AXE_TO - AXE_FROM) * e : AXE_TO);   // 머리 뒤 −130° → +20°
+    const hand = (ph === 'wind' ? -4 * q : ph === 'swing' ? -4 + 8 * e : 4 * (1 - q)) * rm;   // 손이 뒤로 4 → 앞으로 4
+    const lean = (ph === 'wind' ? -2 * q : ph === 'swing' ? -2 + 5 * e : 3 * (1 - q)) * rm;   // 몸: 조준 반대 2 → 조준 쪽 3 → 제자리
+    const rot = (ph === 'wind' ? -3 * q : ph === 'swing' ? -3 + 6 * e : 3 * (1 - q)) * Math.PI / 180 * side * rm;
+    const sq = ph === 'wind' ? q : ph === 'swing' ? 1 - 2 * e : -(1 - q);   // 1 = 웅크림(1.02·0.96), −1 = 뻗음(0.97·1.04)
+    const sx = 1 + (sq > 0 ? .02 * sq : .03 * sq) * rm, sy = 1 - .04 * sq * rm;
+    return { ph, q, a, push, oy, hand, lean, rot, sx, sy, released: m.released };
+  }
+  // 손 자리·무기 각 (drawHero8과 같은 계산) → 놓는 순간 그 자리·각도에서 날아가요
+  function throwGrip(h) {
+    const p = throwPose(h), c = G.country, [cell, flip] = heroDir(h.throwM.ang, c.key);
+    const kk = 60 / 112, hd = handAt(cell, c.key), ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang);
+    const hx = h.x + ca * p.lean + (hd[0] - 64) * kk * (flip ? -1 : 1) + Math.cos(p.a) * p.push + ca * p.hand, hy = h.y + sa * p.lean * .6 + (hd[1] - 124) * kk + Math.sin(p.a) * p.push * .8 + p.oy + sa * p.hand * .6;
+    return { hx, hy, a: p.a, len: 60 * wLen(c) };
+  }
+  function updateThrow(h, dt) {
+    const m = h.throwM; if (!m) return;
+    m.t += dt * m.k;
+    if (!m.released && m.t >= THROW_REL[m.kind]) {
+      const g = throwGrip(h), sp = TEMP.SHOT_SPEED, cx = g.hx + Math.cos(g.a) * g.len * .48, cy = g.hy + Math.sin(g.a) * g.len * .48;   // 손에 그려지던 무기 가운데
+      const sh = { boost: m.boost, kind: m.kind, x: h.x + m.dx * 16, y: h.y + m.dy * 16, vx: m.dx * sp, vy: m.dy * sp, dmg: m.dmg, life: 1.6, age: 0, hits: null };
+      sh.ox = cx - sh.x; sh.oy = cy - (sh.y - 22);   // 판정 자리는 그대로, 그림만 손에서 출발해 0.12초에 날아가는 줄로
+      if (m.kind === 'axe') { sh.spin0 = g.a; sh.big = g.len / 52; }   // 도끼: 놓을 때 각도에서 돌기 시작, 손에 든 크기 그대로
+      G.shots.push(sh); m.released = true; m.relT = G.combatT; h.handEmpty = true; AUDIO.play('attack');
+    }
+    if (m.t >= TW.wind + TW.swing + TW.follow + .1) h.throwM = null;   // 휘두름 호가 사라질 때까지
+  }
+  // 무기 끝 (style-guide "원거리 공격 동작"): 손 위치(HAND) + 조준 방향 × 무기 길이 × 0.95 · 총은 총구, 활은 시위 자리
+  function weaponTip(aim, ext = 0) {
+    const h = G.hero, c = G.country, [cell, flip] = heroDir(aim, c.key);
+    const kk = 60 / 112, hd = handAt(cell, c.key), hx = h.x + (hd[0] - 64) * kk * (flip ? -1 : 1), hy = h.y + (hd[1] - 124) * kk, ca = Math.cos(aim), sa = Math.sin(aim);
+    if (FX.GUN[c.key]) return { x: hx - ca * 4 + ca * (32 + ext), y: hy - GUN_UP + sa * (32 + ext) };   // 코드 총: 32px, 어깨 높이
+    if (c.ranged === 'arrow') return { x: hx + ca * 8, y: hy + sa * 6 };   // 활 가운데(시위 자리)
+    const L = 60 * wLen(c) * .95; return { x: hx + ca * L, y: hy + sa * L };
+  }
+  // 탄 그림이 무기 끝에서 출발해 0.12초 동안 원래 날아가는 줄로 합쳐져요 (판정 자리는 그대로) · 충격파는 바닥 높이 그대로
+  function fromTip(s, tip, ground) { s.ox = tip.x - s.x; s.oy = ground ? 0 : tip.y - (s.y - 22); s.tx = tip.x; s.ty = ground ? s.y : tip.y; return s; }
+  function throwTrail(h, c, hx, hy, a, tp, alpha) {
+    const m = h.throwM, L = 60 * wLen(c);
+    if (tp.ph === 'swing' && !m.released) {   // 휘두르는 0.06초: 앞 프레임 각도로 2개 더(투명도 0.35·0.17) + 무기 끝이 지나간 길 기록
+      if (!reduceMotion) m.hist.slice(-2).reverse().forEach((p, i) => drawWeapon(h, c, h.x + p.hx, h.y + p.hy, p.a, (alpha == null ? 1 : alpha) * (i ? .17 : .35)));
+      m.hist.push({ hx: hx - h.x, hy: hy - h.y, a }); m.arc.push({ x: hx - h.x + Math.cos(a) * L, y: hy - h.y + Math.sin(a) * L, t: m.t });
+    }
+    if (!reduceMotion && m.arc.length > 1) {   // 흰 얇은 호 3px, 투명도 0.55, 0.1초
+      ctx.save(); ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      for (let i = 1; i < m.arc.length; i++) { const p0 = m.arc[i - 1], p1 = m.arc[i], al = .55 * (1 - (m.t - p1.t) / .1); if (al <= 0) continue; ctx.globalAlpha = al; ctx.beginPath(); ctx.moveTo(h.x + p0.x, h.y + p0.y); ctx.lineTo(h.x + p1.x, h.y + p1.y); ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+  // 걷기 (9차 그림): 서기 → A → 서기 → B, 초당 8칸. 걷기 칸 = 방향×2 + (A 0, B 1) · 16방향이면 18칸
+  function bodyFrame(h, cell) {
+    const wi = UI.img['walk/' + G.country.key];
+    if (!h.moving || h.swing || h.cast || h.poseFollow || h.dead || reduceMotion || !wi || !wi.naturalWidth) return { folder: 'dir', cell };
+    const ph = Math.floor(h.walkT * 8) % 4;
+    if (ph !== 1 && ph !== 3) return { folder: 'dir', cell };
+    const n = heroCols(G.country.key), wn = Math.round(wi.naturalWidth / wi.naturalHeight) >= 18 ? 9 : 5;   // 걷기 18칸 = 16방향, 10칸 = 8방향
+    const wc = wn === n ? cell : wn === 9 ? cell * 2 : Math.round(cell / 2);   // 서기·걷기 칸 수가 아직 다르면 가까운 방향으로
+    return { folder: 'walk', cell: wc * 2 + (ph === 3 ? 1 : 0) };
+  }
+  const POSE_TYPE = { dash: 0, area: 1, barrage: 2, zone: 3 };
+  // 자세 시트 칸 순서: 유형 × 3 + 아래/옆/위. 손 위치는 192칸 기준.
+  const POSE_HAND = {
+    korea: [[82,127], [155,111], [127,88], [124,43], [130,50], [136,55], [121,105], [161,90], [146,89], [56,57], [68,62], [70,59]],
+    switzerland: [[82,102], [165,103], [138,76], [126,44], [126,41], [128,41], [119,88], [159,85], [144,67], [62,48], [40,63], [144,50]],
+    luxembourg: [[88,103], [159,108], [135,80], [123,39], [124,41], [133,47], [59,75], [159,85], [136,71], [52,39], [53,58], [129,50]],
+  };
+
+  function castBody(cast, key) {
+    const name = 'pose/' + key, type = cast?.k === 'cannon' ? POSE_TYPE.barrage : POSE_TYPE[cast?.type];
+    if (type == null || !UI.img[name]?.naturalWidth) return null;
+    const x = Math.cos(cast.ang), y = Math.sin(cast.ang);
+    const dir = y >= Math.abs(x) - 1e-9 ? 0 : -y >= Math.abs(x) - 1e-9 ? 2 : 1;
+    const cell = type * 3 + dir, hand = POSE_HAND[key]?.[cell];
+    return { name, cell, flip: dir === 1 && x < 0, hand: hand && [hand[0] / 1.5, hand[1] / 1.5, dir === 2] };
+  }
+
+  function drawHero8(h, c, mo, skillPose, tipOnly) {
+    const body = castBody(h.cast, c.key);
+    if (!body && !UI.img['dir/' + c.key]?.naturalWidth) return false;
+    const pose = h.cast || h.poseFollow;
+    const aim = pose?.ang ?? (!skillPose && h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x));
+    const [cell, dirFlip] = heroDir(aim, c.key);
+    const flip = body ? body.flip : dirFlip;
+    const bm = Object.assign({}, mo, { flip });
+    if (bm.rot && flip !== mo.flip) bm.rot = -bm.rot;
+    const dead = h.dead || (G.scene === 'ending' && G.ending.fell);
+    const cp = pose ? castPose(pose) : null, tp = !cp && !skillPose && !h.swing && h.throwM ? throwPose(h) : null;   // 시전 몸동작이 평타 자세보다 먼저 (GDD 0-20, style-guide)
+    if (cp && cp.body) { const b2 = cp.body; if (b2.ox) bm.ox = (bm.ox || 0) + b2.ox; if (b2.oy) bm.oy = (bm.oy || 0) + b2.oy; if (b2.sx) bm.sx = (bm.sx || 1) * b2.sx; if (b2.sy) bm.sy = (bm.sy || 1) * b2.sy; if (b2.rot) bm.rot = (bm.rot || 0) + b2.rot * (flip ? -1 : 1); }
+    const w = cp ? { a: cp.a, push: cp.push } : tp ? { a: tp.a, push: tp.push } : weaponAngle(h, aim, skillPose);
+    // 손 위치: 128칸 기준 좌표를 게임 크기로 (그림이 192칸이어도 비율이 같아요 · 왼쪽 방향은 x → 128 − x)
+    const kk = 60 / 112, hd = body?.hand || handAt(cell, c.key);
+    let hdx = (hd[0] - 64) * kk * ((body?.hand ? flip : dirFlip) ? -1 : 1), hdy = (hd[1] - 124) * kk;
+    if (body?.hand) {
+      const rot = bm.rot || 0, x = hdx * (bm.sx || 1), y = hdy * (bm.sy || 1);
+      hdx = x * Math.cos(rot) - y * Math.sin(rot);
+      hdy = x * Math.sin(rot) + y * Math.cos(rot);
+    }
+    let hx = h.x + (bm.ox || 0) + hdx + Math.cos(w.a) * w.push, hy = h.y + (bm.oy || 0) + hdy + Math.sin(w.a) * w.push * .8;
+    if (tp) { const ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); hx += ca * tp.hand; hy += tp.oy + sa * tp.hand * .6; }
+    if (!skillPose) {
+      const L = 60 * wLen(c) * .95;
+      h.tip = { x: hx + Math.cos(w.a) * L, y: hy + Math.sin(w.a) * L };
+    }
+    if (tipOnly) return true;
+    if (tp && !dead && BASIC_TRAIL) throwTrail(h, c, hx, hy, w.a, tp, mo.alpha);   // 잔상 2개 + 휘두름 호
+    const behind = hd[2];   // 오른쪽위·위를 볼 때는 몸 뒤에
+    const n = h.heroSkill?.n;
+    const usesLookWeapon = h.cast && (c.key === 'japan' || n === (c.key === 'luxembourg' ? 2 : c.key === 'france' ? 1 : 0));
+    const dw = () => { if (usesLookWeapon) return; const s2 = h.wpop > 0 ? 1 + .15 * h.wpop / .08 : 1; if (s2 === 1) return drawWeapon(h, c, hx, hy, w.a, mo.alpha); ctx.save(); ctx.translate(hx, hy); ctx.scale(s2, s2); ctx.translate(-hx, -hy); drawWeapon(h, c, hx, hy, w.a, mo.alpha); ctx.restore(); };   // 1.15→1배 0.08초
+    if (!dead && behind && !(cp && cp.hide)) dw();
+    drawCastOutline(bm, () => {
+      if (body) UI.cellSprite(body.name, 12, body.cell, h.x, h.y, 60 * 128 / 112, bm);
+      else {
+        const bf = bodyFrame(h, cell);
+        UI.dirBody(c.key, bf.cell, h.x, h.y, 60, bm, bf.folder);
+      }
+    });
+    if (!dead && !behind && !(cp && cp.hide)) dw();
+    return true;
+  }
+
+  // 명중 코어: 흰 점 6~10px 0.025초 → 옅은 금 꼬리 0.075초 감쇠
+  function drawCore(e) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    if (e.t < .025) { UI.circ(e.x, e.y, 6, 'rgba(232,217,168,.45)'); UI.circ(e.x, e.y, 4, '#FFFFFF'); }   // 코어 지름 8px
+    else { const q = (e.t - .025) / .075; ctx.globalAlpha = .45 * (1 - q); UI.circ(e.x, e.y, 5 + 4 * q, 'rgba(232,217,168,.35)'); }   // 옅은 금 꼬리 (고리 대신 번지는 빛)
+    ctx.restore();
+  }
+  function drawAlien(a) {
+    const L = alienLook(a);
+    const lk = 1 - Math.min(.55, L.lift / 160);   // 뛰면 그림자가 작고 옅어져요
+    softShadow(a.x + 3, a.y + 1, a.r * 1.5 * (1 - L.hop * .03) * lk, a.r * .5 * lk, .5 * lk); softShadow(a.x, a.y, a.r * .7 * lk, a.r * .25 * lk, .4 * lk);
+    if (L.cell) UI.cellSprite(L.name, 15, L.cell.i, a.x, a.y + 2, L.hgt, L.mo); else UI.sprite(L.name, a.x, a.y + 2, L.hgt, L.mo);
+    if (a.type === 'boss') bossBar(a, 140);
+  }
+  const bossBar = (a, hgt) => { const w = 90; UI.rr(a.x - w / 2, a.y - hgt - 12, w, 6, 3, 'rgba(0,0,0,.6)'); UI.rr(a.x - w / 2, a.y - hgt - 12, w * Math.max(0, a.hp / a.max), 6, 3, COL.green); };   // 보스 체력
+  // 외계인 모양: 그림 이름·키·움직임 (2D·3D가 같이 써요)
+  // 외계인 8방향 (11차 그림 alien/<종류>-dir: 15칸 = 방향 5 × 서기·A·B, 왼쪽은 뒤집기 · 걸을 때 서기→A→서기→B)
+  // 칸 높이: 예전 정면 그림과 보이는 키가 같게 (그림 속 키 ≈ 칸 × 0.8)
+  const ALIEN_CELL = { grunt: 55, shooter: 56, boss: 183 }, ALIEN_FPS = { grunt: 10, shooter: 8, boss: 5 };
+  function alienCell(a) {
+    let fx = a.fx || 0, fy = a.fy || 0;
+    if (Math.hypot(fx, fy) < .3) { fx = G.hero.x - a.x; fy = G.hero.y - a.y; }   // 멈춰 있으면 장수 쪽
+    const o = ((Math.round(Math.atan2(fy, fx) / (Math.PI / 4)) % 8) + 8) % 8, [dir, flip] = OCT[o];
+    const moving = !reduceMotion && (a.walkT || 0) > 0 && !a.jump && a.speed > 0, ph = moving ? Math.floor(a.walkT * ALIEN_FPS[a.type]) % 4 : 0;
+    return { i: dir * 3 + (ph === 1 ? 1 : ph === 3 ? 2 : 0), flip };
+  }
+  function alienLook(a) {
+    const t = G.t, sheet = 'alien/' + a.type + '-dir', im = UI.img[sheet], hasDir = !!(im && im.naturalWidth);
+    const name = hasDir ? sheet : 'alien/alien-' + a.type, hgt = hasDir ? ALIEN_CELL[a.type] : a.type === 'boss' ? 140 : a.type === 'shooter' ? 46 : 48;
+    const skillLift = a.skillLiftT > 0 ? SKILL_HIT_LIFT_HEIGHT * Math.sin(Math.PI * (1 - a.skillLiftT / SKILL_HIT_LIFT_TIME)) : 0;
+    const lift = (a.lift || 0) + skillLift;
+    const hop = a.hitT > 0 && !reduceMotion && !a.skillLiftT ? Math.sin(Math.PI * (1 - a.hitT / .1)) * 5 : 0;   // 맞으면 살짝 떠올랐다 떨어져요
+    const cell = hasDir ? alienCell(a) : null;
+    let mo = { flip: cell ? cell.flip : a.vx < 0 };
+    if (!reduceMotion) {   // 꿈틀거림은 그림이 걸어서 ±3%로 줄였어요 (디자인팀)
+      if (a.type === 'grunt') { const p = Math.sin(t * 14 + a.seed); mo.sy = 1 + p * .03; mo.sx = 1 - p * .02; }
+      else if (a.type === 'shooter') { mo.ox = a.recoil > 0 ? (mo.flip ? 3 : -3) : 0; }
+      else { mo.sy = 1 + Math.sin(t * 2) * .015; }
+    }
+    // 가는 방향으로 몸 돌리기 (8방향 그림 오기 전 코드 흉내): 위·아래로 가면 몸 폭을 줄여 돌아선 느낌, 위로 가면(등) 조금 어둡게,
+    // 가는 쪽으로 기울기 + 걸음마다 좌우 흔들림·위아래 튀기 · 넉백 방향으로 몸이 젖혀져요
+    if (!reduceMotion && !a.entering) {
+      const fx = a.fx || 0, fy = a.fy || 0, st = a.step || 0;
+      if (!cell) {   // 8방향 그림이 없을 때만 코드로 몸 돌리기 흉내
+        mo.sx = (mo.sx || 1) * (1 - .14 * Math.abs(fy)); if (fy < -.35) mo.tint = .8 + .2 * (1 + fy);
+        mo.oy = (mo.oy || 0) - Math.abs(Math.sin(st)) * (a.type === 'boss' ? 4 : 2.5); mo.rot = (mo.rot || 0) + Math.sin(st) * .06;
+      }
+      mo.rot = (mo.rot || 0) + fx * .05;                                         // 가는 쪽으로 살짝 기울기
+      const kb = a.kb ? a.kb.x : 0; if (Math.abs(kb) > 15) mo.rot += clamp(kb / 700, -.28, .28);   // 넉백 방향으로 젖힘
+    }
+    const jIm = a.jump && UI.img['alien/' + a.type + '-jump'];
+    if (a.jump && jIm && jIm.naturalWidth && cell) {   // 점프 그림 (12차): 웅크림·공중·착지 칸, 높이는 코드로 올려요
+      const ph = a.jump.ph, J = a.jump;
+      const o = ((Math.round(Math.atan2(J.ty - a.y, J.tx - a.x) / (Math.PI / 4)) % 8) + 8) % 8, [dir, flip] = Math.hypot(J.tx - a.x, J.ty - a.y) > 4 ? OCT[o] : [Math.floor(cell.i / 3), mo.flip];
+      return { name: 'alien/' + a.type + '-jump', hgt, hop, lift, cell: { i: dir * 3 + (ph === 'crouch' ? 0 : ph === 'air' ? 1 : 2), flip },
+        mo: { flip, oy: -lift, ox: ph === 'crouch' && !reduceMotion ? Math.sin(t * 70) * 1.2 : 0, white: mo.white, edge: mo.edge } };
+    }
+    if (a.jump) {   // 점프 그림이 없을 때: 웅크리며 떨기 → 공중에서 늘어나며 떠오름
+      if (a.jump.ph === 'crouch') { const q = Math.min(1, a.jump.t / a.jumpCfg.crouch); mo.sy = 1 - .22 * q; mo.sx = 1 + .12 * q; mo.rot = 0; mo.ox = reduceMotion ? 0 : Math.sin(t * 70) * 1.6 * q; mo.oy = 0; }
+      else { mo.sy = 1.1; mo.sx = .92; mo.oy = -(a.lift || 0); mo.rot = (a.vx < 0 ? -1 : 1) * .15; }
+    }
+    if (a.hitT > 0) {   // 발 고정, 공격축 0.88배 · 직각 1.08배로 눌렸다가 0.1초에 복원 (기어가기 변형은 잠깐 멈춤)
+      const q = a.hitT > .07 ? 1 : a.hitT / .07, along = 1 - .12 * q, across = 1 + .08 * q;
+      mo.sx = a.hitAx === 'x' ? along : across; mo.sy = a.hitAx === 'x' ? across : along; mo.rot = 0; mo.ox = 0; mo.oy = 0;
+    }
+    if (a.flash > 0 && settings.flash) mo.white = true;
+    else if (a.edgeT > 0) mo.edge = alienCol(a);   // 몸 색 외곽선 (번쩍임을 꺼도 보여요)
+    if (a.entering) mo.alpha = .85;
+    if (hop || skillLift) mo.oy = (mo.oy || 0) - hop - skillLift;
+    return { name, hgt, mo, hop, lift, cell };
+  }
+
+  // 위 표시: HP · 돈 · 라운드 · 남은 외계인 · 일시정지
+  function drawHUD() {
+    const r = G.run, h = G.hero, c = G.country;
+    if (G.skillFlash > 0) { ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(0, 0, VW, VH); }   // 스킬 쓰는 순간 화면 번쩍 0.06초
+    const x0 = Math.max(VW * .08, fieldBox.x + 12, safeArea().l + 8);   // 안전 영역 안 (QA M15)
+    UI.rr(x0 - 8, VH * .04, 236, 64, 10, 'rgba(10,11,15,.55)');
+    const low = h.hp / h.maxHp <= .25;
+    UI.I.heart(x0 + 8, VH * .09, 18 * (low && !reduceMotion ? 1 + Math.abs(Math.sin(G.t * 6)) * .15 : 1), low ? COL.red : COL.hp);
+    UI.bar(x0 + 22, VH * .09 - 7, 150, 14, h.hp / h.maxHp, low ? COL.red : COL.hp);
+    // 체력 숫자는 안 보여요 — 최대 체력으로 나라 세기를 짐작할 수 있어서 (사용자 "나라 순위만 일부러 보여준거야", 막대만 남김)
+    UI.txt(UI.money(c, r.money), x0, VH * .17 + 2, 18, COL.glow, 'left', 800);
+    // 남은 스킬(한 판 5번) · 무적(라운드마다 2번)
+    { const sy = VH * .17 + 2, ic = (n, x) => {   // 1번 ×5 · 2번 ×5 · 무적 ×2
+        const im = UI.img['skill/icon-' + skillOf(c, n).type]; ctx.globalAlpha = sLeft(n) > 0 ? 1 : .4;
+        if (im && im.naturalWidth) ctx.drawImage(im, x, sy - 10, 20, 20); else UI.I.bolt(x + 10, sy, 16, COL.gold);
+        UI.txt(n + '', x - 2, sy + 7, 8, COL.gold, 'center', 900); UI.txt('×' + sLeft(n), x + 22, sy, 13, COL.fg, 'left', 800); };
+      ic(1, x0 + 96); if (!BAL.SKILL_SHARED) ic(2, x0 + 142);
+      ctx.globalAlpha = r.invuln > 0 ? 1 : .4; UI.I.shield(x0 + 196, sy, 16, COL.fg); UI.txt('×' + r.invuln, x0 + 206, sy, 13, COL.fg, 'left', 800); ctx.globalAlpha = 1; }
+    // 화폐 효과 중
+    if (h.buff) {
+      const bx = x0 + 16, by = VH * .28 + 4;
+      UI.circ(bx, by, 16, 'rgba(10,11,15,.7)'); UI.sprite('item/' + h.buff.cur, bx, by + 11, 22);
+      ctx.strokeStyle = COL.glow; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(bx, by, 16, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * h.buff.t / h.buff.max); ctx.stroke();
+      UI.txt(`×${h.buff.mul.toFixed(2)} · ${Math.ceil(h.buff.t)}`, bx + 22, by, 13, COL.glow, 'left', 800);
+    }
+    // 라운드 점 6개
+    const cx = VW / 2;
+    UI.rr(cx - 82, VH * .04, 164, 54, 10, 'rgba(10,11,15,.55)');
+    for (let i = 0; i < 6; i++) {
+      const dx = cx - 54 + i * 18, y = VH * .09;
+      if (i + 1 < r.round) UI.circ(dx, y, 5, COL.gold); else if (i + 1 === r.round) UI.circ(dx, y, 5, null, '#FFFFFF', 2); else UI.circ(dx, y, 5, COL.empty);
+    }
+    UI.txt(`${r.round}/6`, cx + 62, VH * .09, 12, COL.fg, 'center', 700);
+    { const lt = t_('ui.04', { n: Math.max(0, remaining()) }); UI.x.font = '700 14px system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif'; const tw = Math.min(140, UI.x.measureText(lt).width);   // 글자 폭을 재서 아이콘을 글자 왼쪽 끝에 붙여요 (긴 언어에서 겹치지 않게)
+      UI.I.alien(cx + 6 - tw / 2 - 13, VH * .17 + 1, 18, '#CA57E5'); UI.txt(lt, cx + 6, VH * .17 + 1, 14, COL.fg, 'center', 700, 140); }
+    if (G.scene === 'play' && G.touchUI) { const SA = safeArea(); UI.btnSub('pause', Math.min(VW * .93, VW - SA.r - 26), Math.max(VH * .1, SA.t + 26), 44, 'pause'); }   // 폰만 (PC는 ESC) — 마우스로 치다가 잘못 눌리지 않게
+  }
+
+  function drawControls() {
+    const B = btnPos();
+    // 조이스틱: 왼쪽 절반 아무 데나 누르면 그 자리에 생겨요
+    const SA = safeArea(), jx = joy.id != null ? joy.ox : Math.max(VW * .15, SA.l + 70), jy = joy.id != null ? joy.oy : Math.min(VH * .72, VH - SA.b - 70);   // 안전 영역 안 (QA M15)
+    UI.circ(jx, jy, 64, 'rgba(10,11,15,.5)'); UI.circ(jx, jy, 64, 'rgba(255,255,255,.08)', 'rgba(0,0,0,.45)', 4);   // 어두운 바탕 (뒤 이펙트가 비치지 않게)
+    UI.circ(jx, jy, 62, null, 'rgba(255,255,255,.35)', 1.5);
+    UI.circ(jx + joy.x * 52, jy + joy.y * 52, 28, 'rgba(255,255,255,.5)', 'rgba(0,0,0,.35)', 2);
+    // 오른쪽: 큰 원 + 손잡이 + 화살표 4개 (GDD 0-18 · style-guide "폰 오른쪽 조작")
+    const h = G.hero, r = G.run, drag = aim && aim.drag, dim = drag ? .35 : 1;
+    ctx.globalAlpha = dim; UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(10,11,15,.5)'); UI.circ(B.stick.x, B.stick.y, STICK_R, 'rgba(255,255,255,.12)', 'rgba(255,255,255,.35)', 2);   // 큰 원 아래 어두운 바탕 (뒤 이펙트가 비치지 않게)
+    UI.circ(B.stick.x + rstick.x * (STICK_R - 26), B.stick.y + rstick.y * (STICK_R - 26), 26, rstick.id != null ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.5)', null, 0); ctx.globalAlpha = 1;
+    const arrow = (b, me, gold, glow, fillQ) => {   // 바깥쪽 끝이 뾰족한 진한 판 · fillQ: 아래에서 위로 은 55% 채움 (무적 남은 비율)
+      const R = b.r; ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a);
+      ctx.beginPath(); ctx.moveTo(-R, -R); ctx.lineTo(R * .45, -R); ctx.lineTo(R, 0); ctx.lineTo(R * .45, R); ctx.lineTo(-R, R); ctx.closePath();
+      ctx.fillStyle = 'rgba(20,22,34,.96)'; ctx.fill(); if (glow && fillQ == null) { ctx.fillStyle = 'rgba(201,206,214,.55)'; ctx.fill(); }   // 판은 거의 불투명: 스킬 그림이 버튼 뒤로 지나가도 버튼이 맨 위로 보여요
+      if (fillQ != null) { ctx.save(); ctx.clip(); ctx.rotate(-b.a); ctx.fillStyle = 'rgba(201,206,214,.55)'; ctx.fillRect(-R * 1.5, R - R * 2 * fillQ, R * 3, R * 2 * fillQ); ctx.restore(); }
+      ctx.strokeStyle = me ? '#E8D9A8' : gold ? '#E8D9A8' : fillQ != null ? '#C9CED6' : 'rgba(255,255,255,.7)'; ctx.lineWidth = me ? 3 : 2; ctx.stroke(); ctx.restore();
+    };
+    const badge = (b, n) => { const bx = b.x + b.r * .62, by = b.y - b.r * .62; UI.circ(bx, by, 10, '#D9AE4F'); UI.txt(String(n), bx, by, 12, COL.icon, 'center', 800); };
+    const meDown = mArrow.id != null;
+    ctx.globalAlpha = dim; arrow(B.melee, meDown, true, false); UI.I.sword(B.melee.x, B.melee.y, B.melee.r * 1.1, COL.fg); ctx.globalAlpha = 1;
+    for (const [n, b] of [[1, B.skill], [2, B.skill2]]) {
+      const me = drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (drag && !me ? dim : 1);
+      arrow(b, me, false, false); UI.txt(String(n), b.x, b.y + 1, 26, COL.fg, 'center', 900); badge(b, sLeft(n)); ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0, h.boostT > 0 ? Math.min(1, h.boostT / BAL.SKILL_TIME) : null); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 2초 동안 은 채움이 남은 만큼 줄어요
+    if (aim && aim.drag) {   // 취소 원: 버튼 둘레 (반지름 + 14) · 들어오면 밝아져요
+      const b = aim.b, cr = b.r + 14, on = aim.cancel;
+      ctx.save(); ctx.fillStyle = on ? 'rgba(255,255,255,.28)' : 'rgba(15,17,22,.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, cr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = on ? 3 : 2; if (!on) ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(b.x - 9, b.y - 9); ctx.lineTo(b.x + 9, b.y + 9); ctx.moveTo(b.x + 9, b.y - 9); ctx.lineTo(b.x - 9, b.y + 9); ctx.stroke(); ctx.restore();
+      UI.txt(t_('x.cancel'), b.x, b.y - cr - 9, 12, '#FFFFFF', 'center', 800);
+    }
+    badge(B.skill, sLeft(1)); badge(B.skill2, sLeft(2)); badge(B.invuln, r.invuln);
+  }
+
+  // 장수 머리 위 화면 좌표 (2D·3D)
+  function heroHead() {
+    const h = G.hero, fb = fieldBox; if (!h) return { x: VW / 2, y: VH * .3 };
+    if (use3d && R3D.built) { const p = R3D.proj(h.x, h.y); return { x: fb.x + p.x * fb.s, y: fb.y + (p.y - 70 * p.s) * fb.s }; }
+    return { x: fb.x + h.x * fb.s, y: fb.y + (h.y - 70) * fb.s };
+  }
+  let shoutBox = null;
+  function drawInvTimer() {   // 무적 남은 초: 머리 위 16px, 0.1초 단위, 굵게 11px 흰색 + 어두운 띠 28×13 · 0.4초부터 빨강 + 두근 (style-guide C안)
+    const h = G.hero; if (!h || !(h.boostT > 0) || h.dead) return;
+    const hd = heroHead(), red = h.boostT <= .4, p = red && !reduceMotion ? 1 + .25 * Math.abs(Math.sin(h.boostT * Math.PI * 5)) : 1;
+    let y = hd.y - 16;
+    if (shoutBox && hd.x > shoutBox.x0 - 20 && hd.x < shoutBox.x1 + 20 && y + 7 > shoutBox.y0 && y - 7 < shoutBox.y1) y = shoutBox.y1 + 12;   // 외침 말풍선과 겹치면 그 아래로
+    ctx.save(); ctx.translate(hd.x, y); ctx.scale(p, p); UI.rr(-14, -6.5, 28, 13, 4, 'rgba(10,11,15,.62)'); UI.txt((Math.ceil(h.boostT * 10) / 10).toFixed(1), 0, .5, 11, red ? '#FF6B6B' : '#FFFFFF', 'center', 900); ctx.restore();
+  }
+  function drawMsgs() {
+    shoutBox = null;
+    for (const m of G.msgs) {
+      const a = Math.min(1, m.t / .3);
+      ctx.globalAlpha = a;
+      if (m.big) { UI.rr(VW / 2 - 110, VH * .42 - 26, 220, 52, 12, 'rgba(10,11,15,.6)'); UI.txt(m.text, VW / 2, VH * .42, 30, COL.fg, 'center', 800, 200); }
+      else if (m.hint) UI.para(m.text, VW / 2, VH * .84, 12, COL.muted, VW * .9, 15, 600);   // 긴 언어(독일어·헝가리어 등)는 줄바꿈
+      else if (m.shout) {   // 외침: 장수 머리 위 1.2초, 양피지색 글자 + 어두운 반투명 띠 (style-guide)
+        const hd = heroHead(), p = 1 + (1 - Math.min(1, ((m.life0 || 1.2) - m.t) / .15)) * .18;   // 처음 0.15초 살짝 커졌다 줄어요
+        UI.x.font = `900 ${20 * p}px system-ui, sans-serif`; const w = Math.min(VW * .8, Math.max(140, Math.max(UI.x.measureText(m.text).width, m.sub ? (UI.x.font = `700 ${11 * p}px system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`, UI.x.measureText(m.sub).width) : 0) + 36));
+        const HUD_B = VH * .17 + 16, top = 18 * p, height = (m.sub ? 50 : 36) * p;
+        let x = clamp(hd.x, w / 2 + 8, VW - w / 2 - 8);
+        let y = clamp(hd.y - 22 - top < HUD_B ? hd.y + 80 : hd.y - 22, HUD_B + top, VH - 40);
+        if (G.touchUI) {
+          const buttons = Object.values(btnPos());
+          const left = Math.min(...buttons.map(b => b.x - b.r)) - 8;
+          const right = Math.max(...buttons.map(b => b.x + b.r)) + 8;
+          const upper = Math.min(...buttons.map(b => b.y - b.r)) - 8;
+          const lower = Math.max(...buttons.map(b => b.y + b.r)) + 8;
+          const overlaps = () => x + w / 2 > left && x - w / 2 < right && y - top + height > upper && y - top < lower;
+          if (overlaps()) {
+            x = Math.max(w / 2 + 8, left - w / 2);
+            if (overlaps()) y = Math.max(HUD_B + top, upper + top - height);
+          }
+        }
+        shoutBox = { x0: x - w / 2, x1: x + w / 2, y0: y - top, y1: y - top + height };
+        UI.rr(shoutBox.x0, shoutBox.y0, w, height, 10, 'rgba(10,11,15,.62)');
+        if (m.rtl) ctx.direction = 'rtl';
+        UI.txt(m.text, x, y, 20 * p, '#F2E3C6', 'center', 900, w - 28);
+        ctx.direction = 'ltr';
+        if (m.sub) UI.txt(m.sub, x, y + 20 * p, 11 * p, COL.gold, 'center', 700, VW * .6);
+      }
+      else { UI.rr(VW / 2 - 200, VH * .56 - 18, 400, 36, 10, 'rgba(10,11,15,.6)'); UI.txt(m.text, VW / 2, VH * .56, 15, COL.fg, 'center', 700, 380); }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPause() {
+    ctx.fillStyle = 'rgba(0,0,0,.66)'; ctx.fillRect(0, 0, VW, VH);
+    const px = VW * .07, pw = VW * .4, py = VH * .07, ph = VH * .86;
+    UI.panel(px, py, pw, ph);
+    UI.txt(t_('ui.09'), px + pw / 2, py + 24, 18, COL.fg, 'center', 800);
+    // Language (모든 언어에서 영어 "Language" + 지구 아이콘)
+    let y = py + 60;
+    UI.rr(px + 14, y - 18, pw - 28, 36, 10, 'rgba(255,255,255,.04)', COL.gold, 1.5);
+    UI.I.globe(px + 34, y, 20, COL.gold); UI.txt('Language', px + 52, y, 14, COL.fg, 'left', 700);
+    UI.txt(I18N.LANG_NAMES[I18N.lang] + ' ▾', px + pw - 26, y, 14, COL.gold, 'right', 700);
+    UI.hit('lang', px + 14, y - 18, pw - 28, 36);
+    const rows = [['sound', 'speaker', t_('x.sound'), settings.sound], ['shake', 'wave', '', settings.shake], ['flash', 'star', '', settings.flash]];
+    rows.forEach(([id, ic, label, on], i) => {
+      const ry = y + 50 + i * 40;
+      UI.I[ic](px + 34, ry, 20, COL.fg); if (label) UI.txt(label, px + 52, ry, 13, COL.muted, 'left', 600);
+      UI.toggle(id, px + pw - 70, ry - 12, on);
+    });
+    UI.btnSub('exit', px + pw * .3, py + ph - 40, 52, 'back');
+    UI.btnMain('resume', px + pw * .68, py + ph - 40, 32, 'play');
+    if (G.langOpen) {
+      // 언어 20개: 2열 × 10줄, 자기 표기 (ui.md)
+      const langs = I18N.available(), lx = VW * .5, lw = VW * .44, top = VH * .07, rowH = Math.min(31, (VH * .86 - 20) / 10);
+      UI.panel(lx, top - 8, lw, rowH * 10 + 16);
+      langs.forEach((l, i) => {
+        const col = i % 2, row = Math.floor(i / 2), tx = lx + 16 + col * lw / 2, ty = top + rowH / 2 + row * rowH, on = l === I18N.lang, rtl = l === 'he';
+        if (on) UI.rr(tx - 8, ty - 13, lw / 2 - 16, 26, 8, 'rgba(217,174,79,.22)', COL.gold, 1.5);
+        UI.txt(I18N.LANG_NAMES[l], rtl ? tx + lw / 2 - 30 : tx, ty, 14, on ? COL.gold : COL.fg, rtl ? 'right' : 'left', on ? 700 : 500);
+        UI.hit('lang:' + l, tx - 8, ty - 13, lw / 2 - 16, 26);
+      });
+    }
+  }
+
+  function drawRoundPanel() {
+    const p = G.panel, c = G.country, w = 360, hh = 230, x = VW / 2 - w / 2, y = VH / 2 - hh / 2;
+    ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, VW, VH);
+    UI.panel(x, y, w, hh);
+    UI.I.check(x + 34, y + 30, 22, COL.hp);
+    UI.txt(t_('x.roundClear', { n: p.round }), VW / 2 + 10, y + 30, 22, COL.fg, 'center', 800, w - 80);
+    UI.txt(p.line, VW / 2, y + 60, 14, COL.glow, 'center', 700, w - 30);
+    // 장수 (왼쪽) — 금빛이 새 돈 비율로 줄어요
+    const k = Math.min(1, Math.max(0, (p.t - .5) / 1)), m = p.old + (p.now - p.old) * k;
+    ctx.fillStyle = `rgba(255,209,102,${.25 + .65 * m / 100})`; ctx.beginPath(); ctx.ellipse(x + 50, y + 170, 24, 7, 0, 0, Math.PI * 2); ctx.fill();
+    UI.hero(c.key, x + 50, y + 170, 90);
+    UI.I.coin(x + 108, y + 94, 22, c.sym);
+    UI.txt(`${UI.money(c, p.old)} → ${UI.money(c, m)}`, x + 124, y + 94, 16, COL.gold, 'left', 800);
+    UI.txt(`−${BAL.D}`, x + w - 20, y + 94, 16, COL.amber, 'right', 800);
+    [['heart', COL.red], ['sword', COL.fg], ['speed', COL.fg]].forEach(([ic, icc], i) => {   // 능력치 "???" (GDD 0-13)
+      const by = y + 122 + i * 17;
+      UI.I[ic](x + 112, by, 13, icc); UI.txt('???', x + 128, by, 12, COL.muted, 'left', 700);
+    });
+    for (let i = 0; i < 6; i++) {
+      const dx = VW / 2 - 45 + i * 18, dy = y + hh - 16;
+      if (i < p.round) UI.circ(dx, dy, 5, COL.gold);
+      else if (i === p.round) { if (Math.floor(G.t * 4) % 2) UI.circ(dx, dy, 5, null, '#FFFFFF', 2); else UI.circ(dx, dy, 5, COL.empty); }
+      else UI.circ(dx, dy, 5, COL.empty);
+    }
+  }
+
+  function drawEnding() {
+    const e = G.ending;
+    if (e.t < 3.6) {
+      const a = Math.min(1, e.t / .3) * (e.top ? 1 : Math.min(1, Math.max(0, (4.4 - e.t) / .3) + (e.t < 3.6 ? 1 : 0)));
+      ctx.globalAlpha = a;
+      UI.rr(VW / 2 - 220, VH * .2 - 30, 440, 92, 14, 'rgba(10,11,15,.6)');
+      if (e.top) { UI.I.trophy(VW / 2 - 70, VH * .2, 30, COL.gold); UI.txt(t_('x.clear'), VW / 2 + 10, VH * .2, 30, COL.glow, 'center', 900); }
+      else UI.txt(t_('x.roundClear', { n: 6 }), VW / 2, VH * .2, 26, COL.glow, 'center', 900);   // 2~15위: 보스는 깼지만 "클리어"라고 하지 않아요
+      UI.txt(e.line, VW / 2, VH * .2 + 40, 15, COL.fg, 'center', 700, 420);
+      ctx.globalAlpha = 1;
+    }
+    if (e.t > 2.2 && !e.top) {   // 2~15위: "…이 나라로는 빼고요." (1위는 반전 없이 클리어)
+      ctx.globalAlpha = Math.min(1, (e.t - 2.2) / .4);
+      UI.rr(VW / 2 - 200, VH * .78 - 20, 400, 40, 10, 'rgba(10,11,15,.7)');
+      UI.txt(t_('end.far.b'), VW / 2, VH * .78, 17, COL.fg, 'center', 700, 380);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawResult() {
+    const R = G.result, c = G.country, r = G.run;
+    if (!use3d) { UI.draw('room', 0, 0, VW, VH); ctx.fillStyle = 'rgba(15,17,22,.85)'; ctx.fillRect(0, 0, VW, VH); }
+    // 장수: 결과가 어떻든 같은 그림
+    UI.hero(c.key, VW * .15, VH - 6, Math.min(190, VH * .5), { sy: reduceMotion ? 1 : 1 + Math.sin(G.t * 2.2) * .015 });
+    const cx = VW / 2;
+    if (R.kind === 'clear') UI.I.trophy(cx, VH * .13, 50, COL.gold);
+    else if (R.kind === 'far') UI.I.flag(cx, VH * .13, 50, COL.glow);   // 여기까지: 트로피도 실패 깃발 색도 아닌 금빛 깃발
+    else if (R.kind === 'fail') UI.I.flag(cx, VH * .13, 50, COL.fg);
+    else UI.I.coin(cx, VH * .13, 50, c.sym, true);
+    const title = R.kind === 'clear' ? t_('end.clear.title') : R.kind === 'far' ? t_('end.far.title') : R.kind === 'fail' ? t_('x.fail') : t_('ui.07');
+    UI.txt(title, cx, VH * .29, 28, COL.fg, 'center', 800);
+    let ly = VH * .37;
+    if (R.kind === 'bankrupt') { UI.txt(c.sym + '0', cx, ly, 16, COL.amber, 'center', 800); ly += 20; }
+    if (R.time != null) { const T = Math.floor(R.time * 10) / 10, m = Math.floor(T / 60), sec = (T - m * 60).toFixed(1); UI.txt(T < 60 ? t_('end.time', { t: T.toFixed(1) }) : t_('end.time.min', { m, s: sec }), cx, ly, 15, COL.glow, 'center', 800); ly += 20; }   // 걸린 시간 (60초 넘으면 분·초, GDD 0-4 "나")
+    if (R.line) UI.para(R.line, cx, ly + 4, 13, COL.muted, Math.min(420, VW * .5), 17);
+    const iy = VH * .5;
+    UI.flag(c.iso, cx - 90, iy - 8, 24, 16); UI.txt(I18N.countryName(c), cx - 58, iy, 15, COL.fg, 'left', 700, 150);
+    for (let i = 0; i < 6; i++) UI.circ(cx - 45 + i * 18, VH * .59, 5, i < R.rounds ? COL.gold : COL.empty);
+    UI.I.alien(cx + 76, VH * .59, 16, '#CA57E5'); UI.txt(String(R.kills), cx + 90, VH * .59, 14, COL.fg, 'left', 800);
+    const b = best[c.key];
+    if (b) { if (b.far) UI.I.flag(cx - 30, VH * .67, 14, COL.glow); else UI.I.trophy(cx - 30, VH * .67, 14, COL.gold); UI.txt(`${b.rounds}/6 · ${b.kills}`, cx + 6, VH * .67, 13, COL.muted, 'center', 700); }   // "여기까지" 기록은 깃발
+    if (R.isNew) { UI.I.star(cx + 56, VH * .67, 16 + (reduceMotion ? 0 : Math.sin(G.t * 8) * 2), COL.glow); UI.txt('NEW', cx + 80, VH * .67, 11, COL.glow, 'left', 900); }
+    // 버튼 3개 (사용자 결정): 종료 · 다시하기 · 광고보기 — 모두 같은 크기
+    // 광고보기는 실패(한 판 1회)·파산(무제한)에서만, 광고 SDK가 준비됐을 때만 보여요
+    const by = VH * .82, bw = 146, bh = 50, gap = 14;
+    const canAd = !R.adFailed && (Platform.adsReady ? Platform.adsReady() : Platform.name !== 'web');
+    const adId = R.kind === 'fail' && !r.reviveUsed && canAd ? 'revive' : R.kind === 'bankrupt' && !R.final && canAd ? 'bankruptGo' : null;
+    const btns = [['quit', 'back', t_('x.quit'), 'sub'], ['restart', 'retry', t_('ui.05'), 'main']];
+    if (adId) btns.push([adId, 'video', t_('ui.06'), 'ad']);
+    const x0 = cx - (btns.length * bw + (btns.length - 1) * gap) / 2 + bw / 2 + (btns.length === 3 ? 30 : 0);
+    btns.forEach(([id, ic, label, kind], i) => UI.btnWide(id, x0 + i * (bw + gap), by, bw, bh, ic, label, kind));   // 출처 줄은 뺐어요 (GDD 0-13)
+  }
+
+  // ---------- 루프 ----------
+  let lastT = 0, slowT = 0;
+  // 미리보기 전용 진단 표시
+  const renderToggle = document.getElementById('rt');
+  const diag = renderToggle ? {
+    on: new URLSearchParams(location.search).get('debug') === '1', errs: [], el: null,
+    show(on) {
+      this.on = on;
+      renderToggle.hidden = !on;
+      if (this.el) this.el.hidden = !on;
+    },
+    err(m) { const s = String(m).split('\n').slice(0, 2).join(' | ').slice(0, 220); if (this.errs[this.errs.length - 1] !== s) this.errs.push(s); if (this.errs.length > 6) this.errs.shift(); },
+    draw() {
+      if (!this.el) { this.el = document.createElement('div'); this.el.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:9;max-width:70vw;font:10px/1.35 monospace;color:#F2E3C6;background:rgba(0,0,0,.72);padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre-wrap;word-break:break-all'; document.body.appendChild(this.el); }
+      const i = use3d && R3D.built ? R3D.info() : null;
+      const t = `${use3d ? '3D' : '2D'}${R3D.lost ? '(lost)' : ''} · maxTex ${i ? i.maxTex : '-'} · filter ${UI.FILTER_OK ? 'O' : 'X'} · dpr ${(window.devicePixelRatio || 1).toFixed(1)} · ${innerWidth}×${innerHeight}${i && i.low ? ' · low' : ''}\n${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 110)}` + (this.errs.length ? '\n⚠ ' + this.errs.join('\n⚠ ') : '');
+      if (t !== this.last) { this.el.textContent = t; this.last = t; }
+    },
+  } : null;
+  if (diag) {
+    try { diag.on ||= localStorage.getItem('aw.debug') === '1'; } catch {}
+    diag.show(diag.on);
+    const taps = [];
+    window.addEventListener('pointerup', e => {
+      if (!e.isPrimary || e.button !== 0 || e.clientX < 0 || e.clientX >= 40 || e.clientY < 0 || e.clientY >= 40) return;
+      const now = performance.now();
+      while (taps.length && now - taps[0] > 1500) taps.shift();
+      taps.push(now);
+      if (taps.length < 5) return;
+      taps.length = 0;
+      diag.show(!diag.on);
+      try { localStorage.setItem('aw.debug', diag.on ? '1' : '0'); } catch {}
+    }, true);
+    window.addEventListener('error', e => diag.err((e.message || 'error') + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
+    window.addEventListener('unhandledrejection', e => diag.err('promise: ' + (e.reason && (e.reason.message || e.reason))));
+  }
+  function loop(t) {
+    let left = Math.min((t - lastT) / 1000 || 0, 0.25);
+    lastT = t;
+    // 3D가 버거운 기기면 화질을 한 번 낮춰요 (3초 넘게 40fps 아래)
+    if (use3d && !R3D.low && G.scene === 'play' && !G.paused && left > 0) { slowT = left > 1 / 40 ? slowT + left : Math.max(0, slowT - left * .5); if (slowT > 3) R3D.lowQuality(); }
+    try {
+      while (left > 0) { const step = Math.min(left, 1 / 30); update(step); left -= step; }
+      draw();
+    } catch (err) { console.error(err); diag?.err(err && (err.stack || err.message) || String(err)); }
+    if (diag?.on) diag.draw();
+    requestAnimationFrame(loop);
+  }
+
+  // 시작 순서: SDK 초기화 → 에셋 로딩 → 로딩 끝 알림 → 시작 화면
+  requestAnimationFrame(loop);
+  const sdkInit = Promise.race([
+    Promise.resolve().then(() => Platform.init()).catch(err => console.warn('[Platform] init 실패 → 광고 없이 진행', err)),
+    new Promise(r => setTimeout(r, 5000)),
+  ]);
+  sdkInit.then(loadAssets).then(() => {
+    try { Platform.loadingFinished(); } catch (err) { console.warn('[Platform] loadingFinished 실패', err); }
+    G.scene = 'title';
+  });
+})();
