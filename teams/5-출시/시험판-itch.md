@@ -51,7 +51,7 @@
 > 돈이 곧 힘이에요. 장수의 힘은 실제 경제 자료에서 시작하고, 라운드를 깰 때마다 같은 금액이 줄어요. 같은 외계인, 같은 규칙, 다른 출발선.
 >
 > **조작**
-> - PC: WASD 이동 · 왼쪽 클릭 치기 · 오른쪽 클릭 쏘기 · 오른쪽/왼쪽 두 번 = 스킬 1/2 (마우스 자리에) · 양쪽 동시 = 무적 2초 ("한국! 버텨!" 외침 + 방어막) · Esc 일시정지
+> - PC: WASD 이동 · 왼쪽 클릭 치기 · 오른쪽 클릭 쏘기 · 오른쪽/왼쪽 두 번 = 스킬 1/2 (마우스 자리에) · 양쪽 동시 = 무적 2초 ("한국! 버텨!" 외침) · Esc 일시정지
 > - 폰(가로): 왼쪽 조이스틱 또는 가고 싶은 곳 톡 · 오른쪽 큰 원을 밀면 쏘기 · 화살표 ← 치기 · ↑ 스킬 1 · → 스킬 2 · ↓ 무적 2초
 > - 한국 스킬 2 "천자총통 포격": 장수가 화포에 올라타요. 이동은 WASD·왼쪽 조이스틱, 조준은 마우스·오른쪽 조이스틱으로 하고 쏴요. 타고 있는 동안은 무적이에요.
 >
@@ -68,13 +68,14 @@
 >
 > Aliens have invaded Earth. Pick a country and fight as its general in a top-down arena, with aliens pouring in from all four sides. Money is power: each general's strength starts from real economic data, and every round you clear costs the same amount. Same aliens, same rules, different starting lines.
 >
-> Controls — PC: WASD move · left-click strike · right-click shoot · double right/left-click = skill 1/2 at the cursor · both buttons = 2s invincibility (your general shouts and raises a shield) · Esc pause. Mobile (landscape): left stick or tap to move · push the big right circle to shoot · arrows ← strike, ↑ skill 1, → skill 2, ↓ 2s invincibility. Korea's skill 2 (Cheonja Cannon Barrage): your general rides the cannon. Move with WASD or the left stick, aim with the mouse or the right stick, and fire. You are invincible while riding.
+> Controls — PC: WASD move · left-click strike · right-click shoot · double right/left-click = skill 1/2 at the cursor · both buttons = 2s invincibility (your general shouts a battle cry) · Esc pause. Mobile (landscape): left stick or tap to move · push the big right circle to shoot · arrows ← strike, ↑ skill 1, → skill 2, ↓ 2s invincibility. Korea's skill 2 (Cheonja Cannon Barrage): your general rides the cannon. Move with WASD or the left stick, aim with the mouse or the right stick, and fire. You are invincible while riding.
 >
 > Please tell us: your device and browser (any lag?), what felt confusing, how far you got and whether you wanted to play again, and anything that felt offensive or uncomfortable.
 >
 > Economic data: GDP per capita (PPP) · OECD 2024 · Runs on WebGL (3D). If nothing shows, update your browser or turn on hardware acceleration.
 
 > 반전(1위만 클리어)은 시험판에서도 숨겨요 (사용자 결정 2026-11-26).
+> 방어막 그림은 빌드 239d7eb에 아직 없어서 문구에서 뺐어요. 방어막이 들어가면 무적 설명에 다시 넣어요.
 
 ### 스크린샷 목록 (가로 1280×720, 3~5장 · itch.io 권장 3~5장 [I4])
 | # | 장면 | 왜 |
