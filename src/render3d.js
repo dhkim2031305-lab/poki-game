@@ -1,6 +1,6 @@
 // 2.5D 렌더러 (B안 · 사용자 결정 "b안" 2026-11-25) — Three.js r149 (src/vendor/three.min.js, MIT)
 // 바닥·벽·문 = 진짜 3D (살짝 기운 원근 카메라, 조명, 그림자)
-// 장수·외계인·화폐 = 카메라를 보는 2D 판(빌보드) · 공격 효과·HUD = 2D 캔버스를 위에 겹쳐요 (R3D.proj로 자리·크기를 맞춰요)
+// 장수·외계인·화폐 = 카메라를 보는 2D 판(빌보드) · 스킬 효과 = 3D 판 · HUD와 일부 연출 = 2D 캔버스
 (() => {
   const T = window.THREE, FIELD = window.DATA.FIELD, UI = window.UI;
   const R = { ok: false, built: false };
@@ -9,6 +9,16 @@
   const W = FIELD.W, H = FIELD.H;
   // 벽: room 그림의 벽 띠와 같은 자리 (위 46 · 옆 42 · 아래 38), 앞 벽은 낮게 잘라 안이 보이게
   const WALL = { h: 30, top: 46, side: 42, bottom: 352, low: 9, door: 34 };
+  const { x0, y0, x1, y1 } = FIELD.floor;
+  const boundsPlanes = (left, back, right, front) => [
+    new T.Plane(new T.Vector3(1, 0, 0), -left),
+    new T.Plane(new T.Vector3(-1, 0, 0), right),
+    new T.Plane(new T.Vector3(0, 0, 1), -back),
+    new T.Plane(new T.Vector3(0, 0, -1), front),
+  ];
+  const floorPlanes = boundsPlanes(x0, y0, x1, y1);
+  const arenaPlanes = boundsPlanes(0, 0, W, H);
+  let arenaPath;
   const PITCH = 56;                 // 카메라가 내려다보는 각도(도) — 90이면 위에서 똑바로
   let renderer, scene, camera, gl, sun, impactLight;
   const camUp = new T.Vector3(), v1 = new T.Vector3(), v2 = new T.Vector3();
@@ -19,7 +29,7 @@
       gl = document.createElement('canvas'); gl.id = 'game3d';
       // WebGL이 없으면 three.js를 만들지 않아요 (만들면 console.error를 여러 번 찍어서 사이트 QA 도구가 에러로 셀 수 있음 — QA 7053b9a)
       { const probe = document.createElement('canvas'); const ok = !!(window.WebGLRenderingContext && (probe.getContext('webgl2') || probe.getContext('webgl') || probe.getContext('experimental-webgl'))); if (!ok) return false; }
-      renderer = new T.WebGLRenderer({ canvas: gl, antialias: false, alpha: false, powerPreference: 'high-performance' });
+      renderer = new T.WebGLRenderer({ canvas: gl, antialias: false, alpha: false, stencil: true, powerPreference: 'high-performance' });
     } catch (e) { console.warn('[3D] WebGL 초기화 실패', e); return false; }
     gameCanvas.parentNode.insertBefore(gl, gameCanvas);
     gl.style.display = 'none';
@@ -27,6 +37,7 @@
     gl.addEventListener('webglcontextlost', () => { R.lost = true; gl.style.display = 'none'; console.warn('[3D] WebGL 컨텍스트 잃음'); });
     renderer.setClearColor(0x0A0B0F, 1);
     renderer.autoClear = false;
+    renderer.localClippingEnabled = true;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
     // 폰(작은 화면·터치)은 픽셀 배율을 1.5까지만 — 60fps 우선
     try { if (matchMedia('(pointer: coarse)').matches) pixelCap = 1.5; } catch {}
@@ -223,7 +234,12 @@
     sun.castShadow = !R.low;
     const sc = sun.shadow.camera; sc.left = -470; sc.right = 470; sc.top = 380; sc.bottom = -380; sc.near = 100; sc.far = 1400;
     sun.shadow.mapSize.set(pixelCap < 2 ? 1024 : 2048, pixelCap < 2 ? 1024 : 2048); sun.shadow.bias = -0.0015; sun.shadow.normalBias = .6;
+    // 불투명한 방 표면이 보이는 픽셀만 스킬 빌보드에 허용해요.
+    for (const mat of new Set([floorMat, side, top, pm, voidMat])) {
+      Object.assign(mat, { stencilWrite: true, stencilRef: 1, stencilZPass: T.ReplaceStencilOp });
+    }
     fitCamera();
+    arenaPath = projectArena();
     return (R.built = true);
   }
 
@@ -243,6 +259,33 @@
     camUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
   }
 
+  // 고정 경기 카메라에서 바닥과 벽의 투영 면을 합쳐 2D 효과에도 같은 외곽을 써요.
+  function projectArena() {
+    const path = new Path2D();
+    scene.updateMatrixWorld(true);
+    scene.traverse(mesh => {
+      if (!mesh.isMesh) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      if (!mats.some(mat => mat.stencilWrite)) return;
+      const { index, attributes: { position } } = mesh.geometry;
+      const points = Array.from({ length: position.count }, (_, i) => {
+        v1.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld).project(camera);
+        return [(v1.x + 1) * W / 2, (1 - v1.y) * H / 2];
+      });
+      for (let i = 0; i < index.count; i += 3) {
+        const a = points[index.getX(i)], b = points[index.getX(i + 1)], c = points[index.getX(i + 2)];
+        const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+        if (cross >= 0) continue;
+        path.moveTo(...a); path.lineTo(...b); path.lineTo(...c); path.closePath();
+      }
+    });
+    return path;
+  }
+  R.clipArena = ctx => {
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.clip(arenaPath);
+  };
+
   // ---------- 판(빌보드)·바닥 무늬 풀 ----------
   const geoUp = new T.PlaneGeometry(1, 1); geoUp.translate(0, .5, 0);     // 아래 가운데가 발
   const geoFlat = new T.PlaneGeometry(1, 1); geoFlat.rotateX(-Math.PI / 2);
@@ -251,7 +294,7 @@
     let o = pool.s[used.s++];
     if (!o) {
       // alphaTest: 그림자를 그림 모양대로 (r149는 그림자 계산에 재질의 map·alphaTest를 그대로 써요)
-      const mat = new T.MeshBasicMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, alphaTest: .12 });
+      const mat = new T.MeshBasicMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, alphaTest: .12, stencilRef: 1, stencilFunc: T.EqualStencilFunc });
       const m = new T.Mesh(geoUp, mat); m.castShadow = true;
       const g = new T.Group(); g.add(m); scene.add(g);
       o = { g, m }; pool.s.push(o);
@@ -277,6 +320,8 @@
     m.material.opacity = mo.alpha != null ? mo.alpha : 1;
     if (mo.color != null) m.material.color.set(mo.color);
     else m.material.color.setScalar(mo.tint != null ? mo.tint : 1);
+    m.material.clippingPlanes = o.effect ? arenaPlanes : null;
+    m.material.stencilWrite = !!o.effect;
     m.material.blending = o.add ? T.AdditiveBlending : T.NormalBlending;
     const alphaTest = o.effect ? 0 : .12;
     if (m.material.alphaTest !== alphaTest) {
@@ -295,6 +340,7 @@
     if (!s) { s = new T.Mesh(geoFlat, new T.MeshBasicMaterial({ transparent: true, depthWrite: false })); scene.add(s); pool.d.push(s); }
     s.visible = true;
     if (s.material.map !== tex) { s.material.map = tex; s.material.needsUpdate = true; }
+    s.material.clippingPlanes = o.effect ? floorPlanes : null;
     s.material.blending = o.add ? T.AdditiveBlending : T.NormalBlending;
     s.material.opacity = o.alpha != null ? o.alpha : 1;
     s.rotation.y = -(o.angle || 0);
@@ -302,10 +348,10 @@
   };
   // 발밑 접촉 그림자 (해 그림자와 별개로 발이 바닥에 붙어 보이게)
   let blobTex = null;
-  R.blob = (x, y, r, a) => {
+  R.blob = (x, y, r, a, effect = false) => {
     if (!R.built || R.low) return;
     if (!blobTex) blobTex = gradTex([[0, 'rgba(0,0,0,1)'], [.55, 'rgba(0,0,0,.5)'], [1, 'rgba(0,0,0,0)']]);
-    R.decal(blobTex, x, y, r * 2, r * 1.2, { alpha: a, order: 40 });
+    R.decal(blobTex, x, y, r * 2, r * 1.2, { alpha: a, order: 40, effect });
   };
   R.impactLight = (x, y, intensity) => {
     if (!impactLight) {

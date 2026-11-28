@@ -1170,7 +1170,7 @@
 
   function koreaShadow(x, y, z, radius, alpha) {
     const scale = 1 / (1 + z / 100);
-    R3D.blob(x, y, radius * scale, alpha * scale);
+    R3D.blob(x, y, radius * scale, alpha * scale, true);
   }
 
   function drawKoreaBurn(a, lift) {
@@ -2214,7 +2214,7 @@
     const { ground = y, add = true, color, flat = false, facing = false, rot = facing ? 0 : angle, height = size, base = false, lift = 0, tint = 1, orderOffset = 0, renderOrder, top = false, variant = null } = opts;
     const flip = facing && Math.cos(angle) < 0;
     const tex = count === 1 ? R3D.tex(name, variant) : R3D.cellTex(name, variant, count, frame);
-    if (flat) R3D.decal(tex, x, ground, size, height, { alpha, add, angle: rot, order: 95 });
+    if (flat) R3D.decal(tex, x, ground, size, height, { alpha, add, angle: rot, order: 95, effect: true });
     else {
       const mo = { alpha, rot, flip, oy: y - ground, color, tint };
       const options = { aspect: size / height, center: !base, lift, shadow: false, add, effect: true, orderOffset, renderOrder, top };
@@ -2569,10 +2569,13 @@
         ctx.globalAlpha = age < T ? 1 : .6; ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(mt.x, mt.y, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       });
     }
+    ctx.save();
+    R3D.clipArena(ctx);
     for (const mk of G.marks) at(mk.x, mk.y, () => drawProp('austria-1', mk.x, mk.y, 0, mk.a, Math.min(.55, (mk.life - mk.t) / .3), false));
     for (const e of G.ents) e.draw?.(at);
     for (const z of G.zones) drawZoneFlight(z);
     drawHeroProp(h, at);
+    ctx.restore();
   }
 
   let landGreen = null;   // 사격 외계인용 초록 (hue-rotate −150°, 한 번만 만들어요)
@@ -2588,8 +2591,6 @@
     if (e.type === 'common') return drawCommonSkillFx(e);
     if (e.type !== 'aimFlash') return;
     ctx.save();
-    const { x0, y0, x1, y1 } = FIELD.floor;
-    ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.clip();
     ctx.globalAlpha = reduceMotion ? (Math.floor(k * 4) % 2 ? 0 : .9) : 1 - k;
     floorRing(e.x, e.y, e.r, SKW);
     ctx.restore();
@@ -2683,7 +2684,7 @@
     const altitude = clamp(z / 80, 0, 1);
     const radius = size * .3 * (1 - .5 * altitude);
     const shadow = alpha * (.35 - .2 * altitude);
-    R3D.blob(x, y, radius, shadow);
+    R3D.blob(x, y, radius, shadow, true);
     const p = R3D.proj(x, y, z);
     const next = R3D.proj(x + dx * .01, y + dy * .01, z + dz * .01);
     const vx = (next.x - p.x) * 100, vy = (next.y - p.y) * 100;
@@ -2709,6 +2710,11 @@
 
   function skillShadow(x, y, radius, alpha) {
     ctx.save();
+    // at()의 위치·크기 보정을 잠시 되돌려 전장 바닥 전체로 잘라요.
+    const local = ctx.getTransform(), p = R3D.proj(x, y);
+    ctx.translate(x, y); ctx.scale(1 / p.s, 1 / p.s); ctx.translate(-p.x, -p.y);
+    clipSkillFloor();
+    ctx.setTransform(local);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = alpha;
     ctx.fillStyle = '#000';
@@ -3440,6 +3446,13 @@
       if (e.type?.startsWith('korea')) { drawKoreaFloor(e); drawKoreaEffect(e); continue; }
       if (e.type === 'flight') { drawLaunchedSkill(e, k); continue; }
       if (e.type === 'art' && (['front', 'orbit', 'trail'].includes(e.mode) || (e.seqDash && skillSequence(e.img)))) { at(G.hero.x, G.hero.y, () => drawRepresentative(e)); continue; }
+      const floorFx = e.type === 'aimFlash' || e.kind === 'groundRing';
+      const clipFx = floorFx || e.kind === 'ghost';
+      if (clipFx) {
+        ctx.save();
+        if (floorFx) clipSkillFloor();
+        else R3D.clipArena(ctx);
+      }
       const h0 = e.h0 != null ? e.h0 : (FX_H0[e.kind] || 0);
       at(e.anchorX ?? e.x, e.y + h0, () => {
         if (e.kind === 'melee') FX.drawMeleeAny(e.m, e.x, e.y, e.a, k);
@@ -3456,6 +3469,7 @@
         else if (e.kind === 'ghost') drawGhost(e, k);
         else if (e.kind === 'jumpLand') drawJumpLand(e, k);
       });
+      if (clipFx) ctx.restore();
     }
     drawSkills(at);
     for (const s of G.shots) {
