@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round22-alive/korea-debris/sheet.png)에 파편 6종을 요청하신 순서대로 저장했습니다. 1536×1024 이미지의 3×2 칸마다 파편을 가운데에 배치했고, 긴 변을 205px로 맞췄습니다. 배경은 순수 초록 `#00FF00`으로 통일하고 파편 가장자리의 초록색 번짐을 제거했습니다.
