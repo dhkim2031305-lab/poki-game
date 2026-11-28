@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/greece-1-ground/sheet.png)에 저장했습니다. 1536×1024 시트에 확산 고리 4단계와 방패 자국 2단계를 요청하신 순서로 배치했습니다. 배경을 순수 초록 `#00FF00`으로 보정하고, 각 칸의 중심 정렬과 최소 24px 여백을 확인했습니다.

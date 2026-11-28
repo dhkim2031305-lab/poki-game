@@ -1,0 +1,1 @@
+[ sheet.png ](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/france-1-ground/sheet.png)에 저장했습니다. 1536×1024 PNG에 512×512 프레임 6개를 배치했고, 각 칸의 중심 정렬과 최소 24px 여백, `#00FF00` 배경을 확인했습니다. 6번은 5번과 같은 꽃잎 배치에 대비를 낮춰 잔상이 옅어지도록 했습니다.

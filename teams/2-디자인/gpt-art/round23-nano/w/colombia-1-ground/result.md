@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/colombia-1-ground/sheet.png)에 「엘도라도 황금 함성」 바닥 효과 6프레임을 저장했습니다. 1536×1024 크기에 3×2로 배치했으며, 순수 초록(`#00FF00`) 배경과 각 칸의 24px 이상 여백을 확인했습니다.

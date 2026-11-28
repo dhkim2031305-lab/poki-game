@@ -1,0 +1,1 @@
+[ sheet.png ](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/australia-2-ground/sheet.png)에 「부메랑 회오리」 바닥 효과 6칸을 저장했습니다. 생성 후 배경을 순수 초록 `#00FF00`으로 보정하고 각 그림을 칸 중앙에 맞췄습니다. 전체 크기 1536×1024와 각 칸의 최소 24px 여백을 확인했습니다.

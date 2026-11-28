@@ -1,0 +1,1 @@
+[ sheet.png ](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/poland-2-ground/sheet.png)에 저장했습니다. 1536×1024 크기의 3×2 시트에 확산 고리 4단계와 검은 자국 2단계를 요청하신 순서대로 배치했습니다. 배경을 `#00FF00`으로 맞췄고, 각 칸에 24px 이상의 여백을 확인했습니다.

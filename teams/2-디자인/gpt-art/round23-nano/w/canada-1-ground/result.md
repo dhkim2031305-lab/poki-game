@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/canada-1-ground/sheet.png)에 저장했습니다. 내장 이미지 생성 도구로 원형 충격파 4단계와 나무 부스러기 잔흔 2단계를 만들었습니다. 1536×1024 크기, 512×512 프레임 6칸, 순수 초록(`#00FF00`) 배경과 각 칸의 24px 여백을 확인했습니다.
