@@ -89,6 +89,7 @@
 | `bankrupt.again.03` | 통장은 그대로예요. | Your bank balance hasn't changed. | 두 번째 파산부터 (3개 중 무작위) | 확정 |
 | `continue.ad` | 이런다고 없던 돈이 생길까? | Think this will make money appear out of nowhere? | 광고를 보고 이어 갈 때 | 확정 |
 | `skill.shout` | (나라별) `skills.md` "skill-shout" 표의 그 나라 말 | (나라별, 번역 안 함) | 스킬 쓸 때 외침 · 글자 + 목소리 · **번역하지 않고 그 나라 말 그대로** 보여 줘요. 다른 언어 설정에서는 한 줄 뜻풀이를 작게 덧붙일 수 있어요 [제안] | 확정 (2026-11-25, 외침 방식) |
+| `invuln.shout` | (나라별) `invuln-shout.md` 표의 그 나라 말 "{나라}! 버텨!" | (나라별, 번역 안 함) | 무적 버튼 누를 때 외침 · 글자 말풍선 + 목소리 · 번역하지 않고 그 나라 말 그대로 (GDD 0-25) | 확정 (2026-11-28) · 원어민 확인 필요 |
 | `skill.name.01` | 눈먼 기사왕의 돌격 | Blind King's Charge | 룩셈부르크 스킬 이름 (돌진) · 2026-11-27 장수 개편(전: 사자 문장 돌격 / Lion Crest Charge) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.02` | 광전사 회오리 | Battle-Frenzy Whirl | 아일랜드 스킬 이름 (범위) · 2026-11-27 장수 개편(전: 회오리 도끼 / Whirlwind Axe) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
 | `skill.name.03` | 알프스 미늘창 덫 | Alpine Halberd Trap | 스위스 스킬 이름 (설치) · 2026-11-27 장수 개편(전: 미늘창 덫 / Halberd Trap) | 확정 · 18개 언어 Gemini 번역 반영 (팀장 fe9a6b7, **원어민 확인 필요**) |
