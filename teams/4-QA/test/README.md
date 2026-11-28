@@ -42,3 +42,5 @@
 | `tank.js` | 천자총통 탱크: 컷인 중 이동(M21)·탄 채 이동·마우스 조준·6발 착탄 자리(격자 45마리)·기본 포탄·쏘는 중 2번 막힘·탄 동안 무적 | `MODES=aim,move,block node tank.js OUT 8080` |
 | `touchtank.js` | 천자총통 탱크를 폰 터치로: 2번 톡 → 컷인 → 왼쪽 엄지 이동 + 오른쪽 큰 원 조준(두 손가락 동시, CDP) → 쏘는 중 2번 톡 막힘 | `node touchtank.js OUT 8080` |
 | `all60-3d.js` | 3D에서 30개국 × 스킬 1·2: 에러·console.error·404 0, 피해 배수, 첫 피해, 2번 컷인 길이 | `node all60-3d.js OUT 8080 [ci,…]` (빌드 ZIP은 풀어서 다른 포트로) |
+| `hitrange.js` | 판정 거리: 목표에서 20px 간격 외계인 줄(오른쪽·아래·위), 4초 동안 맞은 가장 먼 거리 | `node hitrange.js OUT 8080 [ci:n,…]` |
+| `pack60.js` | 고정 무리 처치 수: 30개국 × 스킬 1·2를 졸개 12 + 보스 1 무리에 한 번 쓰고 5초(체력 30·50). 소환·난수 없어 전후 비교용 | `node pack60.js OUT 8080` (전 코드는 git worktree + PORT=8081) |

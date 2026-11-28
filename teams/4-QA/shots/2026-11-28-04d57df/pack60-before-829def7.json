@@ -1,0 +1,768 @@
+[
+ {
+  "ci": 1,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 3,
+    "boss": 0
+   }
+  },
+  "ko": "룩셈부르크",
+  "errs": []
+ },
+ {
+  "ci": 2,
+  "r": {
+   "1-30": {
+    "kill": 12,
+    "boss": 0.82
+   },
+   "1-50": {
+    "kill": 12,
+    "boss": 0.82
+   },
+   "2-30": {
+    "kill": 4,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 4,
+    "boss": 0
+   }
+  },
+  "ko": "아일랜드",
+  "errs": []
+ },
+ {
+  "ci": 3,
+  "r": {
+   "1-30": {
+    "kill": 5,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 6,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 4,
+    "boss": 0
+   }
+  },
+  "ko": "스위스",
+  "errs": []
+ },
+ {
+  "ci": 4,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 0.6
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0.6
+   }
+  },
+  "ko": "미국",
+  "errs": []
+ },
+ {
+  "ci": 5,
+  "r": {
+   "1-30": {
+    "kill": 2,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 1,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0
+   }
+  },
+  "ko": "네덜란드",
+  "errs": []
+ },
+ {
+  "ci": 6,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 1
+   },
+   "2-50": {
+    "kill": 8,
+    "boss": 1
+   }
+  },
+  "ko": "덴마크",
+  "errs": []
+ },
+ {
+  "ci": 7,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 12,
+    "boss": 0.52
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0.5
+   }
+  },
+  "ko": "오스트리아",
+  "errs": []
+ },
+ {
+  "ci": 8,
+  "r": {
+   "1-30": {
+    "kill": 2,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 1
+   },
+   "2-50": {
+    "kill": 8,
+    "boss": 1
+   }
+  },
+  "ko": "호주",
+  "errs": []
+ },
+ {
+  "ci": 9,
+  "r": {
+   "1-30": {
+    "kill": 12,
+    "boss": 0.93
+   },
+   "1-50": {
+    "kill": 12,
+    "boss": 0.93
+   },
+   "2-30": {
+    "kill": 6,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0
+   }
+  },
+  "ko": "독일",
+  "errs": []
+ },
+ {
+  "ci": 10,
+  "r": {
+   "1-30": {
+    "kill": 6,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 5,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0
+   }
+  },
+  "ko": "스웨덴",
+  "errs": [
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:"
+  ]
+ },
+ {
+  "ci": 11,
+  "r": {
+   "1-30": {
+    "kill": 1,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 1,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 0.75
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0.75
+   }
+  },
+  "ko": "캐나다",
+  "errs": []
+ },
+ {
+  "ci": 12,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 0.75
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0.75
+   }
+  },
+  "ko": "핀란드",
+  "errs": []
+ },
+ {
+  "ci": 13,
+  "r": {
+   "1-30": {
+    "kill": 12,
+    "boss": 1.04
+   },
+   "1-50": {
+    "kill": 12,
+    "boss": 1.04
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "프랑스",
+  "errs": []
+ },
+ {
+  "ci": 14,
+  "r": {
+   "1-30": {
+    "kill": 6,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0
+   }
+  },
+  "ko": "이탈리아",
+  "errs": []
+ },
+ {
+  "ci": 15,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 0.6
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0.6
+   }
+  },
+  "ko": "한국",
+  "errs": []
+ },
+ {
+  "ci": 16,
+  "r": {
+   "1-30": {
+    "kill": 1,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 1,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 7,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "스페인",
+  "errs": []
+ },
+ {
+  "ci": 17,
+  "r": {
+   "1-30": {
+    "kill": 8,
+    "boss": 0.75
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0.75
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 0.7
+   },
+   "2-50": {
+    "kill": 5,
+    "boss": 0.7
+   }
+  },
+  "ko": "체코",
+  "errs": []
+ },
+ {
+  "ci": 18,
+  "r": {
+   "1-30": {
+    "kill": 4,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 4,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "이스라엘",
+  "errs": []
+ },
+ {
+  "ci": 19,
+  "r": {
+   "1-30": {
+    "kill": 7,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 1,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "리투아니아",
+  "errs": []
+ },
+ {
+  "ci": 20,
+  "r": {
+   "1-30": {
+    "kill": 8,
+    "boss": 0.75
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0.75
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "뉴질랜드",
+  "errs": []
+ },
+ {
+  "ci": 21,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "일본",
+  "errs": []
+ },
+ {
+  "ci": 22,
+  "r": {
+   "1-30": {
+    "kill": 12,
+    "boss": 0.62
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0.6
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0
+   }
+  },
+  "ko": "포르투갈",
+  "errs": []
+ },
+ {
+  "ci": 23,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 2,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 6,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "폴란드",
+  "errs": []
+ },
+ {
+  "ci": 24,
+  "r": {
+   "1-30": {
+    "kill": 0,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "헝가리",
+  "errs": []
+ },
+ {
+  "ci": 25,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 0,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "슬로바키아",
+  "errs": []
+ },
+ {
+  "ci": 26,
+  "r": {
+   "1-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "그리스",
+  "errs": []
+ },
+ {
+  "ci": 27,
+  "r": {
+   "1-30": {
+    "kill": 0,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 4,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 4,
+    "boss": 0
+   }
+  },
+  "ko": "튀르키예",
+  "errs": []
+ },
+ {
+  "ci": 28,
+  "r": {
+   "1-30": {
+    "kill": 2,
+    "boss": 0.5
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0.5
+   },
+   "2-30": {
+    "kill": 8,
+    "boss": 1.2
+   },
+   "2-50": {
+    "kill": 8,
+    "boss": 1.2
+   }
+  },
+  "ko": "칠레",
+  "errs": []
+ },
+ {
+  "ci": 29,
+  "r": {
+   "1-30": {
+    "kill": 5,
+    "boss": 0
+   },
+   "1-50": {
+    "kill": 5,
+    "boss": 0
+   },
+   "2-30": {
+    "kill": 7,
+    "boss": 0.6
+   },
+   "2-50": {
+    "kill": 2,
+    "boss": 0.6
+   }
+  },
+  "ko": "멕시코",
+  "errs": []
+ },
+ {
+  "ci": 30,
+  "r": {
+   "1-30": {
+    "kill": 2,
+    "boss": 0.3
+   },
+   "1-50": {
+    "kill": 0,
+    "boss": 0.3
+   },
+   "2-30": {
+    "kill": 3,
+    "boss": 0
+   },
+   "2-50": {
+    "kill": 0,
+    "boss": 0
+   }
+  },
+  "ko": "콜롬비아",
+  "errs": [
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:",
+   "ReferenceError: cloneCanvas is not defined\n    at drawGhost (http://localhost:8081/web/game.js:2631:"
+  ]
+ }
+]

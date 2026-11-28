@@ -1,0 +1,178 @@
+[
+ {
+  "ci": 9,
+  "n": 1,
+  "ko": "독일",
+  "axis": "x",
+  "maxPlus": 200,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 11,
+  "errs": []
+ },
+ {
+  "ci": 9,
+  "n": 1,
+  "ko": "독일",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 140,
+  "hits": 14,
+  "errs": []
+ },
+ {
+  "ci": 4,
+  "n": 2,
+  "ko": "미국",
+  "axis": "x",
+  "maxPlus": 160,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 9,
+  "errs": []
+ },
+ {
+  "ci": 4,
+  "n": 2,
+  "ko": "미국",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 140,
+  "hits": 14,
+  "errs": []
+ },
+ {
+  "ci": 8,
+  "n": 2,
+  "ko": "호주",
+  "axis": "x",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 7,
+  "errs": []
+ },
+ {
+  "ci": 8,
+  "n": 2,
+  "ko": "호주",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 120,
+  "hits": 13,
+  "errs": []
+ },
+ {
+  "ci": 28,
+  "n": 2,
+  "ko": "칠레",
+  "axis": "x",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 7,
+  "errs": []
+ },
+ {
+  "ci": 28,
+  "n": 2,
+  "ko": "칠레",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 120,
+  "hits": 13,
+  "errs": []
+ },
+ {
+  "ci": 11,
+  "n": 2,
+  "ko": "캐나다",
+  "axis": "x",
+  "maxPlus": 140,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 8,
+  "errs": []
+ },
+ {
+  "ci": 11,
+  "n": 2,
+  "ko": "캐나다",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 140,
+  "hits": 14,
+  "errs": []
+ },
+ {
+  "ci": 12,
+  "n": 2,
+  "ko": "핀란드",
+  "axis": "x",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 7,
+  "errs": []
+ },
+ {
+  "ci": 12,
+  "n": 2,
+  "ko": "핀란드",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 120,
+  "hits": 13,
+  "errs": []
+ },
+ {
+  "ci": 15,
+  "n": 2,
+  "ko": "한국",
+  "axis": "x",
+  "maxPlus": 160,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 9,
+  "errs": []
+ },
+ {
+  "ci": 15,
+  "n": 2,
+  "ko": "한국",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 140,
+  "hits": 14,
+  "errs": []
+ },
+ {
+  "ci": 6,
+  "n": 2,
+  "ko": "덴마크",
+  "axis": "x",
+  "maxPlus": 220,
+  "minPlus": 0,
+  "maxMinus": null,
+  "hits": 12,
+  "errs": []
+ },
+ {
+  "ci": 6,
+  "n": 2,
+  "ko": "덴마크",
+  "axis": "y",
+  "maxPlus": 120,
+  "minPlus": 0,
+  "maxMinus": 140,
+  "hits": 14,
+  "errs": []
+ }
+]
