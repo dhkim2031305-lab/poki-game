@@ -12,6 +12,13 @@
 - [ ] 외부 링크 없음, 다른 사이트 로고·이름 없음
 - [ ] ZIP 루트에 `index.html`, 용량 확인
 
+## 3D 전용 (개발 작업20 이후, 사용자 2026-11-28 "3d로만 게임 진행") — 2D 모드·`?render=2d`·2D 폴백 시험은 뺌
+- [ ] WebGL이 꺼진 브라우저(크롬 `--disable-webgl` / `--disable-3d-apis`, 사파리 흉내)에서 **안내 화면**이 뜨고 멈춤·콘솔 에러가 없음
+- [ ] 안내 화면이 폰 가로·세로와 PC에서 잘리지 않고, 출시 사이트 4곳 빌드 모두 같음
+- [ ] 저사양 흉내(폰 크기 844×390, CPU 4배 느리게 = CDP `Emulation.setCPUThrottlingRate` 4)에서 3D 프레임: 1라운드·보스·스킬 겹침 장면의 프레임 시간 p50·p95·최대와 30fps(33ms) 넘는 비율을 기록
+- [ ] 3D 그림자 자동 낮춤이 저사양에서 3초 안에 켜지는지
+- [ ] 실제 폰 fps(60, 저사양 30 이상)는 사람이 확인 — 이 서버는 GPU가 없어 swiftshader 숫자는 참고만
+
 ## Poki
 - [ ] `gameLoadingFinished` → `gameplayStart`/`Stop` 순서가 맞음
 - [ ] Poki for Developers 업로드 후 Inspector QA 통과
