@@ -1,0 +1,1 @@
+1024×1024 바닥 고리 이미지 한 장을 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/invuln-ring/sheet.png)에 저장했습니다. 얇은 이중 고리가 화면 중앙에서 약 80%를 차지하며, 빈 중앙과 바깥 배경은 순수 초록(`#00FF00`)입니다.

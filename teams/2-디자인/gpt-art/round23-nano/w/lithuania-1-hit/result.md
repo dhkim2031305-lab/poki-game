@@ -1,0 +1,1 @@
+「기둥 문장 창돌격」의 6프레임 충돌 효과를 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/lithuania-1-hit/sheet.png)로 저장했습니다. 1536×1024 크기의 3×2 배열이며, 각 칸의 충돌 중심을 맞추고 가장자리 24px를 순수 검정으로 확보했습니다.

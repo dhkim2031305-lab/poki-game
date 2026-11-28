@@ -1,0 +1,1 @@
+[이도류 삼연 베기 충돌 효과 sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/japan-2-hit/sheet.png)를 저장했습니다. 1536×1024 PNG에 512×512 프레임 6개를 3×2로 배치했습니다. 생성된 효과의 충돌점을 각 칸 중앙에 맞추고, 가장자리 24px 여백과 배경을 순수 검정으로 정리했습니다.
