@@ -145,6 +145,10 @@ def key_black(a):
   rgb=np.clip(rgb/np.maximum(al[...,None],1e-3),0,1)*(al[...,None]>0); return (np.dstack([rgb,al])*255).astype(np.uint8)
 def post(dp,j):
   gx,gy=j['grid']; c=j['cell']
+  # 크게 다시 뽑기: CELL_OVERRIDE='{"hit":512,"ground":512,"act":384,"after":384,"aura":384,"body":512}' (원본 w/*/sheet.png는 칸 512로 남아 있음)
+  ov=json.loads(os.environ.get('CELL_OVERRIDE','{}'))
+  suf=j['key'].rsplit('-',1)[1] if not j['key'].startswith('aura') else 'aura'
+  c=ov.get(suf,c)
   a=np.array(Image.open(dp+'/sheet.png').convert('RGBA').resize((gx*512,gy*512),Image.LANCZOS))
   def proc(t):
     if t[...,3].min()<250: return Image.fromarray(t)
