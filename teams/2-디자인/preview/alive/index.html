@@ -15,7 +15,7 @@ button[aria-pressed=true]{background:#4a5170}
 td canvas{background:#111;border-radius:4px;margin:1px;width:56px;height:56px}
 </style></head><body>
 <h1>살아 움직이는 스킬 — 한국 결정안 시안</h1>
-<p>사용자 결정: ① 거북선 돌격 = <b>감싸기</b>(스킬 불꽃이 감싼 거북선) + 장수가 배 위에 타고 돌진 ② 천자총통 포격 = <b>새 안</b>(포가 쏘고 불덩이 포탄이 날아감) + 장수가 포 위에 타고, 맞은 뒤 <b>적과 땅이 불탐</b>. 실제 게임 바닥 위, 게임 크기 2배.</p>
+<p><b>2차 수정</b>: 천자총통 — 장수 온몸이 불길에 휩싸여요(사용자 "스킬 2가 밋밋 → 장수 몸에 불을 뒤덮으세요").</p><p>사용자 결정: ① 거북선 돌격 = <b>감싸기</b>(스킬 불꽃이 감싼 거북선) + 장수가 배 위에 타고 돌진 ② 천자총통 포격 = <b>새 안</b>(포가 쏘고 불덩이 포탄이 날아감) + 장수가 포 위에 타고, 맞은 뒤 <b>적과 땅이 불탐</b>. 실제 게임 바닥 위, 게임 크기 2배.</p>
 <div class="bar"><button id="slow" aria-pressed="false">느리게 보기: 끔</button></div>
 <div class="g" id="g"></div>
 <h2 class="s">그림 성분 목록 (개발팀 작업16: 3D 장면에 넣는 방법)</h2>
@@ -23,7 +23,7 @@ td canvas{background:#111;border-radius:4px;margin:1px;width:56px;height:56px}
 <script>
 const W=440,H=240,S=2;let SPD=1;
 document.getElementById('slow').onclick=e=>{SPD=SPD===1?.25:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬 (¼배)');e.target.setAttribute('aria-pressed',SPD!==1)};
-const NAMES=['u-korea-1','u-korea-2','seq-korea-1','seq-korea-2','korea-2-fire','dir-korea','grunt-dir','room','korea-1-act','korea-2-act','korea-1-hit','korea-2-blast','korea-dust','korea-burn','korea-fire-ground','korea-ground','korea-debris'];
+const NAMES=['u-korea-1','u-korea-2','seq-korea-1','seq-korea-2','korea-2-fire','dir-korea','grunt-dir','room','korea-1-act','korea-2-act','korea-1-hit','korea-2-blast','korea-dust','korea-burn','korea-fire-ground','korea-ground','korea-debris','korea-2-aura'];
 const IM={};NAMES.forEach(n=>{const i=new Image();i.src=n+'.webp';IM[n]=i});
 const ok=n=>IM[n]&&IM[n].naturalWidth>0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*clamp(t,0,1),ease=t=>1-(1-clamp(t,0,1))**2;
@@ -84,7 +84,12 @@ SC.push({t:'한국 2 천자총통 포격',tag:'결정안',d:'장수가 화포 �
   this.as.forEach(a=>alien(x,a,t));
   let fi=0;SHOTS.forEach(([s])=>{const q=t-s;if(q>=0&&q<.36)fi=q/.06});const ca=t<2.2?1:clamp(1-(t-2.2)/.3,0,1);
   shadow(x,cx,cy,34,.35*ca);cell(x,'korea-2-fire',fi,cx,cy-30,90,{a:ca});
-  const recoil=fi>=2&&fi<4?-3:0;hero(x,t<2.2?cx-18+recoil:cx-18,t<2.2?cy-30:cy,t>=2.2);
+  const recoil=fi>=2&&fi<4?-3:0,hX=t<2.2?cx-18+recoil:cx-18,hY=t<2.2?cy-30:cy;
+  // 장수 온몸 불길 (사용자 "장수 몸에 불을 뒤덮으세요") — 뒤 층 + 앞 층
+  const au=ok('korea-2-aura')?'korea-2-aura':'korea-burn',aa=t<.15?t/.15:t>2.2?clamp(1-(t-2.2)/.3,0,1):1,asz=au==='korea-2-aura'?118:104;
+  cell(x,au,t/.08%4,hX,hY+4,asz,{add:1,bottom:1,a:aa});
+  hero(x,hX,hY,t>=2.2);
+  cell(x,au,(t/.08+2)%4,hX,hY+4,asz*.92,{add:1,bottom:1,a:aa*.55});
   SHOTS.forEach(([s,gx,gy,big],k)=>{const F=.42,q=t-s-.12,mx=cx+36,my=cy-42;
    if(q>=0&&q<F){const p=q/F,P=pp=>[lerp(mx,gx,pp),lerp(cy,gy,pp)-(4*80*pp*(1-pp)+(cy-my)*(1-pp))];const [px,py]=P(p),[qx,qy]=P(Math.max(0,p-.03));
     shadow(x,px,lerp(cy,gy,p),8*(.6+.4*p),.28);cell(x,'korea-2-act',t/.08%4,px,py,big?78:62,{rot:Math.atan2(py-qy,px-qx)})}
