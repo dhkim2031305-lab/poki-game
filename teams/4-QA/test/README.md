@@ -41,3 +41,4 @@
 | `webgl-lowend.js` | WebGL 끈 크롬에서 안내 화면(4사이트×3화면) + CPU 1·4배 느리게 실제 rAF 프레임·자동 저사양 | `node webgl-lowend.js OUT 8080` |
 | `tank.js` | 천자총통 탱크: 컷인 중 이동(M21)·탄 채 이동·마우스 조준·6발 착탄 자리(격자 45마리)·기본 포탄·쏘는 중 2번 막힘·탄 동안 무적 | `MODES=aim,move,block node tank.js OUT 8080` |
 | `touchtank.js` | 천자총통 탱크를 폰 터치로: 2번 톡 → 컷인 → 왼쪽 엄지 이동 + 오른쪽 큰 원 조준(두 손가락 동시, CDP) → 쏘는 중 2번 톡 막힘 | `node touchtank.js OUT 8080` |
+| `all60-3d.js` | 3D에서 30개국 × 스킬 1·2: 에러·console.error·404 0, 피해 배수, 첫 피해, 2번 컷인 길이 | `node all60-3d.js OUT 8080 [ci,…]` (빌드 ZIP은 풀어서 다른 포트로) |
