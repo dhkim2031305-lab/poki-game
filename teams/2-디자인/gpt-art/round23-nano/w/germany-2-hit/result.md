@@ -1,0 +1,1 @@
+「강철 손 내려찍기」 충돌 효과 6프레임을 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/germany-2-hit/sheet.png)로 저장했습니다. 1536×1024 PNG이며, 512×512 프레임을 3×2로 배치했습니다. 생성본의 배경을 순수 검정으로 정리하고 각 칸의 24px 여백을 확인했습니다.
