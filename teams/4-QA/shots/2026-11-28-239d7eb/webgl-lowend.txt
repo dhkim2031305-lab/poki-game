@@ -1,0 +1,26 @@
+WebGL 끔(--disable-webgl --disable-3d-apis) web 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) web 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) web 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) poki 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) poki 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) poki 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) crazygames 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) crazygames 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) crazygames 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) gamedistribution 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) gamedistribution 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-webgl --disable-3d-apis) gamedistribution 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 Failed to execute 'browsingTopics' on 'Document': document.browsingTopics() is deprecated and has been removed. | console: The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header.
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) web 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) web 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) web 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) poki 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) poki 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) poki 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) crazygames 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) crazygames 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) crazygames 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) gamedistribution 844×390: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) gamedistribution 390×844: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 Failed to execute 'browsingTopics' on 'Document': document.browsingTopics() is deprecated and has been removed. | console: The Cross-Origin-Opener-Policy header has been ignored, because the URL's origin was untrustworthy. It was defined either in the final response or a redirect. Please deliver the response using the HTTPS protocol. You can also use the 'localhost' origin instead. See https://www.w3.org/TR/powerful-features/#potentially-trustworthy-origin and https://html.spec.whatwg.org/#the-cross-origin-opener-policy-header.
+WebGL 끔(--disable-gpu --disable-software-rasterizer --disable-webgl) gamedistribution 1280×720: webgl=false 장면=null 글자="Try Again" 버튼=["Try Again"] 화면 밖 글자 0 스크롤 false 에러 0
+저사양 CPU 1배 느리게 844×390: 평균 32.8fps · 간격 p50 33.3 p95 66.6 최대 250ms · 33ms 넘음 72/418 · 자동 저사양 true (초마다 -LLLLLLLLLLL) · 그리기 호출 151 · 에러 0
+저사양 CPU 4배 느리게 844×390: 평균 21.2fps · 간격 p50 33.4 p95 99.9 최대 366.7ms · 33ms 넘음 131/283 · 자동 저사양 true (초마다 LLLLLLLLLLLL) · 그리기 호출 106 · 에러 0

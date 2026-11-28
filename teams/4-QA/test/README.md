@@ -39,3 +39,4 @@
 | `prop3d.js` | 소품 3D 빌보드 캡처(0.1·0.25·0.6·1.2초) | `node prop3d.js OUT 8080 14:2,3:2` |
 | `scenes16.js` | 작업15 시험 계획 16장면(거북선·천자총통 × 근·원 × 헛치기·1·여러·보스). 흔들림·외침 끄고 피해 기록 ↔ 접촉 신호(koreaHit·koreaBurn) 대조 + 0.1초 캡처 | `node scenes16.js OUT 8080 [1-near-boss,…]` |
 | `webgl-lowend.js` | WebGL 끈 크롬에서 안내 화면(4사이트×3화면) + CPU 1·4배 느리게 실제 rAF 프레임·자동 저사양 | `node webgl-lowend.js OUT 8080` |
+| `tank.js` | 천자총통 탱크: 컷인 중 이동(M21)·탄 채 이동·마우스 조준·6발 착탄 자리(격자 45마리)·기본 포탄·쏘는 중 2번 막힘·탄 동안 무적 | `MODES=aim,move,block node tank.js OUT 8080` |
