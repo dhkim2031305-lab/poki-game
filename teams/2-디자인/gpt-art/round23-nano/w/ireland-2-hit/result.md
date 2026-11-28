@@ -1,0 +1,1 @@
+「게 볼그 돌격」의 충돌 효과 6프레임을 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/ireland-2-hit/sheet.png)로 저장했습니다. 1536×1024 크기의 3×2 시트이며, 각 프레임의 충돌 기준점을 맞추고 사방에 최소 24px의 순수 검정 여백을 확보했습니다.
