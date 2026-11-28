@@ -46,6 +46,11 @@
 
 ## 인수인계
 
+- (디자인 → 기획·개발) **2026-11-28 한국 스킬 "살아 움직이기" 결정 (사용자 직접)** · 시안 `teams/2-디자인/preview/alive/`
+  - 사용자 결정: 거북선 돌격 = 스킬 불꽃이 감싼 노 젓는 거북선에 **장수가 타고** 돌진 / 천자총통 = 화포 반동 발사 → 불덩이 포탄이 날아감, **장수가 화포 위에 탐**, 맞은 뒤 **적 몸에 불이 붙고 땅에 잔불·그을린 자국**
+  - 기획: GDD·skills-unique에 이 연출 반영 필요. 한국1 모양 칸 "철갑 등껍질" → "나무 덮개 + 쇠송곳"으로(팀장 사실 확인, 그림도 그 방향으로 다시 그림)
+  - 개발(작업15·16): 성분별 그림 `gpt-art/round22-alive/out/` — ①바닥 korea-ground ②세움 korea-1-act·korea-1-hit·korea-dust·korea-2-act·korea-2-blast·korea-burn·korea-fire-ground ③파편 korea-debris. 사용자 확인 뒤 src에 넣어요
+
 - (기획 → 개발·디자인) **2026-11-28 스킬 이름 2개 + 소품 날리기 전부 없앰**
   - 개발: 이름 키 `skill.name.19` 기둥 문장 창돌격 / Pillar Crest Lance Charge · `skill2.name.17` 보헤미아 도리깨 / Bohemian Flail (translations/*.json 18개 언어 바뀜, 원어민 확인 필요)
   - 개발·디자인: 날아가는 건 스킬 효과 그림 자체만(던지는 무기 소품도 안 날림) · 효과는 끝 칸에서 멈추지 않고 계속 움직임(장판은 반복) · 움직임 크게 · 3D 장면 안에서 (GDD 0-20 2)
