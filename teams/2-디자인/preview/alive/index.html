@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>살아 움직이는 스킬</title>
+<style>
+:root{--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4;--acc:#ffd166}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#16171f;--card:#232533;--fg:#eef0f6;--sub:#9aa0b4}}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,sans-serif;padding:16px}
+h1{font-size:19px;margin:0 0 4px}p{color:var(--sub);margin:0 0 12px;max-width:960px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:12px}
+.c{background:var(--card);border-radius:10px;padding:10px}.c h2{font-size:14px;margin:0 0 6px}.c h2 b{color:var(--acc)}.c p{font-size:12.5px;margin:6px 0 0}
+canvas{width:100%;height:auto;display:block;border-radius:8px;background:#2b2a33}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button{background:#2f3244;color:var(--fg);border:1px solid #444a63;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+button[aria-pressed=true]{background:#4a5170}
+.strip{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.strip img{width:72px;height:72px;background:#111;border-radius:4px}
+</style></head><body>
+<h1>스킬이 살아 움직이기 — 한국 시안 (지금 ↔ 새 안)</h1>
+<p>새 안: 무기·대표 그림을 던지지 않고, <b>스킬의 주인공</b>(거북선 · 포탄 불덩이)이 4칸 반복 동작으로 스스로 움직여요. 부딪히는 자리에서만 충격·연기 그림이 터져요. 게임 크기의 2배로 보여요.</p>
+<div class="bar"><button id="slow" aria-pressed="false">느리게 보기: 끔</button></div>
+<div class="g" id="g"></div>
+<h2 style="font-size:15px;margin:18px 0 4px">새로 만든 4칸 그림</h2>
+<div class="strip" id="strip"></div>
+<script>
+const W=440,H=240,S=2;let SPD=1;
+document.getElementById('slow').onclick=e=>{SPD=SPD===1?.25:1;e.target.textContent='느리게 보기: '+(SPD===1?'끔':'켬 (¼배)');e.target.setAttribute('aria-pressed',SPD!==1)};
+const IM={};['u-korea-1','u-korea-2','seq-korea-1','seq-korea-2','common-impact','common-smoke','korea-2-fire','prop-korea-1','dir-korea','grunt-dir','korea-1-act','korea-2-act'].forEach(n=>{const i=new Image();i.src=n+'.webp';IM[n]=i});
+const ok=n=>IM[n]&&IM[n].naturalWidth>0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*clamp(t,0,1),ease=t=>1-(1-clamp(t,0,1))**2;
+function cell(x,n,i,cx,cy,size,opt={}){const im=IM[n];if(!ok(n))return;const ch=im.naturalHeight,cw=opt.cw||ch,cnt=Math.round(im.naturalWidth/cw);i=Math.max(0,Math.min(cnt-1,i|0));
+ x.save();x.globalAlpha=opt.a??1;if(opt.add)x.globalCompositeOperation='lighter';x.translate(cx,cy);if(opt.rot)x.rotate(opt.rot);if(opt.flip)x.scale(-1,1);const sh=size*(opt.sy||1);x.drawImage(im,i*cw,0,cw,ch,-size/2,-sh/2,size,sh);x.restore()}
+function floor(x){x.fillStyle='#2b2a33';x.fillRect(0,0,W,H);x.strokeStyle='rgba(255,255,255,.05)';for(let i=0;i<10;i++){x.beginPath();x.moveTo(0,20+i*24);x.lineTo(W,20+i*24);x.stroke()}for(let i=0;i<13;i++){x.beginPath();x.moveTo(i*36,0);x.lineTo(i*36,H);x.stroke()}}
+function shadow(x,cx,cy,r){x.fillStyle='rgba(0,0,0,.32)';x.beginPath();x.ellipse(cx,cy,r,r*.38,0,0,7);x.fill()}
+function hero(x,hx,hy,a=1){shadow(x,hx,hy,12);cell(x,'dir-korea',2,hx,hy-34,72,{a})}
+function alien(x,a){if(a.dead)return;const flash=a.hit>0;shadow(x,a.x,a.y,10);cell(x,'grunt-dir',4,a.x,a.y-24-(a.z||0),56,{flip:true});if(flash){x.save();x.globalAlpha=a.hit/.12*.6;x.globalCompositeOperation='lighter';cell(x,'grunt-dir',4,a.x,a.y-24-(a.z||0),56,{flip:true});x.restore()}}
+function mkAliens(list){return list.map(([x,y])=>({x,y,x0:x,y0:y,hit:0,vx:0,z:0,vz:0}))}
+function stepAliens(as,dt){as.forEach(a=>{a.hit=Math.max(0,a.hit-dt);a.x+=a.vx*dt;a.vx*=Math.pow(.02,dt);a.z=Math.max(0,a.z+a.vz*dt);a.vz-=900*dt;if(a.z===0)a.vz=0})}
+function knock(a,dx,pow){a.hit=.12;a.vx=dx*pow;a.vz=pow*.9}
+// ── 장면들 ──
+const SC=[];
+// 한국1 지금: 대표 그림을 장수 위치에 겹쳐 미끄러짐 → 끝에서 연속 그림
+SC.push({t:'한국 1 거북선 돌격',tag:'지금',d:'대표 그림(정지)이 장수와 함께 미끄러지고, 끝에서 한자리 연속 그림.',L:2.4,
+ init(){this.as=mkAliens([[300,150],[330,175],[345,135]])},
+ draw(x,t,dt){floor(x);const T0=.25,T1=.75;const p=ease((t-T0)/(T1-T0)),hx=lerp(70,290,p),hy=160;stepAliens(this.as,dt);
+  this.as.forEach(a=>{if(!a.k&&t>T0&&hx+30>a.x){a.k=1;knock(a,1,160)}});this.as.forEach(a=>alien(x,a));hero(x,hx,hy);
+  if(t>T0&&t<T1+.3)cell(x,'u-korea-1',0,hx+20,hy-30,110,{add:1,a:t>T1?1-(t-T1)/.3:1});
+  if(t>T1&&t<T1+.36)cell(x,'seq-korea-1',(t-T1)/.06,hx+40,hy-30,150,{add:1})}});
+// 한국1 새 안
+SC.push({t:'한국 1 거북선 돌격',tag:'새 안',d:'거북선이 노를 저으며 장수 앞에서 함께 돌진(4칸 반복) → 뱃머리가 닿는 그 적 앞에서 충격 그림, 적이 튕겨 나감.',L:2.4,
+ init(){this.as=mkAliens([[300,150],[330,175],[345,135]]);this.fx=[]},
+ draw(x,t,dt){floor(x);const T0=.25,T1=.85;const p=ease((t-T0)/(T1-T0)),hx=lerp(70,300,p),hy=160,bx=hx+46,by=hy-6;stepAliens(this.as,dt);
+  this.as.forEach(a=>{if(!a.k&&t>T0&&bx+30>a.x){a.k=1;knock(a,1,260);this.fx.push({x:a.x-14,y:a.y-24,t0:t})}});
+  const on=t>T0-.08&&t<T1+.3,fa=t>T1?1-(t-T1)/.3:clamp((t-T0+.08)/.08,0,1);
+  if(on){shadow(x,bx,by+6,40*fa);}
+  this.as.forEach(a=>alien(x,a));hero(x,hx,hy);
+  if(on){const bob=Math.sin(t*28)*1.5;if(ok('korea-1-act'))cell(x,'korea-1-act',t/.08%4,bx,by-30+bob,118,{a:fa});else cell(x,'prop-korea-1',0,bx,by-30+bob,96,{a:fa})}
+  this.fx.forEach(f=>{const q=t-f.t0;if(q>=0&&q<.36)cell(x,'common-impact',q/.06,f.x,f.y,90,{add:1})})}});
+// 한국2 지금: 대표 그림이 포물선으로 날아가 연속 그림
+SC.push({t:'한국 2 천자총통 포격',tag:'지금',d:'대표 그림(정지)이 포물선으로 날아가 도착 자리에서 연속 그림.',L:2.4,
+ init(){this.as=mkAliens([[300,140],[330,165],[280,170]])},
+ draw(x,t,dt){floor(x);const hx=70,hy=160,tx=310,ty=158,T0=.3,F=.45;stepAliens(this.as,dt);
+  if(t>T0+F&&!this.k){this.k=1;this.as.forEach(a=>knock(a,Math.sign(a.x-tx)||1,140))}
+  this.as.forEach(a=>alien(x,a));hero(x,hx,hy);
+  if(t>T0&&t<T0+F){const p=(t-T0)/F,px=lerp(hx+20,tx,p),gy=lerp(hy,ty,p),z=4*90*p*(1-p)+30*(1-p);shadow(x,px,gy,14);cell(x,'u-korea-2',0,px,gy-z,60+30*p,{add:1})}
+  if(t>=T0+F&&t<T0+F+.36)cell(x,'seq-korea-2',(t-T0-F)/.06,tx,ty-20,160,{add:1})}});
+// 한국2 새 안
+SC.push({t:'한국 2 천자총통 포격',tag:'새 안',d:'장수 옆 화포가 반동하며 쏘고(발사 6칸), 불덩이 포탄이 꼬리를 끌며 살아 있듯 날아가(4칸 반복) 떨어진 자리에서 충격+연기. 마지막 발은 가운데 큰 폭발.',L:3.4,
+ init(){this.as=mkAliens([[300,140],[335,168],[280,172],[350,130]]);this.sh=[]},
+ draw(x,t,dt){floor(x);const hx=60,hy=170,cx=hx+40,cy=hy-4,tx=315,ty=155;stepAliens(this.as,dt);
+  const SHOTS=[[.3,285,135],[.65,345,175],[1.0,265,175],[1.35,315,155,1]];
+  this.as.forEach(a=>alien(x,a));hero(x,hx,hy);
+  // 화포 발사(가장 가까운 발 기준 6칸)
+  let fi=0;SHOTS.forEach(([s])=>{const q=t-s;if(q>=0&&q<.36)fi=q/.06});cell(x,'korea-2-fire',fi,cx,cy-30,90,{a:t<1.75?1:clamp(1-(t-1.75)/.3,0,1)});
+  SHOTS.forEach(([s,gx,gy,big],k)=>{const F=.42,q=t-s-.12;const mx=cx+32,my=cy-40;
+   if(q>=0&&q<F){const p=q/F,px=lerp(mx,gx,p),g=lerp(cy,gy,p),z=4*80*p*(1-p)+(my<0?0:(cy-my))*(1-p);const vx=gx-mx,vy=(gy-cy)-320*(1-2*p)+0*z;
+    shadow(x,px,g,9*(.6+.4*p));const ang=Math.atan2((g-z)-(lerp(cy,gy,p-.02)-(4*80*(p-.02)*(1-p+.02)+(cy-my)*(1-p+.02))),px-lerp(mx,gx,p-.02));
+    if(ok('korea-2-act'))cell(x,'korea-2-act',t/.08%4,px,g-z,64,{add:1,rot:ang});else{x.fillStyle='#ffb050';x.beginPath();x.arc(px,g-z,5,0,7);x.fill()}}
+   const h=q-F;if(h>=0&&!this['k'+k]){this['k'+k]=1;this.as.forEach(a=>{const d=Math.hypot(a.x-gx,(a.y-gy)*1.6);if(d<(big?70:40))knock(a,Math.sign(a.x-gx)||1,big?220:120)})}
+   if(h>=0&&h<.36){cell(x,big?'seq-korea-2':'common-impact',h/.06,gx,gy-(big?22:14),big?170:80,{add:1})}
+   if(h>=.05&&h<1.2){const sa=h<.4?1:1-(h-.4)/.8;cell(x,'common-smoke',(h-.05)/.2,gx,gy-18,big?110:70,{a:sa*.8})}})}});
+const g=document.getElementById('g');
+SC.forEach(sc=>{const c=document.createElement('div');c.className='c';c.innerHTML=`<h2>${sc.t} — <b>${sc.tag}</b></h2><canvas width="${W*S}" height="${H*S}"></canvas><p>${sc.d}</p>`;g.appendChild(c);
+ const x=c.querySelector('canvas').getContext('2d');let tl=0,last=0;sc.init();
+ (function f(ts){const dt=Math.min(.05,(ts-(last||ts))/1000)*SPD;last=ts;tl+=dt;if(tl>sc.L){tl=0;sc.init();Object.keys(sc).forEach(k=>{if(/^k\d*$/.test(k))delete sc[k]})}x.setTransform(S,0,0,S,0,0);sc.draw(x,tl,dt);requestAnimationFrame(f)})(0)});
+const st=document.getElementById('strip');['korea-1-act','korea-2-act'].forEach(n=>{for(let i=0;i<4;i++){const cv=document.createElement('canvas');cv.width=144;cv.height=144;cv.style.cssText='width:72px;height:72px;background:#111;border-radius:4px';st.appendChild(cv);const go=()=>{if(!ok(n))return setTimeout(go,200);const im=IM[n],h=im.naturalHeight;cv.getContext('2d').drawImage(im,i*h,0,h,h,0,0,144,144)};go()}});
+</script></body></html>
