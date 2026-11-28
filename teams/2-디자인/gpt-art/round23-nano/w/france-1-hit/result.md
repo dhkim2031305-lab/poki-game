@@ -1,0 +1,1 @@
+금빛 백합 꽃잎이 충돌한 뒤 흩어지는 6프레임 스프라이트를 [sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/france-1-hit/sheet.png)에 저장했습니다. 1536×1024 크기와 각 칸의 24px 순검정 여백을 확인했고, 마지막 프레임의 잔광을 낮췄습니다.
