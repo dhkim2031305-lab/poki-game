@@ -40,6 +40,16 @@
 - [ ] 비밀번호가 들어간 링크 복사 → 직접 폰 두 대(안드로이드·아이폰)와 PC에서 열어 보기
 - [ ] 링크를 시험해 줄 사람들에게 보내기 → 받은 반응은 출시팀에 붙여 주기 (`release-log.md` 기록)
 
+### 시험판 파일 바꾸기 (같은 페이지에 새 버전 올리기)
+> 공식 문서: "If you make a mistake or release a new version of your game feel free to upload a new ZIP file and delete the old one." [I1]
+- [ ] 개발팀에서 새 빌드 받기 (`dist/web.zip`, 커밋 번호 확인)
+- [ ] itch.io → 같은 프로젝트 **Edit game** → Uploads에 새 `web.zip` 올리기
+- [ ] 새 파일에 **브라우저에서 플레이하도록 표시**가 켜져 있는지 다시 확인 (새로 올린 파일마다 따로 켜야 해요 — 화면에서 확인)
+- [ ] **옛 zip 지우기** (두 개가 남으면 어느 게 실행될지 헷갈려요)
+- [ ] 저장 → 비밀번호 링크로 폰·PC에서 새 버전이 뜨는지 확인 (안 바뀌어 보이면 새로고침)
+- [ ] 링크는 그대로라 시험해 준 사람들에게 "새 버전 올렸어요"만 알리기
+- [ ] `release-log.md` 기록 표에 버전·커밋 번호 적기
+
 ### 설명 문구 (시험판용)
 
 **제목**: 강한 놈만 살아남는 세상 (시험판) / A World Where Only the Strong Survive (Test Build)
