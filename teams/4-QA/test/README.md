@@ -46,3 +46,4 @@
 | `pack60.js` | 고정 무리 처치 수: 30개국 × 스킬 1·2를 졸개 12 + 보스 1 무리에 한 번 쓰고 5초(체력 30·50). 소환·난수 없어 전후 비교용 | `node pack60.js OUT 8080` (전 코드는 git worktree + PORT=8081) |
 | `edgefx.js` | 장수를 위쪽 벽 앞에 두고 위로 스킬 → 효과가 경기장 밖으로 넘치는지 캡처(전후 포트 비교) | `node edgefx.js OUT 8080 [ci:n,…]` |
 | `fpscmp.js` | 실제 rAF 프레임 간격: 같은 장면(외계인 8 + 스킬 1·2) 12초, CPU 1·4배 느리게 | `RATES=1,4 node fpscmp.js 8080 [ci,…]` |
+| `firstdl.js` | 첫 다운로드: 첫 Platform.gameplayStart()까지 받은 바이트(CDP encodedDataLength), 폰 DPR 3·PC, 느린 4G 옵션 | `node firstdl.js http://localhost:8080/crazygames/ 14 [1]` |
