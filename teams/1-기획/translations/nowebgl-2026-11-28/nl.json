@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Dit apparaat kan de 3D-weergave niet openen",
+ "ui.nowebgl.why": "Deze game werkt alleen in 3D, en 3D-graphics (WebGL) staan uit of worden niet ondersteund in deze browser.",
+ "ui.nowebgl.fix1": "Werk je browser bij naar de nieuwste versie.",
+ "ui.nowebgl.fix2": "Zet hardwareversnelling aan in de browserinstellingen.",
+ "ui.nowebgl.retry": "Opnieuw proberen"
+}

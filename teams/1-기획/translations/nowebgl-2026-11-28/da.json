@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Denne enhed kan ikke åbne 3D-visningen",
+ "ui.nowebgl.why": "Dette spil kører kun i 3D, og 3D-grafik (WebGL) er slået fra eller understøttes ikke i denne browser.",
+ "ui.nowebgl.fix1": "Opdater din browser til den nyeste version.",
+ "ui.nowebgl.fix2": "Slå hardwareacceleration til i browserens indstillinger.",
+ "ui.nowebgl.retry": "Prøv igen"
+}

@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Este dispositivo no puede abrir la vista 3D",
+ "ui.nowebgl.why": "Este juego solo funciona en 3D, y los gráficos 3D (WebGL) están desactivados o no son compatibles con este navegador.",
+ "ui.nowebgl.fix1": "Actualiza tu navegador a la última versión.",
+ "ui.nowebgl.fix2": "Activa la aceleración por hardware en la configuración del navegador.",
+ "ui.nowebgl.retry": "Reintentar"
+}

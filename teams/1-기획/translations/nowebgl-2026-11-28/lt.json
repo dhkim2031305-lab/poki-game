@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Šis įrenginys negali atidaryti 3D vaizdo",
+ "ui.nowebgl.why": "Šis žaidimas veikia tik 3D režimu, o 3D grafika (WebGL) šioje naršyklėje išjungta arba nepalaikoma.",
+ "ui.nowebgl.fix1": "Atnaujinkite naršyklę iki naujausios versijos.",
+ "ui.nowebgl.fix2": "Naršyklės nustatymuose įjunkite aparatinį spartinimą.",
+ "ui.nowebgl.retry": "Bandyti dar kartą"
+}

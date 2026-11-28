@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Ez az eszköz nem tudja megnyitni a 3D nézetet",
+ "ui.nowebgl.why": "Ez a játék csak 3D-ben fut, és ebben a böngészőben a 3D grafika (WebGL) ki van kapcsolva vagy nem támogatott.",
+ "ui.nowebgl.fix1": "Frissítsd a böngészőt a legújabb verzióra.",
+ "ui.nowebgl.fix2": "Kapcsold be a hardveres gyorsítást a böngésző beállításaiban.",
+ "ui.nowebgl.retry": "Újra"
+}

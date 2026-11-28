@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Tämä laite ei voi avata 3D-näkymää",
+ "ui.nowebgl.why": "Tämä peli toimii vain 3D:nä, ja 3D-grafiikka (WebGL) on pois päältä tai sitä ei tueta tässä selaimessa.",
+ "ui.nowebgl.fix1": "Päivitä selain uusimpaan versioon.",
+ "ui.nowebgl.fix2": "Ota laitteistokiihdytys käyttöön selaimen asetuksista.",
+ "ui.nowebgl.retry": "Yritä uudelleen"
+}

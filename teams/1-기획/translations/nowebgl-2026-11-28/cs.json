@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Toto zařízení nemůže otevřít 3D zobrazení",
+ "ui.nowebgl.why": "Tato hra běží pouze ve 3D a 3D grafika (WebGL) je v tomto prohlížeči vypnutá nebo není podporována.",
+ "ui.nowebgl.fix1": "Aktualizujte prohlížeč na nejnovější verzi.",
+ "ui.nowebgl.fix2": "V nastavení prohlížeče zapněte hardwarovou akceleraci.",
+ "ui.nowebgl.retry": "Zkusit znovu"
+}

@@ -1,0 +1,7 @@
+{
+ "ui.nowebgl.title": "Bu cihaz 3D görünümü açamıyor",
+ "ui.nowebgl.why": "Bu oyun yalnızca 3D olarak çalışıyor ve bu tarayıcıda 3D grafikler (WebGL) kapalı ya da desteklenmiyor.",
+ "ui.nowebgl.fix1": "Tarayıcını en son sürüme güncelle.",
+ "ui.nowebgl.fix2": "Tarayıcı ayarlarından donanım hızlandırmayı aç.",
+ "ui.nowebgl.retry": "Tekrar dene"
+}
