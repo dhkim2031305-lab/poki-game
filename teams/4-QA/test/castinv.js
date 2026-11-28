@@ -1,19 +1,20 @@
+// 3D 전용(9d95e89~): 커서는 G.dbgField(바닥→화면)로 둠
 // QA: 스킬 시전 중 무적 — 60개 스킬마다 외계인을 장수 몸에 붙여 두고(접촉 피해) 사격 탄도 계속 쏴서,
 // 시전 중(h.cast·h.dash·h.barrage) 피격 0인지, 끝난 직후 다시 맞는지(첫 피격까지 시간) 확인
 // node castinv.js [port] [나라번호들]
 const { chromium } = require('playwright');
 (async () => {
-  const [port = 8080, list = [...Array(30).keys()].join(',')] = process.argv.slice(2); const b = await chromium.launch(); const out = [];
+  const [port = 8080, list = [...Array(30).keys()].join(',')] = process.argv.slice(2); const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const out = [];
   for (const ci of list.split(',').map(Number)) {
     const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
-    await p.goto(`http://localhost:${port}/web/?render=2d`); await p.waitForFunction(() => window.G && G.scene === 'title');
+    await p.goto(`http://localhost:${port}/web/`); await p.waitForFunction(() => window.G && G.scene === 'title', null, { timeout: 60000 });
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(300);
     await p.mouse.move(400, 200); await p.mouse.move(420, 205); await p.evaluate(() => { window.__manual = true; }); await p.waitForTimeout(150);
     const r = await p.evaluate(async () => {
-      const c = document.querySelector('canvas'), FX = (844 - 1280 * 390 / 720) / 2; let t = performance.now(), mx = 0;
+      const c = document.getElementById('game'), FX = 0; let t = performance.now(), mx = 0;
       const step = () => { t += 1000 / 60; window.__cb(t); };
-      const cur = (x, y) => { const sx = x + FX; c.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: sx, clientY: y, movementX: (sx - mx) || 1, movementY: 1, bubbles: true })); mx = sx; };
+      const cur = (x, y) => { const q = G.dbgField(x, y), sx = q.x; c.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: sx, clientY: q.y, movementX: (sx - mx) || 1, movementY: 1, bubbles: true })); mx = sx; };
       const h = G.hero, res = [];
       for (const n of [1, 2]) {
         G.run.spawnT = 99; G.aliens = []; G.eshots = []; G.zones = []; G.ents = []; G.shots = []; h.cast = null; h.dash = null; h.barrage = null; h.inv = 0; h.skillT = 0;

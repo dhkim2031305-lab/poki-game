@@ -1,27 +1,27 @@
 // QA: 똑똑한 자동 봇 — 거리 유지(카이팅)·원거리 계속 쏘기·가까우면 치기·점프/사격 탄 피하기·위험할 때 무적·스킬은 몰린 자리·아이템 먹기
 // 실제 입력(키보드 WASD/J/K/L/;/Space + 마우스 커서)만 써요. 게임 시간은 1/60초씩 그대로, 프레임을 직접 넘겨 빨리 돌려요(판정 수치 안 바뀜).
 // node smartbot.js OUT [port] [나라번호들 0~29] [판수] [smart|mid|dumb]
-// 환경 변수: GOD=1 이면 체력이 60% 아래로 내려갈 때 다시 채우고, 20초 동안 처치가 없으면 장수를 남은 외계인 옆으로 옮겨요(봇이 가장자리 사격 외계인을 못 잡는 경우)(끝까지 가 보기 — 멈춤·오류·프레임 시간 확인용, 채운 횟수 기록) · RENDER=3d 면 3D로 · 프레임마다 update+draw 실제 시간(ms)을 재요
+// 환경 변수: GOD=1 이면 체력이 60% 아래로 내려갈 때 다시 채우고, 20초 동안 처치가 없으면 장수를 남은 외계인 옆으로 옮겨요(봇이 가장자리 사격 외계인을 못 잡는 경우)(끝까지 가 보기 — 멈춤·오류·프레임 시간 확인용, 채운 횟수 기록) · RENDER=… 이면 ?render= 붙임(9d95e89부터 3D만이라 보통 비움) · 프레임마다 update+draw 실제 시간(ms)을 재요
 // mid = 보통 사람 흉내: 판단 0.2초마다, 탄은 0.35초 안에 온 것만 60% 확률로 봄, 점프는 웅크림 절반 지나서야 봄, 무적은 체력 35% 아래에서만, 조준 ±12° 흔들림
 const { chromium } = require('playwright');
 (async () => {
   const [OUT, port = 8080, list = '0', runs = '5', mode = 'smart'] = process.argv.slice(2);
-  const b = await chromium.launch(); const fs = require('fs'); const all = [];
+  const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const fs = require('fs'); const all = [];
   for (const ci of list.split(',').map(Number)) for (let run = 0; run < +runs; run++) {
     const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
     await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
-    await p.goto(`http://localhost:${port}/web/?render=${process.env.RENDER || '2d'}`); await p.waitForFunction(() => window.G && G.scene === 'title', null, { timeout: 60000 });
+    await p.goto(`http://localhost:${port}/web/${process.env.RENDER ? '?render=' + process.env.RENDER : ''}`); await p.waitForFunction(() => window.G && G.scene === 'title', null, { timeout: 60000 });
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(200);
     await p.mouse.move(400, 200); await p.mouse.move(420, 210);   // 마우스 켜기 (PC 조준)
     await p.evaluate(() => { window.__manual = true; }); await p.waitForTimeout(120);
     const res = await p.evaluate(async ({ mode, seed, GOD }) => {
       // 재현 가능한 난수 (봇 망설임용) — 게임 난수는 건드리지 않아요
       let s = seed * 9301 + 49297; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
-      const c = document.querySelector('canvas'), FX = (844 - 1280 * 390 / 720) / 2, F = DATA.FIELD.floor;
+      const c = document.getElementById('game'), F = DATA.FIELD.floor;   // 3D: 커서는 G.dbgField(바닥→화면)
       const key = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
       const held = new Set(); const hold = (code, on) => { if (on && !held.has(code)) { held.add(code); key(code, true); } else if (!on && held.has(code)) { held.delete(code); key(code, false); } };
       const tap = code => { key(code, true); key(code, false); };
-      let mxPrev = 0; const cursor = (x, y) => { const sx = x + FX, sy = y; c.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: sx, clientY: sy, movementX: (sx - mxPrev) || 1, movementY: 1, bubbles: true })); mxPrev = sx; };
+      let mxPrev = 0; const cursor = (x, y) => { const q = G.dbgField(x, y), sx = q.x, sy = q.y; c.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: sx, clientY: sy, movementX: (sx - mxPrev) || 1, movementY: 1, bubbles: true })); mxPrev = sx; };
       const log = { rounds: [], cause: null, maxRound: 1, clear: false, kills: 0, t: 0, skills: [0, 0], inv: 0 };
       let t = performance.now(), lastHp = G.hero.hp, lastRound = 1, lastCause = null, frames = 0;
       const used = {}; let skillGap = 0;

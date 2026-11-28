@@ -37,3 +37,5 @@
 | `job11.js` | 60개 스킬: 쓴 뒤에만 나오는 캔버스 fill·stroke를 game.js 줄별로 셈(코드 도형 남았는지) + 소품(skill/prop) 그림 위치·복제 수·회전·높이 기록 | `node job11.js OUT 8080 [ci,…] [2d]` |
 | `cannon6.js` | 한국2 천자총통 6발: 착탄 시각·발마다 피해 배수·가운데/둘레 합계·장수 이동·화포 사라짐 | `node cannon6.js OUT 8080` |
 | `prop3d.js` | 소품 3D 빌보드 캡처(0.1·0.25·0.6·1.2초) | `node prop3d.js OUT 8080 14:2,3:2` |
+| `scenes16.js` | 작업15 시험 계획 16장면(거북선·천자총통 × 근·원 × 헛치기·1·여러·보스). 흔들림·외침 끄고 피해 기록 ↔ 접촉 신호(koreaHit·koreaBurn) 대조 + 0.1초 캡처 | `node scenes16.js OUT 8080 [1-near-boss,…]` |
+| `webgl-lowend.js` | WebGL 끈 크롬에서 안내 화면(4사이트×3화면) + CPU 1·4배 느리게 실제 rAF 프레임·자동 저사양 | `node webgl-lowend.js OUT 8080` |

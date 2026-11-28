@@ -1,3 +1,4 @@
+// 3D 전용(9d95e89~): 커서는 G.dbgField(바닥→화면)로 둠
 // QA: 1라운드에서 스킬 1·2만 번갈아 5번씩 써 보기 (30개국) — 쓸 때마다 피해(80×F 배수)·맞힌 수·1라운드 처치 환산·첫 피해까지 시간·제어
 // 측정을 위해: 장수는 맞지 않게(체력 유지)·가운데에 세움, 외계인 체력은 9999(웨이브가 안 끝나게), 일반 공격 안 씀. 조준은 외계인이 가장 몰린 자리(커서).
 // node skillprobe.js OUT [port] [나라번호들] [hp: inf | 30 | 50] [스킬: 1 | 2 | 12]
@@ -5,18 +6,18 @@
 const { chromium } = require('playwright');
 (async () => {
   const [OUT, port = 8080, list = [...Array(30).keys()].join(','), HPM = 'inf', SK = '12'] = process.argv.slice(2);
-  const b = await chromium.launch(); const fs = require('fs'); const all = [];
+  const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const fs = require('fs'); const all = [];
   for (const ci of list.split(',').map(Number)) {
     const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
-    await p.goto(`http://localhost:${port}/web/?render=2d`); await p.waitForFunction(() => window.G && G.scene === 'title');
+    await p.goto(`http://localhost:${port}/web/`); await p.waitForFunction(() => window.G && G.scene === 'title', null, { timeout: 60000 });
     await p.evaluate(ci => { G.scene = 'select'; G.sel = ci; }, ci); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(200);
     await p.mouse.move(400, 200); await p.mouse.move(420, 210);
     await p.evaluate(() => { window.__manual = true; }); await p.waitForTimeout(120);
     const res = await p.evaluate(async ({ HPM, SK }) => {
-      const c = document.querySelector('canvas'), FX = (844 - 1280 * 390 / 720) / 2, F = DATA.FIELD.floor, CX = (F.x0 + F.x1) / 2, CY = (F.y0 + F.y1) / 2 + 10;
+      const c = document.getElementById('game'), FX = 0, F = DATA.FIELD.floor, CX = (F.x0 + F.x1) / 2, CY = (F.y0 + F.y1) / 2 + 10;
       const key = code => { window.dispatchEvent(new KeyboardEvent('keydown', { code })); window.dispatchEvent(new KeyboardEvent('keyup', { code })); };
-      let mx = 0; const cursor = (x, y) => { const sx = x + FX; c.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: sx, clientY: y, movementX: (sx - mx) || 1, movementY: 1, bubbles: true })); mx = sx; };
+      let mx = 0; const cursor = (x, y) => { const q = G.dbgField(x, y), sx = q.x; c.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: sx, clientY: q.y, movementX: (sx - mx) || 1, movementY: 1, bubbles: true })); mx = sx; };
       let t = performance.now(); const step = () => { t += 1000 / 60; window.__cb(t); };
       const h = G.hero, U = 80 * G.run.st.F, uses = [];
       const prep = () => { h.hp = h.maxHp; const r = G.run;

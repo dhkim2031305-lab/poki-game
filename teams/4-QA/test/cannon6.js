@@ -3,11 +3,11 @@
 // 외계인: 목표 가운데 1마리(C) + 둘레 R×0.45 자리 5곳(발사 각도와 같은 자리, P0~P4) + 조금 먼 1마리(F, R×0.8). 체력 무한, 정지.
 const { chromium } = require('playwright'); const fs = require('fs');
 (async () => {
-  const [OUT, port = 8080] = process.argv.slice(2); const b = await chromium.launch(); const out = {};
+  const [OUT, port = 8080] = process.argv.slice(2); const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const out = {};
   for (const mode of ['stand', 'move']) {
     const p = await b.newPage({ viewport: { width: 844, height: 390 } }); const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.addInitScript(() => { const real = window.requestAnimationFrame.bind(window); window.__manual = false; window.requestAnimationFrame = cb => { if (window.__manual) { window.__cb = cb; return 1; } return real(cb); }; });
-    await p.goto(`http://localhost:${port}/web/?render=2d`); await p.waitForFunction(() => window.G && G.scene === 'title');
+    await p.goto(`http://localhost:${port}/web/`); await p.waitForFunction(() => window.G && G.scene === 'title', null, { timeout: 60000 });
     await p.evaluate(() => { G.scene = 'select'; G.sel = 14; }); await p.keyboard.press('Enter'); await p.waitForFunction(() => G.scene === 'play'); await p.waitForTimeout(400);
     const TX = 460, TY = 210;
     await p.evaluate(([TX, TY]) => {
@@ -24,24 +24,24 @@ const { chromium } = require('playwright'); const fs = require('fs');
     }, [TX, TY]);
     await p.waitForTimeout(100); await p.evaluate(() => { window.__t = performance.now(); window.__cb(window.__t); });
     // 공식 반지름 읽기: 겨냥 원 크기는 못 읽으니, 둘레 외계인 자리는 발사 각도(o.ang + i·72°) × R×0.45로 둠. R은 여러 값 시험
-    const fx = (844 - 1280 * 390 / 720) / 2;
-    await p.mouse.move(TX + fx - 30, TY + 5); await p.mouse.move(TX + fx, TY);
+    const sp = await p.evaluate(([x, y]) => G.dbgField(x, y), [TX, TY]);
+    await p.mouse.move(sp.x - 30, sp.y + 5); await p.mouse.move(sp.x, sp.y);
     const R = await p.evaluate(() => { try { return null; } catch { return null; } });
     await p.evaluate(([TX, TY]) => { const R = 140, ang = 0; G.aliens.push(__mk('C', TX, TY)); for (let i = 0; i < 5; i++) { const a = ang + i * Math.PI * 2 / 5; G.aliens.push(__mk('P' + i, TX + Math.cos(a) * R * .45, TY + Math.sin(a) * R * .45)); } G.aliens.push(__mk('F', TX, TY + R * .8));
       G.aliens.forEach(a => a.__hp = a.hp); }, [TX, TY]);
     await p.evaluate(() => { __f = 0; __log = []; __trace = []; });
     await p.keyboard.press('Semicolon');
-    if (mode === 'move') { await p.evaluate(() => __step(8)); await p.keyboard.down('KeyA'); await p.evaluate(() => __step(40)); await p.keyboard.up('KeyA'); await p.evaluate(() => __step(132)); }
+    if (mode === 'move') { await p.evaluate(() => __step(8)); await p.keyboard.down('KeyA'); await p.evaluate(() => __step(40)); await p.keyboard.up('KeyA'); await p.evaluate(() => __step(14)); await p.keyboard.down('KeyS'); await p.evaluate(() => __step(40)); await p.keyboard.up('KeyS'); await p.evaluate(() => __step(78)); }   // 0.13초(컷인 중)·1.03초(컷인 뒤) 두 번 움직여 봄
     else await p.evaluate(() => __step(180));
     if (mode === 'stand') for (const [f, name] of []) {}
-    const r = await p.evaluate(() => ({ F: G.run.st.F, log: __log, trace: __trace }));
+    const r = await p.evaluate(() => ({ F: G.run.st.F, log: __log, trace: __trace, cannon: (G.ents || []).filter(e => e.mounted !== undefined).map(e => [Math.round(e.x), Math.round(e.y), e.mounted]) }));
     const u = 80 * r.F, by = {};
     r.log.forEach(l => { (by[l.id] = by[l.id] || []).push(`${(l.f / 60).toFixed(2)}s ×${(l.d / u).toFixed(2)}`); });
     const tot = Object.fromEntries(Object.entries(by).map(([k]) => [k, +(r.log.filter(l => l.id === k).reduce((s, l) => s + l.d, 0) / u).toFixed(2)]));
     const times = [...new Set(r.log.map(l => (l.f / 60).toFixed(2)))];
     const castEnd = r.trace.find(t => !t.cast); const entEnd = r.trace.filter(t => t.ents > 0).slice(-1)[0];
     const moved = r.trace.filter(t => t.x !== r.trace[0].x || t.y !== r.trace[0].y)[0];
-    out[mode] = { 착탄시각: times, 마리별: by, 합계배수: tot, 시전끝: castEnd && (castEnd.f / 60).toFixed(2), 화포마지막: entEnd && (entEnd.f / 60).toFixed(2), 처음움직임: moved && (moved.f / 60).toFixed(2), 위치0: [r.trace[0].x, r.trace[0].y], 위치끝: [r.trace.slice(-1)[0].x, r.trace.slice(-1)[0].y], errs };
+    out[mode] = { 착탄시각: times, 마리별: by, 합계배수: tot, 시전끝: castEnd && (castEnd.f / 60).toFixed(2), 화포마지막: entEnd && (entEnd.f / 60).toFixed(2), 처음움직임: moved && (moved.f / 60).toFixed(2), 화포위치: r.cannon, 위치0: [r.trace[0].x, r.trace[0].y], 위치끝: [r.trace.slice(-1)[0].x, r.trace.slice(-1)[0].y], errs };
     // 캡처: 0.2·0.7·1.3·2.0초
     await p.close();
   }
