@@ -311,7 +311,7 @@
     for (const k of ['melee', 'skill', 'skill2', 'invuln']) {
       const b = B[k];
       if (Math.abs(p.x - b.x) < b.r + 4 && Math.abs(p.y - b.y) < b.r + 4) {
-        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0 && !aim) aim = { n, id: e.pointerId, b, drag: false, cancel: false, left: false, t: null, t0: e.timeStamp / 1000, p0: { x: p.x, y: p.y }, dp: { x: 0, y: 0 } }; }   // 끌어서 자리 고르기 (GDD 0-17)
+        if (k === 'skill' || k === 'skill2') { const n = k === 'skill' ? 1 : 2; if (sLeft(n) > 0 && !aim && !(n === 2 && G.hero?.koreaBattery?.firing())) aim = { n, id: e.pointerId, b, drag: false, cancel: false, left: false, t: null, t0: e.timeStamp / 1000, p0: { x: p.x, y: p.y }, dp: { x: 0, y: 0 } }; }   // 끌어서 자리 고르기 (GDD 0-17)
         else if (k === 'invuln') useInvuln();
         else if (!normalAttackLocked() && mArrow.id == null) { mArrow.id = e.pointerId; mArrow.x0 = p.x; mArrow.y0 = p.y; mArrow.dir = null; held.melee.add(e.pointerId); input.melee = true; buf.melee = 0.1; }
         return;
@@ -414,6 +414,7 @@
     if (aim && aim.id === e.pointerId) { const a = aim; aim = null; if (tap && G.scene === 'play' && !G.paused) { if (!a.drag) useSkill(a.n); else if (!a.cancel) useSkill(a.n, Math.hypot(a.dp.x, a.dp.y) > 10 ? a.t : undefined); } }   // 톡 = 가까운 외계인 · 끌어서 놓기 = 그 자리 · 취소 원에서 놓기 = 안 씀(횟수 그대로)
     for (const k of ['melee', 'ranged']) { held[k].delete(e.pointerId); input[k] = held[k].size > 0; }
   };
+  cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') mouse.on = false; });
   cv.addEventListener('pointerup', e => release(e, true));
   cv.addEventListener('pointercancel', e => release(e, false));      // 취소는 탭으로 치지 않아요
   cv.addEventListener('lostpointercapture', e => release(e, false));
@@ -456,7 +457,7 @@
   });
   window.addEventListener('keyup', e => keys.delete(e.code));
   // 창·탭을 벗어나면 설정 창 없이 조용히 멈추고(G.hold), 돌아오면 그대로 이어가요
-  const hold = () => { clearInput(); if (G.scene === 'play' && !G.paused) { setPause(true); G.hold = true; } };
+  const hold = () => { clearInput(); mouse.on = false; if (G.scene === 'play' && !G.paused) { setPause(true); G.hold = true; } };
   const unhold = () => { if (G.hold && !document.hidden) { G.hold = false; setPause(false); } };
   window.addEventListener('blur', hold); window.addEventListener('focus', unhold);
   document.addEventListener('visibilitychange', () => { if (document.hidden) hold(); else unhold(); });
@@ -499,7 +500,7 @@
           // 고른 나라의 몸·무기 그림을 불러온 뒤 시작 (이미 있으면 바로)
           const ci = G.sel; G.scene = 'loading'; G.load = 0;
           { const c = COUNTRIES[ci], v = `assets/sound/shout/${String(c.rank).padStart(2, '0')}-${c.key}-`; AUDIO.load(v + '1.mp3'); AUDIO.load(v + '2.mp3'); AUDIO.preload('battle'); }   // 외침 목소리 미리 받기 (없으면 조용히)
-          loadList(countryAssets(COUNTRIES[ci]), k => { G.load = k; }).then(() => { if (G.scene === 'loading') newRun(ci); });
+          loadList(countryAssets(COUNTRIES[ci]), k => { G.load = k; }).then(() => { try { R3D.warm(countryAssets(COUNTRIES[ci]).filter(n => n.startsWith('skill/'))); } catch {} if (G.scene === 'loading') newRun(ci); });
         }
         break;
       case 'play':
@@ -566,11 +567,11 @@
   }
 
   // ---------- 전투 ----------
-  function aimAt(maxAngle) {
+  function aimAt(maxAngle, x, y) {
     const h = G.hero; let bestA = null, bd = Infinity;
     for (const a of G.aliens) {
       if (a.entering && !inFloor(a)) continue;
-      const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
+      const dx = a.x - x, dy = a.y - y, d = Math.hypot(dx, dy);
       const ang = Math.acos(clamp((dx * h.dir.x + dy * h.dir.y) / (d || 1), -1, 1));
       if (ang <= maxAngle && d < bd) { bd = d; bestA = a; }
     }
@@ -579,16 +580,20 @@
   const atkMul = () => (G.hero.buff ? G.hero.buff.mul : 1);
   const atkSpd = () => (G.hero.boostT > 0 ? BAL.INVULN_ATK_SPEED : 1);   // 무적 중 공격 속도 2.5배
   function melee() {
-    const h = G.hero, st = G.run.st;
-    const near = mouse.on || (mArrow.id != null && mArrow.dir) ? null : aimAt(Math.PI);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
+    const h = G.hero;
+    const { riderX: x = h.x, riderY: y = h.y } = h.koreaBattery?.mount() ?? {};
+    const near = mouse.on || (mArrow.id != null && mArrow.dir) ? null : aimAt(Math.PI, x, y);  // 폰·키보드: 가까운 적 쪽으로 몸을 돌려 쳐요 (마우스는 커서 쪽)
     if (mArrow.id != null && mArrow.dir) h.dir = { x: mArrow.dir.x, y: mArrow.dir.y };   // 폰 → 치기 화살표를 끌면 끈 방향 (GDD 0-18)
-    if (near && Math.hypot(near.x - h.x, near.y - h.y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - h.x, near.y - h.y) || 1; h.dir = { x: (near.x - h.x) / d, y: (near.y - h.y) / d }; }
+    if (near && Math.hypot(near.x - x, near.y - y) < TEMP.MELEE_RANGE + 40) { const d = Math.hypot(near.x - x, near.y - y) || 1; h.dir = { x: (near.x - x) / d, y: (near.y - y) / d }; }
     h.meleeCd = BAL.MELEE_CD / atkSpd(); h.atkT = 0;
     // 휘두르기 3단계: 예비동작 0.07 → 스윙 0.09 → 마무리 0.12 (피해는 스윙이 시작될 때)
     h.swing = { t: 0, ang: Math.atan2(h.dir.y, h.dir.x), hit: false };
     const swing = h.swing;
     if (h.boostT > 0 && !reduceMotion && BASIC_TRAIL) for (const [dl, al] of [[.04, .4], [.08, .2]]) after(dl, () => {
-      if (h.swing === swing) basicFx('boostSlash', h.x, h.y, .12, { a: swing.ang, al });
+      if (h.swing === swing) {
+        const ride = h.koreaBattery?.mount();
+        basicFx('boostSlash', ride?.riderX ?? h.x, ride?.riderY ?? h.y, .12, { a: swing.ang, al });
+      }
     }, swing);
     AUDIO.play('swing');
   }
@@ -605,14 +610,15 @@
   const wp = () => (FX.GUN[G.country.key] ? WP_GUN : WP[G.country.melee] || WP.slash);
   function meleeStrike() {
     const h = G.hero, st = G.run.st, sw = h.swing, P = wp();
+    const { riderX: x = h.x, riderY: y = h.y } = h.koreaBattery?.mount() ?? {};
     const dmg = st.melee * atkMul(), ang0 = sw.ang;
     const mk = G.country.melee, life = FX.meleeTime(mk);
     // 궤적은 가장 강한 칸(6칸 중 3번째)이 명중 프레임에 보이게 그 칸부터 재생해요
     if (P.gun) { const tp = weaponTip(ang0, 12); basicFx('bayonet', tp.x, tp.y, .06, { h0: h.y - tp.y, a: ang0 }); }   // 총검 끝 흰 짧은 섬광
-    else G.fx.push({ kind: 'melee', m: mk, x: h.x + Math.cos(ang0) * 6, y: h.y - 26 + Math.sin(ang0) * 4, h0: 26 - Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
+    else G.fx.push({ kind: 'melee', m: mk, x: x + Math.cos(ang0) * 6, y: y - 26 + Math.sin(ang0) * 4, h0: 26 - Math.sin(ang0) * 4, a: ang0, t: mk === 'spin' || mk === 'rapid' ? 0 : life * 2 / 6, life });
     const hits = [];
     for (const a of G.aliens) {
-      const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy);
+      const dx = a.x - x, dy = a.y - y, d = Math.hypot(dx, dy);
       if (a.dead || d > TEMP.MELEE_RANGE + a.r) continue;
       let da = Math.abs(Math.atan2(dy, dx) - ang0); if (da > Math.PI) da = Math.PI * 2 - da;
       if (d < a.r + 10 || da <= TEMP.MELEE_ARC / 2) hits.push({ a, d, nx: dx / (d || 1), ny: dy / (d || 1) });
@@ -648,10 +654,11 @@
   function ranged() {
     const h = G.hero, st = G.run.st;
     const sOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3;   // 폰 손잡이: 민 방향 그대로
-    const tgt = mouse.on || sOn ? null : aimAt(Math.PI * 75 / 180);
+    const { riderX: x = h.x, riderY: y = h.y } = h.koreaBattery?.mount() ?? {};
+    const tgt = mouse.on || sOn ? null : aimAt(Math.PI * 75 / 180, x, y);
     let dx = h.dir.x, dy = h.dir.y;
     if (sOn) { const l = Math.hypot(rstick.x, rstick.y); dx = rstick.x / l; dy = rstick.y / l; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
-    if (tgt) { const d = Math.hypot(tgt.x - h.x, tgt.y - h.y) || 1; dx = (tgt.x - h.x) / d; dy = (tgt.y - h.y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
+    if (tgt) { const d = Math.hypot(tgt.x - x, tgt.y - y) || 1; dx = (tgt.x - x) / d; dy = (tgt.y - y) / d; if (Math.abs(dx) > .2) h.dir = { x: dx, y: dy }; }
     h.rangedCd = BAL.RANGED_CD / atkSpd(); h.atkT = 0.18; h.rangedT = 0.35; h.aimShot = Math.atan2(dy, dx); h.shotT = G.combatT;
     const rk = G.country.ranged;
     const quake = rk === 'quake', sp = quake ? TEMP.SHOT_SPEED * .75 : TEMP.SHOT_SPEED;
@@ -817,7 +824,7 @@
   const skillPoseActive = h => !!(h.cast || h.dash || h.barrage || h.poseFollow || h.attackLock > 0);
   const hidesBasicEffect = e => skillPoseActive(G.hero) &&
     (e.kind === 'melee' || e.kind === 'muzzle' || e.type === 'boostSlash' || e.type === 'bayonet');
-  const castInvulnerable = h => G.scene === 'play' && !h.dead && !!(h.cast || h.dash || h.barrage);
+  const castInvulnerable = h => G.scene === 'play' && !h.dead && !!(h.cast || h.dash || h.barrage || h.koreaBattery?.mount());
   const followPose = (ang, life, lean = 0) => { G.hero.poseFollow = { k: 'follow', ang, life, lean, t: 0 }; };
   const finishCast = h => { if (h.cast) h.cast.pending = false; h.skillDebit = null; };
   const D2R = Math.PI / 180;
@@ -836,10 +843,6 @@
       const q = ready ? ease(clamp(.25 + .75 * t / TURTLE.PREP, 0, 1)) : c.end ? ease(clamp((t - c.end.t - TURTLE.END) / TURTLE.BACK, 0, 1)) : 0;
       const angle = ready ? rest - (REST + 40 * D2R) * side * q : c.ang + (rest - c.ang) * q;
       return { a: angle, push: 0, body: ready ? { oy: 3 * q, sx: 1 + .03 * q, sy: 1 - .05 * q } : { oy: c.end ? 2 * (1 - q) : 0 } };
-    }
-    if (c.k === 'cannon') {
-      const q = ease(clamp(t / CANNON.PREP, 0, 1));
-      return { a: rest + (c.ang - rest) * q, push: 3 * q, body: { oy: q } };
     }
     if (c.k === 'bowUp') {   // 활은 bowM이 그려요 · 몸만 살짝 젖혀요
       const q = t < .1 ? ease(t / .1) : t < FEEL_T.BOW_REL ? 1 : 1 - ease(Math.min(1, (t - FEEL_T.BOW_REL) / FEEL_T.BOW_BACK));
@@ -877,7 +880,8 @@
 
   const IMPACT_LIGHT = false;
   const KOREA_ART = {
-    'aura-water': 4, 'korea-1-act': 4, 'korea-1-hit': 6, 'korea-dust': 6,
+    'aura-water': 4, 'aura-fire': 4,   // 원소 기운 (디자인 52c1b9f): 한국1 물·한국2 불 — 그림이 없으면 koreaCell이 건너뛰어요 (QA F1 7053b9a)
+    'korea-1-act': 4, 'korea-1-hit': 6, 'korea-dust': 6,
     'korea-2-act': 4, 'korea-2-blast': 6, 'korea-burn': 4,
     'korea-fire-ground': 4, 'korea-ground': 6, 'korea-debris': 6,
   };
@@ -924,7 +928,7 @@
   function drawKoreaEffect(e) {
     const { x, y, t } = e;
     if (e.type === 'koreaHit') {
-      koreaCell('korea-1-hit', Math.floor(t / .04), x, y - e.height, 96, 1, { ground: y, angle: e.angle });
+      koreaCell('korea-1-hit', Math.floor(t / .04), x, y - e.height, 144, 1, { ground: y, angle: e.angle, renderOrder: 100000, top: true });   // QA M20: 1.5배 + 적(보스)보다 항상 앞
     } else if (e.type === 'koreaDust') {
       koreaCell('korea-dust', Math.min(5, Math.floor(t / .12)), x, y, 72,
         .5 * clamp((e.life - t) / (e.life - .25), 0, 1), { base: true, add: false, renderOrder: 99 });
@@ -1001,75 +1005,100 @@
     const x = clamp(h.x - o.dx * 24 - o.dy * 18, floor.x0 + 12, floor.x1 - 12);
     const y = clamp(h.y - o.dy * 24 + o.dx * 18, floor.y0 + 22, floor.y1);
     const origin = skillTip(h), shots = [], offsetX = x - h.x, offsetY = y - h.y;
+    h.poseFollow = null;
     castStart('cannon', CANNON.PREP, o.ang, { pending: true });
     const cast = h.cast;
     const lastFire = CANNON.INTERVAL * CANNON.COUNT;
+    const target = (battery, distance, r) => ({
+      x: clamp(battery.x + battery.aimDir.x * distance, floor.x0 + Math.min(r, 24), floor.x1 - Math.min(r, 24)),   // 벽 끝까지 조준되게 여유는 24px만 (위로 밀어도 원이 따라가요)
+      y: clamp(battery.y + battery.aimDir.y * distance, floor.y0 + Math.min(r, 24), floor.y1 - Math.min(r, 24)),
+      r,
+    });
     const battery = {
-      owner: cast, x, y, angle: o.ang, t: 0, mounted: true, roll: 0,
+      owner: cast, x, y, angle: o.ang, t: 0, mounted: true, aimDir: { x: o.dx, y: o.dy },
+      firing() { return !!this.mount() && this.t < CANNON.PREP + lastFire; },
+      autoN: 0,
+      syncAim() {
+        this.x = h.x + offsetX;
+        this.y = h.y + offsetY;
+        const stick = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3;
+        const dx = stick ? rstick.x : mouse.on ? mouse.gx - this.x : 0;
+        const dy = stick ? rstick.y : mouse.on ? mouse.gy - this.y : 0;
+        const length = Math.hypot(dx, dy);
+        if (length) this.aimDir = { x: dx / length, y: dy / length };
+        this.angle = Math.atan2(this.aimDir.y, this.aimDir.x);
+        h.dir = this.aimDir;
+      },
+      basicTarget() { return target(this, 140, 28); },
+      basicShot(dmg) {
+        const age = this.t - CANNON.PREP;
+        const p = this.pose(), { x: tx, y: ty, r } = this.basicTarget();
+        const muzzle = { x: p.x + p.side * 36, y: p.y - 42 };
+        shots.push({ tx, ty, last: false, basic: true, dmg, r, when: age, path: skillFlightPath(muzzle, Math.max(p.y, muzzle.y), tx, ty) });
+        AUDIO.play('impThrust');
+      },
       pose() {
         const age = this.t - CANNON.PREP;
         const q = clamp(this.t / CANNON.PREP, 0, 1);
         const side = Math.cos(this.angle) < 0 ? -1 : 1;
-        const rot = Math.atan2(side * Math.sin(this.angle), side * Math.cos(this.angle));
+        const rot = 0;   // 사용자 2026-11-28: 대포 그림은 한 방향 고정(돌리기·기울이기 없음), 좌우 뒤집기만
         const fire = shots[shots.length - 1], fireAge = fire ? age - fire.when : -1;
         const frame = fireAge >= 0 && fireAge < .30 ? Math.min(5, Math.floor(fireAge / .06 + 1e-9)) : 0;
-        const recoil = !reduceMotion && fireAge >= 0 ? 4 * clamp(1 - fireAge / .10, 0, 1) : 0;
         return {
-          x: origin.x + (this.x - origin.x) * q - side * recoil,
+          x: origin.x + (this.x - origin.x) * q,   // 반동으로 몸체를 밀지 않아요 (사용자: 대포가 흔들리면 안 됨)
           y: o.y0 + (this.y - o.y0) * q,
-          angle: this.angle, side, rot, frame, roll: this.roll,
+          angle: this.angle, side, rot, frame,
           alpha: clamp(1 - (age - lastFire) / CANNON.FADE, 0, 1),
         };
       },
+      aim() { return target(this, 200, R); },
+      shellTarget(i, aim = this.aim()) {
+        if (i === CANNON.COUNT - 1) return aim;
+        const a = o.ang + i * Math.PI * 2 / (CANNON.COUNT - 1);
+        return { x: aim.x + Math.cos(a) * R * .45, y: aim.y + Math.sin(a) * R * .45, r: R * .5 };
+      },
       mount() {
-        if (!this.mounted || this.t < CANNON.PREP || this.t >= CANNON.PREP + lastFire + CANNON.FADE) return null;
-        const p = this.pose();
-        return { ...p, riderX: p.x - p.side * (18 + (!reduceMotion && (p.frame === 2 || p.frame === 3) ? 3 : 0)), riderY: p.y - 30 + p.roll };
+        if (h.dead || !this.mounted || this.t < CANNON.PREP || this.t >= CANNON.PREP + lastFire + CANNON.FADE) return null;
+        const x = h.x + offsetX, y = h.y + offsetY;
+        const side = Math.cos(this.angle) < 0 ? -1 : 1;
+        return { y, riderX: x - side * 18, riderY: y - 30 };
       },
       drawCannon(p) {
         const name = 'skill/prop/korea-2-fire';
         if (p.alpha > 0 && UI.img[name]?.naturalWidth === 6 * 192 && UI.img[name].naturalHeight === 192) {
           koreaShadow(p.x, p.y, 0, 34, .35 * p.alpha);
-          drawSkillCell(name, 6, p.frame, p.x, p.y - 30 + p.roll, p.angle, 90, p.alpha,
+          drawSkillCell(name, 6, p.frame, p.x, p.y - 30, p.angle, 90, p.alpha,
             { ground: p.y, add: false, facing: true, rot: p.rot });
         }
       },
       update(dt) {
         if (h.dead) { this.mounted = false; return false; }
         const before = this.t - CANNON.PREP, age = (this.t += dt) - CANNON.PREP;
-        if (this.mounted) {
-          const nextX = h.x + offsetX, nextY = h.y + offsetY;
-          const moving = Math.hypot(nextX - this.x, nextY - this.y) > 1e-6;
-          this.x = nextX;
-          this.y = nextY;
-          this.roll = moving && !reduceMotion ? 2 * Math.sin(h.walkT * 36) : 0;
-          const dx = o.tx - this.x, dy = o.ty - this.y;
-          if (dx || dy) this.angle = Math.atan2(dy, dx);
-        }
+        if (this.mount()) this.syncAim();
         if (before < 0 && age >= 0) {
-          if (h.cast === cast) { finishCast(h); h.cast = null; }
+          if (h.cast === cast) {
+            finishCast(h);
+            h.cast = null;
+            h.attackLock = 0;
+          }
           AUDIO.play('impact');
         }
-        while (shots.length < CANNON.COUNT && age + 1e-9 >= (shots.length + 1) * CANNON.INTERVAL) {
-          const i = shots.length, last = i === CANNON.COUNT - 1;
-          const a = o.ang + i * Math.PI * 2 / (CANNON.COUNT - 1);
-          const offset = last ? 0 : R * .45;
-          const tx = clamp(o.tx + Math.cos(a) * offset, floor.x0 + 12, floor.x1 - 12);
-          const ty = clamp(o.ty + Math.sin(a) * offset, floor.y0 + 22, floor.y1);
+        while (this.autoN < CANNON.COUNT && age + 1e-9 >= (this.autoN + 1) * CANNON.INTERVAL) {
+          const i = this.autoN++, last = i === CANNON.COUNT - 1;
+          const { x: tx, y: ty, r } = this.shellTarget(i);
           const when = (i + 1) * CANNON.INTERVAL, p = this.pose();
           const ca = Math.cos(p.rot), sa = Math.sin(p.rot);
           const muzzle = {
             x: p.x + p.side * 36 * ca + 12 * sa,
-            y: p.y - 30 + p.roll + p.side * 36 * sa - 12 * ca,
+            y: p.y - 30 + p.side * 36 * sa - 12 * ca,
           };
-          shots.push({ tx, ty, last, when, path: skillFlightPath(muzzle, Math.max(p.y, muzzle.y), tx, ty) });
-          if (layerFx()) sfx('skillShake', p.x, p.y, .06, { amount: 1 });
-          AUDIO.play('impSmash');
+          shots.push({ tx, ty, last, r, when, path: skillFlightPath(muzzle, Math.max(p.y, muzzle.y), tx, ty) });
+          AUDIO.play('impSmash');   // 발사마다 화면 흔들림 없음 (마지막 착탄 흔들림만)
         }
         for (const shot of shots) {
           if (shot.landed || age + 1e-9 < shot.when + CANNON.FLY) continue;
           shot.landed = true;
-          hitCircle(shot.tx, shot.ty, R * (shot.last ? 1 : .5), o.dmg * (shot.last ? .4 : .2), {
+          hitCircle(shot.tx, shot.ty, shot.r, shot.dmg != null ? shot.dmg : o.dmg * (shot.last ? .4 : .2), {
             each(a, dx, dy) {
               a.koreaBurn = G.combatT;
               const kb = a.type === 'boss' ? 60 : reduceMotion ? 200 : 260;
@@ -1080,7 +1109,7 @@
           if (shot.last) koreaImpactBeat(shot.tx, shot.ty, 3, .05, true);
           AUDIO.play(shot.last ? 'impSmash' : 'impact');
         }
-        if (age < lastFire + Math.max(CANNON.FLY, CANNON.FADE)) return true;
+        if (age < lastFire + Math.max(CANNON.FLY, CANNON.FADE) || shots.some(x => !x.landed)) return true;
         this.mounted = false;
         if (h.koreaBattery === this) h.koreaBattery = null;
         return false;
@@ -1088,6 +1117,11 @@
       draw(at) {
         const age = this.t - CANNON.PREP, p = this.pose();
         at(p.x, p.y, () => this.drawCannon(p));
+        const m = this.mount();   // 원소 기운 불 (디자인 52c1b9f, 한국2): 탄 장수 둘레 — 뒤 층 1 + 앞 층 0.55(2칸 어긋나게)
+        if (m) { const f = Math.floor(this.t / .08) % 4; at(m.riderX, p.y, () => {
+          koreaCell('aura-fire', f, m.riderX, m.riderY, 130, p.alpha, { ground: p.y + 1, orderOffset: -.02 });
+          koreaCell('aura-fire', (f + 2) % 4, m.riderX, m.riderY, 130, p.alpha * .55, { ground: p.y + 1, orderOffset: .02 });
+        }); }
         for (const shot of shots) {
           if (shot.landed) continue;
           const pos = shot.path(clamp((age - shot.when) / CANNON.FLY, 0, 1));
@@ -1347,6 +1381,7 @@
   }
   function useSkill(n = 1, target) {
     const r = G.run, h = G.hero, f = FIELD.floor;
+    if (n === 2 && h && h.koreaBattery && h.koreaBattery.firing()) return;   // 천자총통 쏘는 중엔 2번을 다시 쓰지 않아요
     if (G.scene !== 'play' || G.paused || !r || sLeft(n) <= 0 || h.dead) return;
     const tg = target || autoTarget();
     if (skillCasting(h)) {
@@ -1354,7 +1389,7 @@
       return;
     }
     h.queuedSkill = null;
-    if (h.koreaBattery) { h.koreaBattery.mounted = false; h.koreaBattery.roll = 0; }
+    if (h.koreaBattery) h.koreaBattery.mounted = false;
     if (h.throwM && !h.throwM.released && h.throwM.t / h.throwM.k <= .3) { h.throwM = null; h.handEmpty = false; }
     if (h.bowM && !h.bowM.rel && !h.bowM.skill && h.bowM.t <= .3) h.bowM = null;
     if (h.swing && !h.swing.hit && h.swing.t < .1) h.swing = null;
@@ -1767,6 +1802,37 @@
       ctx.restore();
     });
   }
+  function drawCannonRange() {
+    const c = G.hero?.koreaBattery;
+    if (!c?.firing() || G.scene !== 'play' || G.cutin) return;
+    const aim = c.aim(), basic = c.basicTarget();
+    const shells = Array.from({ length: CANNON.COUNT - 1 }, (_, i) => c.shellTarget(i, aim));
+    // 모든 소형 탄착 원은 조준점을 포함해요. 각 방향에서 가장 먼 경계가 합집합의 윤곽이에요.
+    function outline(center, radiusAt) {
+      ctx.beginPath();
+      for (let i = 0; i < 120; i++) {
+        const a = i * Math.PI * 2 / 120, dx = Math.cos(a), dy = Math.sin(a);
+        const r = radiusAt(dx, dy);
+        const p = R3D.proj(center.x + dx * r, center.y + dy * r);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = SKS; ctx.lineWidth = 2;
+    ctx.setLineDash([10, 6]); ctx.lineDashOffset = -G.t * 40;
+    const reach = Math.max(aim.r, ...shells.map(sh => Math.hypot(sh.x - aim.x, sh.y - aim.y) + sh.r));
+    outline(aim, () => reach);   // 큰 점선 원: 6발이 닿는 전체 범위 (둥글게 한 원으로)
+    ctx.setLineDash([]);
+    ctx.strokeStyle = SKW; ctx.lineWidth = 2;
+    outline(aim, () => 10);   // 가운데 점: 조준 중심 (마지막 큰 한 발도 여기서 같은 크기 범위로 터져요 — 큰 원과 겹쳐서 따로 안 그려요)
+    ctx.lineWidth = 1.5;
+    outline(basic, () => basic.r);   // 작은 원: 기본 포탄
+    ctx.restore();
+  }
   const SKILL_FRAME = .06, SKILL_FADE = .30;
   const FLY_WEAPON_PROPS = false;
 
@@ -1798,13 +1864,13 @@
   }
 
   function drawSkillCell(name, count, frame, x, y, angle, size, alpha, opts = {}) {
-    const { ground = y, add = true, color, flat = false, facing = false, rot = facing ? 0 : angle, height = size, base = false, lift = 0, tint = 1, orderOffset = 0, renderOrder } = opts;
+    const { ground = y, add = true, color, flat = false, facing = false, rot = facing ? 0 : angle, height = size, base = false, lift = 0, tint = 1, orderOffset = 0, renderOrder, top = false } = opts;
     const flip = facing && Math.cos(angle) < 0;
     const tex = count === 1 ? R3D.tex(name) : R3D.cellTex(name, null, count, frame);
     if (flat) R3D.decal(tex, x, ground, size, height, { alpha, add, angle: rot, order: 95 });
     else {
       const mo = { alpha, rot, flip, oy: y - ground, color, tint };
-      const options = { aspect: size / height, center: !base, lift, shadow: false, add, effect: true, orderOffset, renderOrder };
+      const options = { aspect: size / height, center: !base, lift, shadow: false, add, effect: true, orderOffset, renderOrder, top };
       R3D.sprite(tex, x, ground, height, mo, options);
       if (color) R3D.sprite(tex, x, ground, height, { ...mo, color: null, alpha: alpha * .35 }, options);
     }
@@ -1974,7 +2040,7 @@
     const { x, y, center, side, angle, alpha, t } = p;
     const glow = Math.floor(t / .07) % 4;
     if (!front) koreaShadow(x, y + 2, 0, 48 * alpha, .35);
-    koreaCell('aura-water', glow, x - side * 4, center, 150, alpha * (front ? .55 : 1),
+    koreaCell('aura-water', front ? (glow + 2) % 4 : glow, x - side * 4, center, 150, alpha * (front ? .55 : 1),
       { ground: y, facing: true, angle, orderOffset: front ? .02 : -.02 });
     if (!front) koreaCell('korea-1-act', Math.floor(t / .08) % 4, x, center, 118, alpha,
       { ground: y, facing: true, angle, add: false, orderOffset: -.01 });
@@ -2072,6 +2138,7 @@
     const h = G.hero;
     if (!h) return;
     drawAim(at);
+    drawCannonRange();
     if (moveTo) {   // 톡 이동 목적지 (디자인 47d5870): 톡한 순간 은색 실선 고리 지름 32 → 12, 0.4초 · 가운데 흰 점 · 걷는 동안 흰 점(0.6)만 · 움직임 줄이기면 지름 20 고리 0.3초 깜빡
       const mt = moveTo, age = G.t - mt.t0, T = reduceMotion ? .3 : .4;
       at(mt.x, mt.y, () => {
@@ -2345,7 +2412,11 @@
     if (h.rangedT > 0) h.rangedT -= dt;
     updateThrow(h, dt); updateBow(h, dt); if (h.handEmpty && !h.throwM && (h.rangedCd <= 0 || h.swing)) h.handEmpty = false;   // 쿨타임이 끝나면 무기가 다시 손에
     // 마우스로 하면 몸이 커서 쪽을 봐요 (폰·키보드만 쓰면 가는 방향)
-    if (mouse.on) { const dx = mouse.x - h.x, dy = mouse.y - (h.y - 24), d = Math.hypot(dx, dy); if (d > 6) h.dir = { x: dx / d, y: dy / d }; }
+    if (mouse.on) {
+      const { riderX: x = h.x, riderY: y = h.y } = h.koreaBattery?.mount() ?? {};
+      const dx = mouse.x - x, dy = mouse.y - (y - 24), d = Math.hypot(dx, dy);
+      if (d > 6) h.dir = { x: dx / d, y: dy / d };
+    }
     h.inv = Math.max(0, h.inv - dt); h.skillT = Math.max(0, h.skillT - dt); h.boostT = Math.max(0, (h.boostT || 0) - dt); h.atkT = Math.max(0, h.atkT - dt); h.hitT = Math.max(0, h.hitT - dt);
     h.meleeCd -= dt; h.rangedCd -= dt;
     if (h.swing) {
@@ -2356,8 +2427,11 @@
     if (aim && !aim.drag && performance.now() / 1000 - aim.t0 >= AIM_HOLD) { aim.drag = true; aim.t = aimPoint(aim); }   // 0.2초 꾹 누르면 조준 모드
     const stickOn = rstick.id != null && Math.hypot(rstick.x, rstick.y) > .3 && !arrowHeld();   // 손잡이를 밀면 계속 쏘기, 화살표를 누르는 동안은 멈춤 (GDD 0-18)
     const mel = input.melee || input.mMelee || keys.has('KeyJ') || buf.melee > 0, rng = input.ranged || input.mRanged || keys.has('KeyK') || buf.ranged > 0 || stickOn;
+    const bat = h.koreaBattery?.mount() ? h.koreaBattery : null;
+    if (bat) bat.syncAim();
     if (!normalAttackLocked()) {
-      if (mel && h.meleeCd <= 0) { melee(); buf.melee = 0; } else if (rng && h.rangedCd <= 0) { ranged(); buf.ranged = 0; }
+      if (bat) { if ((mel || rng) && h.meleeCd <= 0) { bat.basicShot(G.run.st.melee * atkMul()); h.meleeCd = BAL.MELEE_CD / atkSpd(); buf.melee = buf.ranged = 0; } }
+      else if (mel && h.meleeCd <= 0) { melee(); buf.melee = 0; } else if (rng && h.rangedCd <= 0) { ranged(); buf.ranged = 0; }
     } else h.attackLock = Math.max(0, h.attackLock - dt);
     if (h.buff && (h.buff.t -= dt) <= 0) h.buff = null;
     updateSkills(dt);
@@ -2602,6 +2676,7 @@
       if (G.paused) return;
       if (G.hero.dead) { updatePlay(dt); return; }
       if (G.cutin) {
+        readMove();   // QA M21: 컷인 멈춤 동안 누른 이동도 그대로 이어받아요
         G.cutin.left -= dt;
         if (G.cutin.left <= 1e-9) G.cutin = null;
         return;
@@ -2973,6 +3048,8 @@
     const castingInvuln = castInvulnerable(h);
     if (!tipOnly && !castingInvuln && h.skillT > 0 && !(h.boostT > 0)) UI.circ(h.x, h.y - 28, 30, 'rgba(255,209,102,.18)', COL.glow, 2);   // 시전 뒤에 남는 돌진 무적 등
     // 몸
+    const ridingCannon = !!h.koreaBattery?.mount();
+    const cannonStill = h.cast?.k === 'cannon' || ridingCannon;
     let mo = { flip: h.dir.x < -0.05 };
     if (h.boostT > 0 && (h.boostT > .4 || Math.floor(h.boostT / .1) % 2 === 0)) mo.edge = 'rgba(201,206,214,.7)';   // 무적 2초: 몸 은빛 테두리, 끝나기 0.4초 전부터 2번 깜빡
     let frame = 0;
@@ -2995,8 +3072,8 @@
     else if (!skillPose && h.throwM) { const p = throwPose(h), ca = Math.cos(h.throwM.ang), sa = Math.sin(h.throwM.ang); frame = p.ph === 'wind' ? 5 : 6; mo.ox = ca * p.lean; mo.oy = sa * p.lean * .6; mo.rot = p.rot; mo.sx = p.sx; mo.sy = p.sy; }   // 던지기: 몸 기울기·회전·늘였다 줄이기
     else if (!skillPose && h.atkT > 0 && FX.GUN[c.key]) { frame = 6; const e = G.combatT - (h.shotT == null ? -9 : h.shotT); if (!reduceMotion && e < .06) mo.ox = -Math.cos(h.aimShot || 0) * (1 - e / .06); }   // 총: 반동은 몸 1px 뒤로만, 기울지 않아요
     else if (!skillPose && h.atkT > 0) { frame = h.atkT > .14 ? 5 : 6; if (!reduceMotion) { mo.rot = (mo.flip ? -1 : 1) * .16 * Math.sin((1 - h.atkT / .22) * Math.PI); mo.sx = 1.04; mo.sy = 1.04; } }
-    else if (h.moving && !(h.cast && UI.img['pose/' + c.key]?.naturalWidth)) { frame = reduceMotion ? 0 : 1 + Math.floor(h.walkT * 8) % 4; if (!reduceMotion) { const p = Math.abs(Math.sin(h.walkT * 11)); mo.oy = -p * 2; mo.rot = clamp(h.dir.x * .1, -.12, .12); } }
-    else if (!reduceMotion) mo.sy = 1 + Math.sin(t * 2.2) * .015;
+    else if (!cannonStill && h.moving && !(h.cast && UI.img['pose/' + c.key]?.naturalWidth)) { frame = reduceMotion ? 0 : 1 + Math.floor(h.walkT * 8) % 4; if (!reduceMotion) { const p = Math.abs(Math.sin(h.walkT * 11)); mo.oy = -p * 2; mo.rot = clamp(h.dir.x * .1, -.12, .12); } }
+    else if (!cannonStill && !reduceMotion) mo.sy = 1 + Math.sin(t * 2.2) * .015;
     if (!reduceMotion && h.heroSkill && (h.cast || h.barrage || h.dash)) {
       const age = G.combatT - h.heroSkill.start;
       const key = c.key, n = h.heroSkill.n;
@@ -3011,9 +3088,9 @@
     if (h.dash && h.dash.k === 'leap') mo.oy = (mo.oy || 0) - Math.sin(Math.PI * Math.min(1, h.dash.t / h.dash.dur)) * 70;   // 멕시코 1: 높이 뛰어올라요
     if (G.scene === 'ending' && G.ending.fell) { const k = Math.min(1, (G.ending.t - 3.6) / .18); mo.rot = (mo.flip ? -1 : 1) * k * Math.PI / 2; mo.oy = -k * 6; }
     if (h.inv > 0 && !h.dead && Math.floor(h.inv * 12) % 2 === 0) mo.alpha = .45;
-    mo.castOutline = castingInvuln && !(h.boostT > 0);
+    mo.castOutline = castingInvuln && (ridingCannon || !(h.boostT > 0));
     if (h.hitT > 0 && settings.flash) mo.white = true;
-    const drewHero = drawHero8(h, c, mo, skillPose, tipOnly);
+    const drewHero = drawHero8(h, c, mo, skillPose, tipOnly, cannonStill);
     if (tipOnly) return;
     if (!drewHero) drawCastOutline(mo, () => UI.frame(c.key, frame, h.x, h.y, 60, mo));   // 8방향 그림이 없으면 예전 동작 시트
     if (h.hitT > 0 && !settings.flash) { ctx.strokeStyle = COL.red; ctx.lineWidth = 2; ctx.strokeRect(h.x - 16, h.y - 60, 32, 60); }
@@ -3114,12 +3191,12 @@
     if (!bowNoStr || bowNoStr.src !== im) { const c = mkCv(im.naturalWidth, im.naturalHeight), x = c.getContext('2d'), k = im.naturalWidth / 288; x.drawImage(im, 0, 0); x.clearRect(52 * k, 150 * k, 184 * k, 12 * k); bowNoStr = { c, src: im }; }
     return bowNoStr.c;
   }
-  function bowFrame(h) {   // 활 가운데 · 축 (u = 활 길이 방향, v = 장수 쪽) · 당김 · 크기
+  function bowFrame(h, x = h.x, y = h.y) {   // 활 가운데 · 축 (u = 활 길이 방향, v = 장수 쪽) · 당김 · 크기
     const m = h.bowM, ang = m ? m.ang : (h.aimShot != null ? h.aimShot : Math.atan2(h.dir.y, h.dir.x)), ca = Math.cos(ang), sa = Math.sin(ang), sc = BOW.H / 192;
     let pull = 0, sx = 1, wob = 1, snapT = null;
     if (m && !m.rel) { const k = Math.min(1, m.t / m.T); pull = 10 * (1 - Math.pow(1 - k, 2)); sx = 1 - .1 * k; }
     else if (m && m.rel) { const e = m.t - m.T; pull = e < .03 ? 10 * (1 - e / .03) : 0; snapT = e; wob = e < .08 ? 1.08 - .08 * e / .08 : 1; }
-    const cx = h.x + ca * 20, cy = h.y - 32 + sa * 20 * .6;   // 몸 앞 20px (디자인 "시위가 몸·얼굴을 가로지르지 않게")
+    const cx = x + ca * 20, cy = y - 32 + sa * 20 * .6;   // 몸 앞 20px (디자인 "시위가 몸·얼굴을 가로지르지 않게")
     return { ang, ca, sa, sc, cx, cy, pull, sx, wob, snapT, u: { x: -sa, y: ca }, v: { x: -ca, y: -sa } };
   }
   const bowPt = (f, U, V) => ({ x: f.cx + f.u.x * U * f.wob + f.v.x * V, y: f.cy + f.u.y * U * f.wob + f.v.y * V });
@@ -3146,8 +3223,9 @@
     m.t += dt;
     if (!m.rel && m.t >= m.T && m.skill) m.rel = true;   // 스킬(화살비)용 당기기: 탄은 스킬이 쏴요
     if (!m.rel && m.t >= m.T) {
-      const f = bowFrame(h), nock = bowPt(f, 0, BOW.tipV * f.sc * f.sx + f.pull), sp = TEMP.SHOT_SPEED;
-      const sh = { boost: m.boost, kind: 'arrow', x: h.x + m.dx * 16, y: h.y + m.dy * 16, vx: m.dx * sp, vy: m.dy * sp, dmg: m.dmg, life: 1.6, age: 0, hits: null };
+      const { riderX: x = h.x, riderY: y = h.y } = h.koreaBattery?.mount() ?? {};
+      const f = bowFrame(h, x, y), nock = bowPt(f, 0, BOW.tipV * f.sc * f.sx + f.pull), sp = TEMP.SHOT_SPEED;
+      const sh = { boost: m.boost, kind: 'arrow', x: x + m.dx * 16, y: y + m.dy * 16, vx: m.dx * sp, vy: m.dy * sp, dmg: m.dmg, life: 1.6, age: 0, hits: null };
       const px = nock.x + f.ca * 22, py = nock.y + f.sa * 22;   // 걸려 있던 화살 자리에서 (탄 그림 꼬리가 시위 쪽)
       sh.ox = px - sh.x; sh.oy = py - (sh.y - 22); sh.tx = nock.x; sh.ty = nock.y;
       G.shots.push(sh); m.rel = true; AUDIO.play('attack');
@@ -3234,7 +3312,7 @@
   };
 
   function castBody(cast, key) {
-    const name = 'pose/' + key, type = cast?.k === 'cannon' ? POSE_TYPE.barrage : POSE_TYPE[cast?.type];
+    const name = 'pose/' + key, type = POSE_TYPE[cast?.type];
     if (type == null || !UI.img[name]?.naturalWidth) return null;
     const x = Math.cos(cast.ang), y = Math.sin(cast.ang);
     const dir = y >= Math.abs(x) - 1e-9 ? 0 : -y >= Math.abs(x) - 1e-9 ? 2 : 1;
@@ -3242,10 +3320,10 @@
     return { name, cell, flip: dir === 1 && x < 0, hand: hand && [hand[0] / 1.5, hand[1] / 1.5, dir === 2] };
   }
 
-  function drawHero8(h, c, mo, skillPose, tipOnly) {
+  function drawHero8(h, c, mo, skillPose, tipOnly, cannonStill) {
     const body = castBody(h.cast, c.key);
     if (!body && !UI.img['dir/' + c.key]?.naturalWidth) return false;
-    const pose = h.cast || h.poseFollow;
+    const pose = cannonStill ? null : h.cast || h.poseFollow;
     const aim = pose?.ang ?? (!skillPose && h.swing ? h.swing.ang : Math.atan2(h.dir.y, h.dir.x));
     const [cell, dirFlip] = heroDir(aim, c.key);
     const flip = body ? body.flip : dirFlip;
@@ -3279,7 +3357,7 @@
     drawCastOutline(bm, () => {
       if (body) UI.cellSprite(body.name, 12, body.cell, h.x, h.y, 60 * 128 / 112, bm);
       else {
-        const bf = bodyFrame(h, cell);
+        const bf = cannonStill ? { folder: 'dir', cell } : bodyFrame(h, cell);
         UI.dirBody(c.key, bf.cell, h.x, h.y, 60, bm, bf.folder);
       }
     });
@@ -3412,7 +3490,8 @@
     const meDown = mArrow.id != null;
     ctx.globalAlpha = dim; arrow(B.melee, meDown, true, false); UI.I.sword(B.melee.x, B.melee.y, B.melee.r * 1.1, COL.fg); ctx.globalAlpha = 1;
     for (const [n, b] of [[1, B.skill], [2, B.skill2]]) {
-      const me = drag && aim.n === n; ctx.globalAlpha = (sLeft(n) > 0 ? 1 : .4) * (drag && !me ? dim : 1);
+      const me = drag && aim.n === n, busy = n === 2 && h.koreaBattery && h.koreaBattery.firing();   // 천자총통 쏘는 중엔 2번 버튼을 흐리게 (눌러도 아무 일 없음)
+      ctx.globalAlpha = (sLeft(n) > 0 && !busy ? 1 : .4) * (drag && !me ? dim : 1);
       arrow(b, me, false, false); UI.txt(String(n), b.x, b.y + 1, 26, COL.fg, 'center', 900); badge(b, sLeft(n)); ctx.globalAlpha = 1;
     }
     ctx.globalAlpha = (r.invuln > 0 || h.skillT > 0 ? 1 : .4) * dim; arrow(B.invuln, false, false, h.skillT > 0, h.boostT > 0 ? Math.min(1, h.boostT / BAL.SKILL_TIME) : null); UI.I.shield(B.invuln.x, B.invuln.y, B.invuln.r * 1.05, COL.fg); badge(B.invuln, r.invuln); ctx.globalAlpha = 1;   // 무적 2초 동안 은 채움이 남은 만큼 줄어요

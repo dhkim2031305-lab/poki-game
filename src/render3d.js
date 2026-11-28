@@ -17,6 +17,8 @@
   R.init = gameCanvas => {
     try {
       gl = document.createElement('canvas'); gl.id = 'game3d';
+      // WebGL이 없으면 three.js를 만들지 않아요 (만들면 console.error를 여러 번 찍어서 사이트 QA 도구가 에러로 셀 수 있음 — QA 7053b9a)
+      { const probe = document.createElement('canvas'); const ok = !!(window.WebGLRenderingContext && (probe.getContext('webgl2') || probe.getContext('webgl') || probe.getContext('experimental-webgl'))); if (!ok) return false; }
       renderer = new T.WebGLRenderer({ canvas: gl, antialias: false, alpha: false, powerPreference: 'high-performance' });
     } catch (e) { console.warn('[3D] WebGL 초기화 실패', e); return false; }
     gameCanvas.parentNode.insertBefore(gl, gameCanvas);
@@ -62,6 +64,15 @@
     const t = base.clone(); t.repeat.set(1 / n, 1); t.offset.set(i / n, 0); t.needsUpdate = true;
     t.userData.aspect = base.image.width / n / base.image.height;
     return (texCache[key] = t);
+  };
+  // 렉 줄이기 (사용자 2026-11-28 "왜 렉이 걸리죠?"): 처음 쓰는 순간 그래픽 카드에 그림을 올리느라 멈칫해요 → 판 시작 때 미리 올려 둬요
+  R.warm = names => {
+    if (!renderer || !renderer.initTexture) return;
+    for (const name of names) {
+      const im = UI.img[name]; if (!im || !im.naturalWidth) continue;
+      const n = Math.max(1, Math.round(im.naturalWidth / im.naturalHeight));
+      for (let i = 0; i < n; i++) { const t = n > 1 ? R.cellTex(name, null, n, i) : R.tex(name); if (t) try { renderer.initTexture(t); } catch {} }
+    }
   };
   R.tex = (name, variant) => {
     const key = name + '|' + (variant || '');
@@ -265,7 +276,7 @@
       m.material.needsUpdate = true;
     }
     // 효과와 벽 뒤 캐릭터는 깊이를 검사하고, 캐릭터와 효과는 발 위치 순서로 겹쳐요.
-    m.material.depthTest = !!o.effect || y < WALL.top + 4;
+    m.material.depthTest = o.top ? false : (!!o.effect || y < WALL.top + 4);   // top: 항상 맨 앞 (거북선 접촉 불꽃 — QA M20)
     m.renderOrder = o.renderOrder ?? (100 + y + (o.orderOffset || 0));
     m.castShadow = o.shadow !== false;
   };
