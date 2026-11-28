@@ -92,15 +92,30 @@ def gpt(dp,j,out):
 def key_green(a):
   a=a.astype(float); r,g,b=a[...,0],a[...,1],a[...,2]; gs=g-np.maximum(r,b)
   al=np.clip(1-(gs-12)/70,0,1)*255; a[...,1]=np.minimum(g,np.minimum(np.maximum(r,b),r*.55+b*.45+8)); a[...,3]=al; return a.clip(0,255).astype(np.uint8)
+def edge_fill(a,cond):  # 칸 가장자리와 이어진 cond 영역(흰 테두리·여백) 찾기
+  import scipy.ndimage as nd
+  lab,_=nd.label(cond); e=set(np.unique(np.concatenate([lab[0],lab[-1],lab[:,0],lab[:,-1]])))-{0}
+  return np.isin(lab,list(e))
 def key_black(a):
-  a=a.astype(float)/255; rgb=a[...,:3]; lum=(rgb*[.299,.587,.114]).sum(-1); al=np.clip((lum-.04)/.22,0,1)
+  a=a.astype(float)/255; a=a.copy()
+  wm=edge_fill(a,(a[...,:3].min(-1)>.9)); a[wm,:3]=0   # 칸 둘레 흰 여백 → 검정
+  rgb=a[...,:3]
+  dk=(rgb.max(-1)<.3); ring=np.zeros(dk.shape,bool); ring[:48]=ring[-48:]=True; ring[:,:48]=ring[:,-48:]=True
+  sel=rgb[ring&dk]; bgc=np.median(sel,0) if len(sel)>50 else np.zeros(3)
+  rgb=np.clip((rgb-bgc)/np.maximum(1-bgc,.5),0,1)   # 검정이 아닌 어두운 배경도 빼기
+  lum=(rgb*[.299,.587,.114]).sum(-1); al=np.clip((lum-.04)/.22,0,1)
   rgb=np.clip(rgb/np.maximum(al[...,None],1e-3),0,1)*(al[...,None]>0); return (np.dstack([rgb,al])*255).astype(np.uint8)
 def post(dp,j):
   gx,gy=j['grid']; c=j['cell']
   a=np.array(Image.open(dp+'/sheet.png').convert('RGBA').resize((gx*512,gy*512),Image.LANCZOS))
-  if a[...,3].min()<250: im=Image.fromarray(a)
-  else: im=Image.fromarray(key_green(a) if j['bg']=='green' else key_black(a))
-  cs=[im.crop((x*512,y*512,x*512+512,y*512+512)).resize((c,c),Image.LANCZOS) for y in range(gy) for x in range(gx)]
+  def proc(t):
+    if t[...,3].min()<250: return Image.fromarray(t)
+    g=(t[...,1].astype(int)-np.maximum(t[...,0],t[...,2]).astype(int))
+    border=np.concatenate([g[:6].ravel(),g[-6:].ravel(),g[:,:6].ravel(),g[:,-6:].ravel()])
+    return Image.fromarray(key_green(t) if np.median(border)>80 else key_black(t))   # 실제 배경색으로 판단
+  def trim(im):  # 칸 가장자리 20px은 비움(여백 지시 28px) — 칸 테두리 선 제거
+    t=np.array(im); t[:40,:,3]=0; t[-40:,:,3]=0; t[:,:40,3]=0; t[:,-40:,3]=0; return Image.fromarray(t)
+  cs=[trim(proc(a[y*512:y*512+512,x*512:x*512+512].copy())).resize((c,c),Image.LANCZOS) for y in range(gy) for x in range(gx)]
   s=Image.new('RGBA',(len(cs)*c,c)); [s.alpha_composite(q,(i*c,0)) for i,q in enumerate(cs)]; s.save(f'{D}/out/{j["key"]}.webp','WEBP',quality=86,method=6)
 if __name__=='__main__':
   eng=sys.argv[1]; kinds=sys.argv[2].split(','); only=sys.argv[3:]
