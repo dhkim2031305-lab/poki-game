@@ -1119,8 +1119,8 @@
         at(p.x, p.y, () => this.drawCannon(p));
         const m = this.mount();   // 원소 기운 불 (디자인 52c1b9f, 한국2): 탄 장수 둘레 — 뒤 층 1 + 앞 층 0.55(2칸 어긋나게)
         if (m) { const f = Math.floor(this.t / .08) % 4; at(m.riderX, p.y, () => {
-          koreaCell('aura-fire', f, m.riderX, m.riderY, 130, p.alpha, { ground: p.y + 1, orderOffset: -.02 });
-          koreaCell('aura-fire', (f + 2) % 4, m.riderX, m.riderY, 130, p.alpha * .55, { ground: p.y + 1, orderOffset: .02 });
+          koreaCell('aura-fire', f, m.riderX, m.riderY, 130, p.alpha, { ground: p.y - 2, orderOffset: -.02 });   // QA M22: 화포보다 뒤
+          koreaCell('aura-fire', (f + 2) % 4, m.riderX, m.riderY, 130, p.alpha * .3, { ground: p.y - 2, orderOffset: .02 });   // QA M22: 앞 층도 화포 뒤 + 옅게 (타고 있는 대포가 보이게)
         }); }
         for (const shot of shots) {
           if (shot.landed) continue;
@@ -1822,6 +1822,7 @@
     }
     ctx.save();
     ctx.lineCap = 'round';
+    { const q = R3D.proj(aim.x, aim.y); if (G.touchUI && q.x < VW * .34 && q.y > VH * .38) ctx.globalAlpha = .3; }   // QA M22: 왼쪽 엄지 조이스틱 위에서는 범위 표시를 옅게
     ctx.strokeStyle = SKS; ctx.lineWidth = 2;
     ctx.setLineDash([10, 6]); ctx.lineDashOffset = -G.t * 40;
     const reach = Math.max(aim.r, ...shells.map(sh => Math.hypot(sh.x - aim.x, sh.y - aim.y) + sh.r));
