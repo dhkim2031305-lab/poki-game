@@ -1,0 +1,1 @@
+[sheet.png](/home/user/poki-game/teams/2-디자인/gpt-art/round23-nano/w/france-debris/sheet.png)를 저장했습니다. 1536×1024 이미지의 3×2 칸에 파편 6종을 하나씩 배치했습니다. 각 파편은 가장 긴 변이 약 205px이며, 칸 중앙 정렬과 순수 초록(`#00FF00`) 배경, 24px 이상의 가장자리 여백을 확인했습니다.
